@@ -370,72 +370,6 @@ body.demoMode .corner{background:rgba(0,0,0,.6);}
 
 /* Present mode: Shift+D only, no visible button */
 
-/* ── MOBILE GALLERY OVERLAY ── */
-.galleryOverlay{
-  display:none;
-  position:absolute; inset:0; z-index:9;
-  background:rgba(5,8,16,.97);
-  overflow-y:auto; -webkit-overflow-scrolling:touch;
-  padding:calc(12px + var(--safe-t)) 14px calc(80px + var(--safe-b)) 14px;
-}
-.galleryOverlay.open{display:block;}
-.galleryOverlay .goHeader{
-  display:flex; justify-content:space-between; align-items:center;
-  margin-bottom:10px; position:sticky; top:0;
-  background:rgba(5,8,16,.95); padding:6px 0 8px;
-  z-index:2; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-}
-.galleryOverlay .goTitle{
-  font-size:14px; font-weight:600; color:rgba(255,255,255,.75);
-  letter-spacing:.03em;
-}
-.galleryOverlay .goClose{
-  width:36px; height:36px; border-radius:999px;
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(255,255,255,.06);
-  color:rgba(255,255,255,.70); font-size:16px;
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer;
-}
-.galleryOverlay .goGrid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));
-  gap:6px; padding:2px;
-}
-.galleryOverlay .goThumb{
-  width:100%; aspect-ratio:1/1; border-radius:10px;
-  background-size:cover; background-position:center;
-  background-color:rgba(255,255,255,.04);
-  border:none; padding:0; cursor:pointer;
-  position:relative; overflow:visible;
-  transition:transform .1s ease;
-}
-.galleryOverlay .goThumb:active{transform:scale(.96);}
-.galleryOverlay .goThumb .goDot{
-  position:absolute; right:6px; bottom:6px;
-  width:6px; height:6px; border-radius:999px;
-}
-.galleryOverlay .goThumb .goDot.uA{background:rgba(247,148,29,.6);}
-.galleryOverlay .goThumb .goDot.uB{background:rgba(70,194,210,.6);}
-.galleryOverlay .goWordCloud{
-  margin-top:14px; padding:8px;
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:14px; background:rgba(255,255,255,.02);
-}
-.galleryOverlay .goInfo{
-  margin-top:10px; padding:10px;
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:12px; background:rgba(255,255,255,.02);
-  font-size:12px; color:rgba(255,255,255,.65);
-}
-.galleryOverlay .goFsBtn{
-  margin-top:10px;
-  width:100%; padding:10px;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:12px; background:rgba(255,255,255,.04);
-  color:rgba(255,255,255,.60); font-size:12px;
-  cursor:pointer; text-align:center;
-}
 /* Gallery overlay is open indicator handled via .galleryActive class */
 
 /* ── OLD MOBILE TOUCH BAR — permanently hidden, replaced by transportBar ── */
@@ -545,7 +479,43 @@ body.iosFsActive{overflow:hidden!important;}
   .fsBtn{display:none;}
   .modePills{display:none;}
   .corner{display:none;}
+  /* PhotoPanel: hidden by default on mobile, shown as overlay in gallery mode */
   .photoPanel{display:none!important;}
+  .photoPanel.galleryMode{
+    display:block!important;
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    z-index:11; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    background:rgba(5,8,16,.97);
+    padding:calc(10px + var(--safe-t)) 12px calc(80px + var(--safe-b)) 12px;
+  }
+  .photoPanel.galleryMode .photoPanelTop{
+    position:sticky; top:0; z-index:2;
+    background:rgba(5,8,16,.95);
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    padding:4px 0 8px; margin:0;
+  }
+  .photoPanel.galleryMode .galleryToggle{display:none;}
+  .photoPanel.galleryMode #galleryFsBtn{display:none;}
+  .photoPanel.galleryMode .thumbGridWrap{
+    border:none; background:transparent; padding:0; margin:4px 0 0;
+  }
+  .photoPanel.galleryMode .thumbGrid{
+    grid-template-columns:repeat(3, 1fr);
+    gap:6px; padding:0;
+  }
+  .photoPanel.galleryMode .thumb{border-radius:10px;}
+  .photoPanel.galleryMode .fsWordPane{
+    max-height:none; overflow:visible;
+    padding:10px 4px;
+  }
+  .photoPanel.galleryMode .wordCloud{
+    max-height:none; overflow:visible;
+    padding:6px 4px; gap:3px 8px;
+  }
+  .photoPanel.galleryMode .thumbInfo{
+    margin:8px 0; border-radius:12px;
+  }
+  .photoPanel.galleryMode .qm-footer{display:none;}
 }
 </style>
 </head>
@@ -595,20 +565,6 @@ body.iosFsActive{overflow:hidden!important;}
       </div>
     </div>
     <canvas id="stage" aria-label="The Moth Orchestra" role="img"></canvas>
-
-    <!-- Mobile gallery overlay -->
-    <div class="galleryOverlay" id="galleryOverlay">
-      <div class="goHeader">
-        <div class="goTitle" id="goTitle">Night Gallery</div>
-        <button class="goClose" id="goClose">✕</button>
-      </div>
-      <div class="goGrid" id="goGrid"></div>
-      <div class="goWordCloud" id="goWordCloudWrap">
-        <!-- Word cloud gets cloned here when overlay opens -->
-      </div>
-      <div class="goInfo" id="goInfo"></div>
-      <button class="goFsBtn" id="goFsBtn">Enter full screen gallery</button>
-    </div>
     <div class="corner" id="cornerStatus">Paused • 19s loop</div>
     <div class="selOverlay" id="selOverlay" hidden>
       <div class="selThumb"><img id="selImg" alt=""/></div>
@@ -5818,7 +5774,7 @@ function initUI(){
   // gallery collapse (persisted — collapsed by default)
   try{
     const saved = localStorage.getItem("moth.galleryCollapsed");
-    state.galleryCollapsed = (saved === "0") ? false : true;
+    state.galleryCollapsed = true; // Always start collapsed
   }catch(_){}
   applyGalleryCollapse();
 
@@ -7391,113 +7347,36 @@ window.addEventListener("resize", ()=>{ _cachedCanvasRect = null; fitCanvasFast(
   // Wire desktop-only buttons (not needed since real buttons moved)
 })();
 
-/* ═══ MOBILE GALLERY OVERLAY ═══ */
+/* ═══ MOBILE GALLERY TOGGLE ═══ */
 (function(){
-  const overlay = document.getElementById("galleryOverlay");
-  const goGrid = document.getElementById("goGrid");
-  const goClose = document.getElementById("goClose");
-  const goTitle = document.getElementById("goTitle");
-  const goInfo = document.getElementById("goInfo");
-  const goFsBtn = document.getElementById("goFsBtn");
-  const goWordCloudWrap = document.getElementById("goWordCloudWrap");
+  const panel = document.getElementById("photoPanel");
   const tbGallery = document.getElementById("tbGallery");
-  const galleryFsBtn = document.getElementById("galleryFsBtn");
-  if(!overlay || !goGrid) return;
-
+  if(!panel || !tbGallery) return;
+  
   let _galleryOpen = false;
-
+  
   function openGallery(){
     _galleryOpen = true;
-    overlay.classList.add("open");
-    if(tbGallery) tbGallery.classList.add("galleryActive");
-    buildGalleryView();
+    // Force gallery expanded
+    if(state.galleryCollapsed){
+      state.galleryCollapsed = false;
+      try{ localStorage.setItem("moth.galleryCollapsed", "0"); }catch(_){}
+      applyGalleryCollapse();
+    }
+    panel.classList.add("galleryMode");
+    tbGallery.classList.add("galleryActive");
   }
-
+  
   function closeGallery(){
     _galleryOpen = false;
-    overlay.classList.remove("open");
-    if(tbGallery) tbGallery.classList.remove("galleryActive");
+    panel.classList.remove("galleryMode");
+    tbGallery.classList.remove("galleryActive");
   }
-
-  function buildGalleryView(){
-    goGrid.innerHTML = "";
-    const nightObs = state.nightObs || [];
-    goTitle.textContent = "Night Gallery — " + (state.nightKey || "") + " (" + nightObs.length + ")";
-
-    if(!nightObs.length){
-      goGrid.innerHTML = '<div style="color:rgba(255,255,255,.40);font-size:12px;padding:12px;">No records for this date.</div>';
-      return;
-    }
-
-    const frag = document.createDocumentFragment();
-    for(const o of nightObs){
-      const btn = document.createElement("button");
-      btn.className = "goThumb";
-      if(o.imageUrl){
-        btn.style.backgroundImage = 'url("' + String(o.imageUrl).replace(/"/g, "%22") + '")';
-      }
-      // User dot
-      const isA = state.userAName && (o.userName === state.userAName);
-      const isB = state.userBName && (o.userName === state.userBName);
-      if(isA || isB){
-        const dot = document.createElement("span");
-        dot.className = "goDot " + (isA ? "uA" : "uB");
-        btn.appendChild(dot);
-      }
-      btn.addEventListener("click", ()=>{
-        selectObsFromThumb(o);
-        // Show info
-        const cn = (o.commonName||"").trim();
-        const sn = o.taxon || "";
-        const name = cn ? cn + " — " + sn : sn;
-        const time = o.t ? o.t.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) : "";
-        const line2 = [o.order, o.family, time].filter(Boolean).join(" · ");
-        if(goInfo) goInfo.innerHTML = '<div style="color:rgba(255,255,255,.82);margin-bottom:3px;">' + (cn ? escHTML(cn) + ' <i style="color:rgba(255,255,255,.55)">' + escHTML(sn) + '</i>' : '<i>' + escHTML(sn) + '</i>') + '</div><div style="color:rgba(255,255,255,.45);font-size:11px;">' + escHTML(line2) + '</div>';
-      });
-      frag.appendChild(btn);
-    }
-    goGrid.appendChild(frag);
-
-    // Clone word cloud content
-    if(goWordCloudWrap){
-      const srcCloud = document.getElementById("wordCloud");
-      if(srcCloud){
-        goWordCloudWrap.innerHTML = "";
-        const clone = srcCloud.cloneNode(true);
-        clone.removeAttribute("id");
-        clone.style.transform = "";
-        clone.style.padding = "6px";
-        clone.style.gap = "3px 8px";
-        clone.style.maxHeight = "none";
-        clone.style.overflow = "visible";
-        goWordCloudWrap.appendChild(clone);
-      }
-    }
-  }
-
-  if(tbGallery) tbGallery.addEventListener("click", ()=>{
+  
+  tbGallery.addEventListener("click", ()=>{
     if(_galleryOpen) closeGallery();
     else openGallery();
   });
-
-  if(goClose) goClose.addEventListener("click", closeGallery);
-
-  if(goFsBtn && galleryFsBtn){
-    goFsBtn.addEventListener("click", ()=>{
-      closeGallery();
-      galleryFsBtn.click();
-    });
-  }
-
-  // Rebuild gallery when night changes (observe state changes)
-  const _origRebuildDerived = window.rebuildDerived;
-  if(typeof rebuildDerived === "function"){
-    const _orig = rebuildDerived;
-    window.rebuildDerived = function(){
-      _orig.apply(this, arguments);
-      if(_galleryOpen) buildGalleryView();
-    };
-  }
 })();
 
 /* ═══ TOUCH GESTURE SYSTEM ═══ */
