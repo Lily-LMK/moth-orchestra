@@ -1,2 +1,2 @@
 # moth-orchestra
-Biodiversity data sonification powered by Citizen Science
+Biodiversity data sonification powered by citizen science
