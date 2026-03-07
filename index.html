@@ -6536,6 +6536,7 @@ function initUI(){
 
   // full screen (visual ring) — iOS-safe
   const fsBtn = $("fsBtn");
+  const canvasCard = document.querySelector(".canvasCard");
   const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
@@ -6552,7 +6553,6 @@ function initUI(){
   }
 
   if(fsBtn){
-    const canvasCard = document.querySelector(".canvasCard");
     const setFsLabel = ()=>{
       const isFs = _isCanvasFullscreen();
       fsBtn.textContent = isFs ? "Exit full screen" : "Full screen";
@@ -6632,7 +6632,6 @@ function initUI(){
     updateCornerStatus();
   });
   if($("tExitFs")) $("tExitFs").addEventListener("click", ()=>{
-    const canvasCard = document.querySelector(".canvasCard");
     if(canvasCard && canvasCard.classList.contains("iosFakeFs")){
       canvasCard.classList.remove("iosFakeFs");
       document.body.classList.remove("iosFsActive");
