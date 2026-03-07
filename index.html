@@ -112,12 +112,12 @@ canvas{width:100%;height:100%;display:block;touch-action:none;}
 
 /* Selection overlay */
 .selOverlay{
-  position:absolute; left:10px; bottom:calc(80px + var(--safe-b));
+  position:absolute; left:10px; bottom:calc(82px + var(--safe-b));
   display:flex; gap:10px; align-items:center;
-  padding:10px; border-radius:14px;
-  border:1px solid rgba(255,255,255,.08);
-  background:rgba(8,12,20,.7);
-  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  padding:10px 12px; border-radius:14px;
+  border:none;
+  background:rgba(8,12,20,.60);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
   max-width:min(300px,calc(100% - 20px));
   pointer-events:none; z-index:7;
 }
@@ -157,32 +157,33 @@ canvas{width:100%;height:100%;display:block;touch-action:none;}
   position:absolute; bottom:calc(14px + var(--safe-b));
   left:50%; transform:translateX(-50%);
   z-index:12;
-  display:flex; gap:4px; align-items:center;
-  padding:5px; border-radius:999px;
-  border:1px solid rgba(255,255,255,.06);
-  background:rgba(8,12,20,.72);
-  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  display:flex; gap:2px; align-items:center;
+  padding:4px 6px;
+  border-radius:22px;
+  background:rgba(12,16,26,.65);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  box-shadow:0 2px 16px rgba(0,0,0,.4);
 }
 .tBtn{
-  width:44px;height:44px;border-radius:999px;
-  border:1px solid rgba(255,255,255,.06);
+  width:46px;height:46px;border-radius:999px;
+  border:none;
   background:transparent;
-  color:rgba(255,255,255,.65);font-size:16px;
+  color:rgba(255,255,255,.55);font-size:16px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;touch-action:manipulation;
-  transition:background .1s ease;
+  transition:color .1s ease, background .1s ease;
 }
-.tBtn:active{background:rgba(255,255,255,.12);}
+.tBtn:active{background:rgba(255,255,255,.10);color:rgba(255,255,255,.85);}
 .tBtn svg{display:block;}
 .tBtn.tPlay{
-  width:52px;height:52px;
-  background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.10);
-  color:rgba(255,255,255,.88);
+  width:54px;height:54px;
+  background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.80);
+  border-radius:999px;
 }
-.tBtn.tSheet{
-  font-size:13px;
-}
+.tBtn.tPlay:active{background:rgba(255,255,255,.18);}
+/* Active state for gallery toggle */
+.tBtn.galleryActive{color:var(--qm-green);}
 
 /* ── CONTROLS SHEET (slides up from bottom) ── */
 .sheetBackdrop{
@@ -398,16 +399,16 @@ body.demoMode .corner{background:rgba(0,0,0,.6);}
 }
 .galleryOverlay .goGrid{
   display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(90px, 1fr));
-  gap:8px; padding:2px;
+  grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));
+  gap:6px; padding:2px;
 }
 .galleryOverlay .goThumb{
-  width:100%; aspect-ratio:1/1; border-radius:12px;
+  width:100%; aspect-ratio:1/1; border-radius:10px;
   background-size:cover; background-position:center;
-  background-color:rgba(255,255,255,.05);
+  background-color:rgba(255,255,255,.04);
   border:none; padding:0; cursor:pointer;
   position:relative; overflow:visible;
-  box-shadow:0 1px 4px rgba(0,0,0,.3);
+  transition:transform .1s ease;
 }
 .galleryOverlay .goThumb:active{transform:scale(.96);}
 .galleryOverlay .goThumb .goDot{
@@ -435,10 +436,7 @@ body.demoMode .corner{background:rgba(0,0,0,.6);}
   color:rgba(255,255,255,.60); font-size:12px;
   cursor:pointer; text-align:center;
 }
-/* When gallery overlay is open, show a back-to-ring button in transport */
-.galleryOverlay.open ~ .canvasCard .transportBar .tBtn[data-galleryactive]{
-  background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.16);
-}
+/* Gallery overlay is open indicator handled via .galleryActive class */
 
 /* ── OLD MOBILE TOUCH BAR — permanently hidden, replaced by transportBar ── */
 .mobileTouchBar{
@@ -547,6 +545,7 @@ body.iosFsActive{overflow:hidden!important;}
   .fsBtn{display:none;}
   .modePills{display:none;}
   .corner{display:none;}
+  .photoPanel{display:none!important;}
 }
 </style>
 </head>
@@ -7410,14 +7409,14 @@ window.addEventListener("resize", ()=>{ _cachedCanvasRect = null; fitCanvasFast(
   function openGallery(){
     _galleryOpen = true;
     overlay.classList.add("open");
-    if(tbGallery) tbGallery.style.background = "rgba(255,255,255,.14)";
+    if(tbGallery) tbGallery.classList.add("galleryActive");
     buildGalleryView();
   }
 
   function closeGallery(){
     _galleryOpen = false;
     overlay.classList.remove("open");
-    if(tbGallery) tbGallery.style.background = "";
+    if(tbGallery) tbGallery.classList.remove("galleryActive");
   }
 
   function buildGalleryView(){
