@@ -63,13 +63,14 @@ button,select,input{font-family:var(--font);}
 canvas{width:100%;height:100%;display:block;touch-action:none;}
 
 .corner{
-  position:absolute; right:10px; bottom:10px;
+  position:absolute; right:10px; bottom:calc(76px + var(--safe-b));
   padding:5px 10px; border-radius:999px;
   border:1px solid rgba(255,255,255,.06);
   background:rgba(0,0,0,.5);
   font-size:10px; color:rgba(255,255,255,.45);
   letter-spacing:.3px; z-index:6; pointer-events:none;
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  max-width:calc(100% - 20px);
 }
 
 /* Mode pills */
@@ -409,6 +410,9 @@ body.galleryFsActive .transportBar{display:none!important;}
 .canvasCard.iosFakeFs .riffCtl{top:calc(var(--safe-t) + 48px);right:12px;}
 .canvasCard.iosFakeFs .fsBtn{top:calc(var(--safe-t) + 12px);right:12px;bottom:auto;}
 body.iosFsActive{overflow:hidden!important;}
+/* Allow sheet controls to appear over fullscreen canvas */
+body.iosFsActive .sheet{display:block!important;position:fixed!important;z-index:100002;left:0;right:0;bottom:0;}
+body.iosFsActive .sheetBackdrop{display:block!important;position:fixed!important;z-index:100001;inset:0;}
 
 .canvasCard:fullscreen{width:100vw;height:100vh;min-height:100vh;border-radius:0;border:0;}
 .canvasCard:fullscreen .corner{bottom:18px;right:18px;}
@@ -420,7 +424,7 @@ body.iosFsActive{overflow:hidden!important;}
 .thumbGridWrap.iosFakeFs{
   position:fixed!important;top:0;left:0;right:0;bottom:0;
   width:100vw!important;height:100vh!important;
-  z-index:99999;background:rgba(4,6,12,.97);
+  z-index:99999;background:#040610;
   padding:14px;overflow:hidden;border-radius:0!important;margin:0;
 }
 .thumbGridWrap.iosFakeFs .fsInner{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;height:100%;}
@@ -485,7 +489,7 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
   }
   .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:2px 4px;gap:2px 8px;}
 }
-.thumbGridWrap:fullscreen{background:rgba(4,6,12,.97);padding:14px;overflow:hidden;}
+.thumbGridWrap:fullscreen{background:#040610;padding:14px;overflow:hidden;}
 .thumbGridWrap:fullscreen .fsInner{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;height:100%;}
 .thumbGridWrap:fullscreen .fsThumbPane{overflow:hidden;padding-right:12px;display:flex;align-items:stretch;justify-content:center;}
 .thumbGridWrap:fullscreen .fsWordPane{display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;max-height:none;padding:0;}
@@ -520,6 +524,9 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
   .desktopSidebar .sidebarHeader .title-tag{font-weight:400;font-size:10px;color:rgba(255,255,255,.35);}
   .transportBar{display:none;}
   .sheetBackdrop,.sheet{display:none!important;}
+  /* But show them when canvas is fullscreen (sidebar is hidden behind it) */
+  .canvasCard.iosFakeFs .transportBar,
+  .canvasCard:fullscreen .transportBar{display:flex;position:fixed;z-index:100001;}
   .desktopSidebar .photoPanel{margin-top:12px;flex:1 1 auto;overflow-y:auto;}
   .thumbGrid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));}
 }
@@ -1355,19 +1362,14 @@ function pickInstrument(order, seed){
       const pool = ["lead_pan","double_second","guitar_pan","bass_pan"];
       return pool[h % pool.length];
     }
-
-    if(state.voiceMode === "biosphere"){
-      const pool = ["song_breath","handpan","song_voice","kalimba","pizzicato","song_cloud","bowl","harp","creek"];
-      return pool[h % pool.length];
-    }
   }
   const pool = instrumentPoolForDepth(currentRankDepth());
   const h = hash32(`${order}::${seed}`);
   return pool[h % pool.length];
 }
 
-const VOICE_MODES = ["mixed","night","choir","steelpan","biosphere"];
-const VOICE_MODE_LABELS = { mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies", biosphere:"Biosphere" };
+const VOICE_MODES = ["mixed","night","choir","steelpan"];
+const VOICE_MODE_LABELS = { mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies" };
 
 /** ------------------------------ Audio engine ------------------------------ */
 let audioCtx = null;
@@ -3309,70 +3311,6 @@ function scheduleInstrument(ctx, instrument, when, freq, velocity){
     return;
   }
 
-  // ── song_breath: Biosphere breathing bass pad ──
-  if(instrument === "song_breath"){
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.linearRampToValueAtTime(velocity*0.85, when+0.18);
-    g.gain.setTargetAtTime(velocity*0.7, when+0.35, 0.5);
-    g.gain.setTargetAtTime(0.0001, when+2.0, 0.45);
-    const ob1=ctx.createOscillator(); ob1.type="sine"; ob1.frequency.value=freq;
-    const ob1G=ctx.createGain(); ob1G.gain.value=0.7;
-    const osub=ctx.createOscillator(); osub.type="sine"; osub.frequency.value=freq/2;
-    const osubG=ctx.createGain(); osubG.gain.value=0.55;
-    const ob2=ctx.createOscillator(); ob2.type="triangle"; ob2.frequency.value=freq*1.002;
-    const ob2G=ctx.createGain(); ob2G.gain.value=0.25;
-    const blfo=ctx.createOscillator(); blfo.type="sine"; blfo.frequency.value=0.3;
-    const blfoG=ctx.createGain(); blfoG.gain.value=velocity*0.08;
-    blfo.connect(blfoG); blfoG.connect(g.gain);
-    const blp=ctx.createBiquadFilter(); blp.type="lowpass"; blp.frequency.value=900; blp.Q.value=0.6;
-    ob1.connect(ob1G); ob1G.connect(blp); osub.connect(osubG); osubG.connect(blp); ob2.connect(ob2G); ob2G.connect(blp);
-    blp.connect(g); g.connect(out);
-    ob1.start(when); osub.start(when); ob2.start(when); blfo.start(when);
-    const bs=when+3.5; ob1.stop(bs); osub.stop(bs); ob2.stop(bs); blfo.stop(bs);
-    return;
-  }
-
-  // ── song_cloud: Biosphere harmonic cloud (chord sustain) ──
-  if(instrument === "song_cloud"){
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.linearRampToValueAtTime(velocity*0.40, when+0.20);
-    g.gain.setTargetAtTime(velocity*0.30, when+0.5, 0.45);
-    g.gain.setTargetAtTime(0.0001, when+1.6, 0.4);
-    const oc1=ctx.createOscillator(); oc1.type="sine"; oc1.frequency.value=freq;
-    const oc2=ctx.createOscillator(); oc2.type="sine"; oc2.frequency.value=freq*1.0015;
-    const oc3=ctx.createOscillator(); oc3.type="sine"; oc3.frequency.value=freq*0.9985;
-    const oc1G=ctx.createGain(); oc1G.gain.value=0.4;
-    const oc2G=ctx.createGain(); oc2G.gain.value=0.25;
-    const oc3G=ctx.createGain(); oc3G.gain.value=0.25;
-    const clfo=ctx.createOscillator(); clfo.type="sine"; clfo.frequency.value=0.12;
-    const clfoG=ctx.createGain(); clfoG.gain.value=0.3;
-    clfo.connect(clfoG); clfoG.connect(oc2.frequency); clfoG.connect(oc3.frequency);
-    const clp=ctx.createBiquadFilter(); clp.type="lowpass"; clp.frequency.value=3000; clp.Q.value=0.3;
-    oc1.connect(oc1G); oc2.connect(oc2G); oc3.connect(oc3G);
-    oc1G.connect(clp); oc2G.connect(clp); oc3G.connect(clp);
-    clp.connect(g); g.connect(out);
-    oc1.start(when); oc2.start(when); oc3.start(when); clfo.start(when);
-    const cs=when+2.5; oc1.stop(cs); oc2.stop(cs); oc3.stop(cs); clfo.stop(cs);
-    return;
-  }
-
-  // ── song_voice: Biosphere warm steady tone ──
-  if(instrument === "song_voice"){
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.linearRampToValueAtTime(velocity*0.42, when+0.08);
-    g.gain.setTargetAtTime(velocity*0.28, when+0.15, 0.12);
-    g.gain.setTargetAtTime(0.0001, when+0.5, 0.12);
-    const ov1=ctx.createOscillator(); ov1.type="sine"; ov1.frequency.value=freq;
-    const ov2=ctx.createOscillator(); ov2.type="triangle"; ov2.frequency.value=freq;
-    const ov2G=ctx.createGain(); ov2G.gain.value=0.1;
-    const vlp=ctx.createBiquadFilter(); vlp.type="lowpass"; vlp.frequency.value=2800; vlp.Q.value=0.3;
-    ov1.connect(vlp); ov2.connect(ov2G); ov2G.connect(vlp);
-    vlp.connect(g); g.connect(out);
-    ov1.start(when); ov2.start(when);
-    const vs=when+0.9; ov1.stop(vs); ov2.stop(vs);
-    return;
-  }
-
   // ── Oscillator-based instruments (pluck, bell, pad, bass, chime, bubble fallback) ──
   g.gain.exponentialRampToValueAtTime(clamp(velocity, 0.05, 1.0), when+0.005);
 
@@ -3919,9 +3857,7 @@ const INSTRUMENT_LABELS = {
   moth_flutter:"Moth Flutter", possum_rustle:"Possum Rustle", boobook:"Boobook",
   lead_pan:"Lead Pan", double_second:"Double Second", guitar_pan:"Guitar Pan", bass_pan:"Bass Pan",
   choir_ah:"Choir (Ah)", choir_oh:"Choir (Oh)", choir_mm:"Choir (Mm)",
-  bell:"Bell", chime:"Chime", kalimba:"Kalimba", marimba:"Marimba", gong:"Gong",
-  song_breath:"Breath", song_cloud:"Cloud", song_voice:"Voice",
-  pizzicato:"Pizzicato"
+  bell:"Bell", chime:"Chime", kalimba:"Kalimba", marimba:"Marimba", gong:"Gong"
 };
 
 function setThumbInfo(o){
@@ -4305,11 +4241,6 @@ function pickSongInstrument(order, seed){
       const pool = ["lead_pan","double_second","guitar_pan","bass_pan"];
       return pool[h % pool.length];
     }
-
-    if(state.voiceMode === "biosphere"){
-      const pool = ["song_breath","handpan","song_voice","kalimba","pizzicato","song_cloud","bowl","harp","creek"];
-      return pool[h % pool.length];
-    }
   }
   // "Song" mode: only pitched voices (no hat). Unlocks with rank depth.
   const depth = currentRankDepth();
@@ -4375,7 +4306,6 @@ function buildSongEvents(nightObs, countsByTaxon){
     if(state.voiceMode==="night") return { bass:["weta"], lead:["boobook","banjo_frog"], mid:["gecko","katydid"], hi:["bat_click","gecko"], sync:["boobook"] };
     if(state.voiceMode==="choir") return { bass:["bass_voice"], lead:["soprano"], mid:["alto","tenor"], hi:["soprano"], sync:["bass_voice"] };
     if(state.voiceMode==="steelpan") return { bass:["bass_pan"], lead:["lead_pan"], mid:["double_second","guitar_pan"], hi:["lead_pan"], sync:["bass_pan"] };
-    if(state.voiceMode==="biosphere") return { bass:["song_breath"], lead:["kalimba","handpan","song_voice"], mid:["pizzicato","song_cloud","bowl"], hi:["harp","bowl","creek"], sync:["song_breath"] };
     const d = currentRankDepth();
     const hi = ["bell","chime"]; if(d>=6) hi.push("harp"); if(d>=7) hi.push("bowl");
     const mid = ["pluck","creek"]; if(d>=4) mid.push("ember"); if(d>=5) mid.push("handpan");
