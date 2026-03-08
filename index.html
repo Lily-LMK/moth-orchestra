@@ -429,23 +429,22 @@ body.iosFsActive{overflow:hidden!important;}
 .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{max-height:100%;padding:18px;gap:5px 14px;}
 .thumbGridWrap.iosFakeFs .thumbGrid{grid-template-columns:repeat(auto-fill,minmax(var(--fs-thumb-size,68px),1fr));gap:var(--fs-thumb-gap,8px);padding:6px;width:100%;height:100%;align-content:safe center;overflow:hidden;}
 
-/* Gallery fullscreen transport — compact pill, top-right */
+/* Gallery fullscreen transport — slim bottom-left, transparent */
 .galleryTransport{
   display:none;
-  position:fixed;top:calc(10px + var(--safe-t));right:12px;
+  position:fixed;bottom:calc(8px + var(--safe-b));left:12px;
   z-index:100002;
-  gap:2px;align-items:center;
-  padding:3px 4px;
-  border-radius:18px;
-  background:rgba(12,16,26,.60);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  box-shadow:0 1px 10px rgba(0,0,0,.4);
+  gap:4px;align-items:center;
+  padding:0;
+  background:none;
 }
 .thumbGridWrap.iosFakeFs ~ .galleryTransport,
 body.galleryFsActive .galleryTransport{display:flex;}
 .galleryTransport .tBtn{
-  width:38px;height:38px;border-radius:999px;
-  border:none;background:transparent;
+  width:36px;height:36px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(12,16,26,.50);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   color:rgba(255,255,255,.55);font-size:13px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;touch-action:manipulation;
@@ -453,14 +452,13 @@ body.galleryFsActive .galleryTransport{display:flex;}
 }
 .galleryTransport .tBtn:active{background:rgba(255,255,255,.10);color:rgba(255,255,255,.85);}
 .galleryTransport .tBtn.gtPlay{
-  width:42px;height:42px;
-  background:rgba(255,255,255,.08);
-  color:rgba(255,255,255,.80);
-  border-radius:999px;
+  width:40px;height:40px;
+  background:rgba(12,16,26,.55);
+  color:rgba(255,255,255,.75);
 }
-.galleryTransport .tBtn.gtPlay:active{background:rgba(255,255,255,.18);}
+.galleryTransport .tBtn.gtPlay:active{background:rgba(255,255,255,.15);}
 .galleryTransport .tBtn.gtExit{
-  color:rgba(255,255,255,.40);font-size:12px;
+  color:rgba(255,255,255,.35);font-size:11px;
 }
 /* Gallery fullscreen gesture indicator */
 .galleryGestureIndicator{
@@ -474,18 +472,24 @@ body.galleryFsActive .galleryTransport{display:flex;}
 body.galleryFsActive .galleryGestureIndicator{display:block;}
 .galleryGestureIndicator.visible{opacity:1;}
 
-/* Gallery fullscreen: portrait phones — word cloud tight against grid */
+/* Gallery fullscreen: portrait phones — maximise content, word cloud visible */
 @media(max-width:767px){
+  .thumbGridWrap.iosFakeFs{
+    padding:calc(6px + var(--safe-t)) 10px 10px;
+  }
   .thumbGridWrap.iosFakeFs .fsInner{
     grid-template-columns:1fr;
     grid-template-rows:1fr auto;
-    gap:2px;
-    padding-top:52px; /* room for top-right transport */
-    padding-bottom:var(--safe-b);
+    gap:4px;
+    padding:0;
   }
   .thumbGridWrap.iosFakeFs .fsThumbPane{padding-right:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  .thumbGridWrap.iosFakeFs .fsWordPane{max-height:72px;padding:2px 6px 0;margin:0;}
-  .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:1px 4px;gap:1px 6px;}
+  .thumbGridWrap.iosFakeFs .fsWordPane{
+    max-height:110px;
+    padding:4px 8px calc(44px + var(--safe-b));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:2px 4px;gap:2px 8px;}
 }
 .thumbGridWrap:fullscreen{background:rgba(4,6,12,.97);padding:14px;overflow:hidden;}
 .thumbGridWrap:fullscreen .fsInner{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;height:100%;}
