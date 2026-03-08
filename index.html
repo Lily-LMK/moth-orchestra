@@ -429,32 +429,28 @@ body.iosFsActive{overflow:hidden!important;}
 .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{max-height:100%;padding:18px;gap:5px 14px;}
 .thumbGridWrap.iosFakeFs .thumbGrid{grid-template-columns:repeat(auto-fill,minmax(var(--fs-thumb-size,68px),1fr));gap:var(--fs-thumb-gap,8px);padding:6px;width:100%;height:100%;align-content:safe center;overflow:hidden;}
 
-/* Gallery fullscreen transport — slim bottom-left, transparent */
+/* Gallery fullscreen transport — inline below word cloud, not overlapping */
 .galleryTransport{
   display:none;
-  position:fixed;bottom:calc(8px + var(--safe-b));left:12px;
-  z-index:100002;
-  gap:4px;align-items:center;
-  padding:0;
-  background:none;
+  justify-content:center;
+  gap:8px;align-items:center;
+  padding:4px 0 calc(4px + var(--safe-b));
 }
-.thumbGridWrap.iosFakeFs ~ .galleryTransport,
 body.galleryFsActive .galleryTransport{display:flex;}
 .galleryTransport .tBtn{
   width:36px;height:36px;border-radius:999px;
   border:1px solid rgba(255,255,255,.10);
-  background:rgba(12,16,26,.50);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  color:rgba(255,255,255,.55);font-size:13px;
+  background:rgba(255,255,255,.05);
+  color:rgba(255,255,255,.50);font-size:13px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;touch-action:manipulation;
   transition:color .1s ease, background .1s ease;
 }
-.galleryTransport .tBtn:active{background:rgba(255,255,255,.10);color:rgba(255,255,255,.85);}
+.galleryTransport .tBtn:active{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);}
 .galleryTransport .tBtn.gtPlay{
   width:40px;height:40px;
-  background:rgba(12,16,26,.55);
-  color:rgba(255,255,255,.75);
+  background:rgba(255,255,255,.07);
+  color:rgba(255,255,255,.70);
 }
 .galleryTransport .tBtn.gtPlay:active{background:rgba(255,255,255,.15);}
 .galleryTransport .tBtn.gtExit{
@@ -472,22 +468,20 @@ body.galleryFsActive .galleryTransport{display:flex;}
 body.galleryFsActive .galleryGestureIndicator{display:block;}
 .galleryGestureIndicator.visible{opacity:1;}
 
-/* Gallery fullscreen: portrait phones — maximise content, word cloud visible */
+/* Gallery fullscreen: portrait phones — three-row grid, nothing overlaps */
 @media(max-width:767px){
   .thumbGridWrap.iosFakeFs{
-    padding:calc(6px + var(--safe-t)) 10px 10px;
+    padding:calc(6px + var(--safe-t)) 10px 0;
   }
   .thumbGridWrap.iosFakeFs .fsInner{
     grid-template-columns:1fr;
-    grid-template-rows:1fr auto;
+    grid-template-rows:1fr auto auto;
     gap:4px;
     padding:0;
   }
   .thumbGridWrap.iosFakeFs .fsThumbPane{padding-right:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .thumbGridWrap.iosFakeFs .fsWordPane{
-    max-height:110px;
-    padding:4px 8px calc(44px + var(--safe-b));
-    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:4px 8px;
   }
   .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:2px 4px;gap:2px 8px;}
 }
@@ -743,6 +737,13 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
       <div class="fsInner">
         <div class="fsThumbPane"><div id="thumbGrid" class="thumbGrid" role="list"></div></div>
         <div class="fsWordPane" id="wordCloudPane"><div id="wordCloud" class="wordCloud"></div></div>
+        <!-- Gallery transport: flows below word cloud in fullscreen -->
+        <div class="galleryTransport" id="galleryTransport">
+          <button class="tBtn gtPlay" id="gtPlay" title="Play / Pause">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+          </button>
+          <button class="tBtn gtExit" id="gtExit" title="Exit gallery">✕</button>
+        </div>
       </div>
       <div id="thumbEmpty" class="thumbEmpty" style="display:none">No records for this date.</div>
     </div>
@@ -752,13 +753,6 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
       <div class="thumbInfoVoice" id="thumbInfoVoice"></div>
       <div class="thumbInfoMeta" id="thumbInfoMeta"></div>
       <a class="thumbInfoLink" id="thumbInfoLink" href="#" target="_blank" rel="noopener" style="display:none">Open</a>
-    </div>
-    <!-- Gallery fullscreen transport: minimal — play/pause + exit only -->
-    <div class="galleryTransport" id="galleryTransport">
-      <button class="tBtn gtPlay" id="gtPlay" title="Play / Pause">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
-      </button>
-      <button class="tBtn gtExit" id="gtExit" title="Exit gallery">✕</button>
     </div>
     <div class="galleryGestureIndicator" id="galleryGestureIndicator"></div>
     <div class="qm-footer"><div class="qm-footer-inner"><div class="qm-footer-brand"><span class="qm-footer-logo">THE MOTH ORCHESTRA</span><span class="qm-footer-site">Biodiversity Sonification</span></div><div class="qm-footer-links">Data from <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a></div></div></div>
