@@ -1,4 +1,4 @@
- <!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -21,7 +21,7 @@
   --qm-blue:#46c2d2;
   --qm-purple:#b14c9b;
   --qm-red:#ea3d41;
-  --qm-pink:#f95caf; 
+  --qm-pink:#f95caf;
   --bg:#050810;
   --panel:rgba(255,255,255,.04);
   --border:rgba(255,255,255,.08);
@@ -38,8 +38,7 @@
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-*{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
-   html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;overscroll-behavior:none;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;overscroll-behavior:none;}
 a{color:rgba(255,255,255,.8);}
 button,select,input{font-family:var(--font);}
 
@@ -369,6 +368,7 @@ body.demoMode .photoPanel.demoGallery{
   border-radius:16px 16px 0 0;max-height:200px;overflow:auto;
   background:rgba(7,10,16,.92);padding:0 14px;
 }
+body.demoMode *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
 body.demoMode .modePills{background:rgba(8,12,20,.85);}
 body.demoMode .riffCtl{background:rgba(0,0,0,.6);}
 body.demoMode .corner{background:rgba(0,0,0,.6);}
@@ -423,7 +423,7 @@ body.iosFsActive .sheetBackdrop{display:block!important;position:fixed!important
 /* Gallery fullscreen */
 .thumbGridWrap.iosFakeFs{
   position:fixed!important;top:0;left:0;right:0;bottom:0;
-  width:100vw!important;height:100vh!important;
+  width:100vw!important;height:100vh!important;height:100dvh!important;
   z-index:99999;background:#040610;
   padding:14px;overflow:hidden;border-radius:0!important;margin:0;
 }
@@ -475,7 +475,7 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
 /* Gallery fullscreen: portrait phones — three-row grid, nothing overlaps */
 @media(max-width:767px){
   .thumbGridWrap.iosFakeFs{
-    padding:calc(6px + var(--safe-t)) 10px 0;
+    padding:calc(6px + var(--safe-t)) 10px calc(54px + var(--safe-b));
   }
   .thumbGridWrap.iosFakeFs .fsInner{
     grid-template-columns:1fr;
@@ -486,8 +486,18 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
   .thumbGridWrap.iosFakeFs .fsThumbPane{padding-right:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .thumbGridWrap.iosFakeFs .fsWordPane{
     padding:4px 8px;
+    max-height:90px;
+    overflow-y:auto;
   }
   .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:2px 4px;gap:2px 8px;}
+  body.galleryFsActive .galleryTransport{
+    position:fixed!important;
+    bottom:0;left:0;right:0;
+    z-index:100002;
+    background:rgba(4,6,10,.92);
+    padding:8px 0 calc(8px + var(--safe-b));
+    justify-content:center;
+  }
 }
 .thumbGridWrap:fullscreen{background:#040610;padding:14px;overflow:hidden;}
 .thumbGridWrap:fullscreen .fsInner{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;height:100%;}
@@ -4926,6 +4936,7 @@ function softRebuild(fullRebuild){
 
     $("playBtn").textContent = "…";
     state.isPlaying = false;
+    stopScheduler(); // Kill scheduler immediately so old-key notes don't fire during fade
     _softRebuildWasPlaying = true;
 
     const totalMs = (fadeOut + drain) * 1000;
@@ -7494,6 +7505,34 @@ window.addEventListener("resize", ()=>{ _cachedCanvasRect = null; fitCanvasFast(
     if(ev.touches.length !== 1) return;
     const t = ev.touches[0];
     gX = t.clientX; gY = t.clientY; gT = Date.now(); gHandled = false;
+  }, {passive:true});
+
+
+  // Pinch-to-exit: track two-finger spread
+  let _pinchStartDist = null;
+  wrap.addEventListener("touchstart", function(ev){
+    if(!isGalleryFs()) return;
+    if(ev.touches.length === 2){
+      const dx = ev.touches[0].clientX - ev.touches[1].clientX;
+      const dy = ev.touches[0].clientY - ev.touches[1].clientY;
+      _pinchStartDist = Math.hypot(dx, dy);
+    }
+  }, {passive:true});
+
+  wrap.addEventListener("touchmove", function(ev){
+    if(!isGalleryFs() || _pinchStartDist == null || ev.touches.length !== 2) return;
+    const dx = ev.touches[0].clientX - ev.touches[1].clientX;
+    const dy = ev.touches[0].clientY - ev.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if(dist - _pinchStartDist > 80){
+      _pinchStartDist = null;
+      exitGalleryFs();
+      showGalleryIndicator("Exit");
+    }
+  }, {passive:true});
+
+  wrap.addEventListener("touchend", function(ev){
+    if(ev.touches.length < 2) _pinchStartDist = null;
   }, {passive:true});
 
   wrap.addEventListener("touchend", function(ev){
