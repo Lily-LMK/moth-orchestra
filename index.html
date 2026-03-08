@@ -81,6 +81,9 @@ canvas{width:100%;height:100%;display:block;touch-action:none;}
   backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
   z-index:6;
 }
+@media(max-width:767px){
+  .modePills .btn{min-height:30px;font-size:10px;padding:4px 9px;}
+}
 
 /* Riff controls */
 .riffCtl{
@@ -239,6 +242,7 @@ select{
   background:rgba(255,255,255,.05);color:rgba(255,255,255,.85);
   border-radius:10px;padding:8px 10px;outline:none;font-size:13px;min-height:38px;
 }
+select option{color:#1a1a1a;background:#fff;}
 input[type="range"]{width:100%;accent-color:rgba(255,255,255,.75);}
 textarea{font-family:var(--mono);width:100%;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);color:rgba(255,255,255,.85);border-radius:10px;padding:8px;outline:none;font-size:12px;}
 
@@ -378,6 +382,8 @@ body.demoMode .corner{background:rgba(0,0,0,.6);}
 body.iosFsActive .transportBar{
   position:fixed; z-index:100001;
 }
+/* Hide main transport when gallery is fullscreen (gallery has its own) */
+body.galleryFsActive .transportBar{display:none!important;}
 
 /* ── OLD MOBILE TOUCH BAR — permanently hidden, replaced by transportBar ── */
 .mobileTouchBar{
@@ -422,6 +428,65 @@ body.iosFsActive{overflow:hidden!important;}
 .thumbGridWrap.iosFakeFs .fsWordPane{display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;max-height:none;padding:0;}
 .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{max-height:100%;padding:18px;gap:5px 14px;}
 .thumbGridWrap.iosFakeFs .thumbGrid{grid-template-columns:repeat(auto-fill,minmax(var(--fs-thumb-size,68px),1fr));gap:var(--fs-thumb-gap,8px);padding:6px;width:100%;height:100%;align-content:safe center;overflow:hidden;}
+
+/* Gallery fullscreen transport bar */
+.galleryTransport{
+  display:none;
+  position:fixed;bottom:calc(14px + var(--safe-b));left:50%;transform:translateX(-50%);
+  z-index:100002;
+  gap:2px;align-items:center;
+  padding:4px 6px;
+  border-radius:22px;
+  background:rgba(12,16,26,.72);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  box-shadow:0 2px 16px rgba(0,0,0,.5);
+}
+.thumbGridWrap.iosFakeFs ~ .galleryTransport,
+body.galleryFsActive .galleryTransport{display:flex;}
+.galleryTransport .tBtn{
+  width:44px;height:44px;border-radius:999px;
+  border:none;background:transparent;
+  color:rgba(255,255,255,.55);font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;
+  transition:color .1s ease, background .1s ease;
+}
+.galleryTransport .tBtn:active{background:rgba(255,255,255,.10);color:rgba(255,255,255,.85);}
+.galleryTransport .tBtn.gtPlay{
+  width:50px;height:50px;
+  background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.80);
+  border-radius:999px;
+}
+.galleryTransport .tBtn.gtPlay:active{background:rgba(255,255,255,.18);}
+.galleryTransport .modeLabel{
+  font-size:10px;color:rgba(255,255,255,.40);
+  letter-spacing:.04em;padding:0 6px;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;
+}
+/* Gallery fullscreen gesture indicator */
+.galleryGestureIndicator{
+  display:none;
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:100003;pointer-events:none;opacity:0;
+  font-size:15px;font-weight:500;color:rgba(255,255,255,.6);letter-spacing:.06em;
+  background:rgba(0,0,0,.55);padding:7px 16px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);transition:opacity .15s ease;
+}
+body.galleryFsActive .galleryGestureIndicator{display:block;}
+.galleryGestureIndicator.visible{opacity:1;}
+
+/* Gallery fullscreen: use portrait-friendly single column on phones */
+@media(max-width:767px){
+  .thumbGridWrap.iosFakeFs .fsInner{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr auto;
+    gap:8px;
+    padding-bottom:72px; /* room for transport bar */
+  }
+  .thumbGridWrap.iosFakeFs .fsThumbPane{padding-right:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .thumbGridWrap.iosFakeFs .fsWordPane{max-height:80px;padding:4px 6px;}
+  .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:2px 6px;gap:2px 8px;}
+}
 .thumbGridWrap:fullscreen{background:rgba(4,6,12,.97);padding:14px;overflow:hidden;}
 .thumbGridWrap:fullscreen .fsInner{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;height:100%;}
 .thumbGridWrap:fullscreen .fsThumbPane{overflow:hidden;padding-right:12px;display:flex;align-items:stretch;justify-content:center;}
@@ -484,7 +549,6 @@ body.iosFsActive{overflow:hidden!important;}
 @media(max-width:767px){
   .mobileHide{display:none!important;}
   .fsBtn{display:none;}
-  .modePills{display:none;}
   .corner{display:none;}
 
   /* Gallery: hidden on mobile by default */
@@ -515,6 +579,7 @@ body.iosFsActive{overflow:hidden!important;}
   <div class="canvasCard">
     <div class="modePills" id="modePills">
       <button class="btn pill small" id="modeTimelineBtn" type="button">Timeline</button>
+      <button class="btn pill small" id="modeSongBtn" type="button">Song</button>
       <button class="btn pill small" id="modeRiffBtn" type="button">Riff</button>
     </div>
     <div class="riffCtl" id="riffCtl" hidden>
@@ -684,6 +749,19 @@ body.iosFsActive{overflow:hidden!important;}
       <div class="thumbInfoMeta" id="thumbInfoMeta"></div>
       <a class="thumbInfoLink" id="thumbInfoLink" href="#" target="_blank" rel="noopener" style="display:none">Open</a>
     </div>
+    <!-- Gallery fullscreen transport bar -->
+    <div class="galleryTransport" id="galleryTransport">
+      <button class="tBtn gtPlay" id="gtPlay" title="Play / Pause">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+      </button>
+      <button class="tBtn" id="gtRemix" title="Remix">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      </button>
+      <span class="modeLabel" id="gtModeLabel"></span>
+      <button class="tBtn" id="gtVoice" title="Cycle voice">♫</button>
+      <button class="tBtn" id="gtExit" title="Exit gallery">✕</button>
+    </div>
+    <div class="galleryGestureIndicator" id="galleryGestureIndicator"></div>
     <div class="qm-footer"><div class="qm-footer-inner"><div class="qm-footer-brand"><span class="qm-footer-logo">THE MOTH ORCHESTRA</span><span class="qm-footer-site">Biodiversity Sonification</span></div><div class="qm-footer-links">Data from <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a></div></div></div>
   </div>
 
@@ -2191,6 +2269,8 @@ function rootMidi(key, octave=3){
 }
 
 function scheduleInstrument(ctx, instrument, when, freq, velocity){
+  // Guard: never schedule in the past (causes RangeError on AudioParam)
+  if(when < ctx.currentTime) when = ctx.currentTime + 0.002;
   const out = masterGain || ctx.destination;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, when);
@@ -3324,7 +3404,7 @@ const state = {
   volume: 1.0,
   ambienceVol: 0.45,
   listenMode: "both", // "both" | "A" | "B"
-  spacingMode: "timeline", // "timeline" | "song"
+  spacingMode: "riff", // "timeline" | "riff" | "song"
   isPlaying: false,
 
   // derived
@@ -3557,7 +3637,7 @@ function toggleGalleryFullscreen(){
     }
     if(_isIOS || !wrap.requestFullscreen){
       wrap.classList.add("iosFakeFs");
-      document.body.classList.add("iosFsActive");
+      document.body.classList.add("iosFsActive","galleryFsActive");
       if(btn) btn.textContent = "Exit full screen";
       requestAnimationFrame(()=> autoSizeGallery());
     } else {
@@ -3566,7 +3646,7 @@ function toggleGalleryFullscreen(){
   }else{
     if(wrap.classList.contains("iosFakeFs")){
       wrap.classList.remove("iosFakeFs");
-      document.body.classList.remove("iosFsActive");
+      document.body.classList.remove("iosFsActive","galleryFsActive");
       if(btn) btn.textContent = "Full screen";
     } else {
       document.exitFullscreen?.();
@@ -4174,386 +4254,254 @@ function pickSongInstrument(order, seed){
 }
 
 
+
+
 function buildSongEvents(nightObs, countsByTaxon){
   const eventByObsId = new Map();
+  if(!nightObs || !nightObs.length) return { events:[], eventByObsId };
 
-  if(!nightObs || !nightObs.length){
-    return { events: [], eventByObsId };
-  }
-
-  // In Song mode, "Players" truly changes the composition.
   let obsPool = nightObs;
-  if(state.listenMode === "A"){
-    obsPool = nightObs.filter(o => !(state.userBName && (o.userName === state.userBName)));
-  } else if(state.listenMode === "B"){
-    obsPool = nightObs.filter(o => (state.userBName && (o.userName === state.userBName)));
-  }
+  if(state.listenMode === "A") obsPool = nightObs.filter(o => !(state.userBName && (o.userName === state.userBName)));
+  else if(state.listenMode === "B") obsPool = nightObs.filter(o => (state.userBName && (o.userName === state.userBName)));
+  if(!obsPool.length) return { events:[], eventByObsId };
 
-  if(!obsPool.length){
-    return { events: [], eventByObsId };
-  }
-
-  // Deterministic PRNG per night + seed + listen mode (so "Both/A/B" yields distinct songs).
-  const prng = mulberry32(hash32(`songgen::${state.nightKey}::${state.seed}::${state.listenMode}::${obsPool.length}`));
+  // ═══ PRNG ═══
+  const prng = mulberry32(hash32(`song4::${state.nightKey}::${state.seed}::${state.listenMode}::${state.voiceMode}::${state.toneBy}::${state.scaleName}::${state.keyName}::${obsPool.length}`));
   function prngInt(n){ return Math.floor(prng()*n); }
   function pick(arr){ return arr[prngInt(arr.length)]; }
-  function shuffle(arr){
-    for(let i=arr.length-1;i>0;i--){
-      const j = prngInt(i+1);
-      const t = arr[i]; arr[i]=arr[j]; arr[j]=t;
-    }
-    return arr;
-  }
-  function weightedPick(items, weights){
-    let sum = 0;
-    for(const w of weights) sum += w;
-    let r = prng()*sum;
-    for(let i=0;i<items.length;i++){
-      r -= weights[i];
-      if(r <= 0) return items[i];
-    }
-    return items[items.length-1];
-  }
+  function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=prngInt(i+1); const t=arr[i]; arr[i]=arr[j]; arr[j]=t; } return arr; }
 
-  // ---------
-  // Build "units" (one voice per user+taxon) so repeats feel intentional rather than random duplicates.
-  // ---------
+  // ═══ GROOVE LIBRARY ═══
+  const GROOVES = {
+    steady:   { beats:[0,1,2,3] },
+    half:     { beats:[0,2] },
+    dotted:   { beats:[0,2.5] },
+    push:     { beats:[0.5,2.5] },
+    one:      { beats:[0] },
+    backbeat: { beats:[1,3] },
+    offbeat:  { beats:[0.5,1.5,2.5,3.5] },
+    waltz:    { beats:[0,2.33,3.67] }
+  };
+
+  // ═══ MOOD SYSTEM ═══
+  const MOOD_MAP = {
+    minor:           { family:"dark",   grooves:["steady","half","one","offbeat"] },
+    minor_pentatonic:{ family:"dark",   grooves:["steady","half","one","offbeat"] },
+    blues:           { family:"dark",   grooves:["steady","half","one","offbeat"] },
+    pentatonic:      { family:"bright", grooves:["steady","half","dotted","push","backbeat"] },
+    major:           { family:"bright", grooves:["steady","half","dotted","push","backbeat"] },
+    mixolydian:      { family:"bright", grooves:["steady","half","dotted","push","backbeat"] },
+    dorian:          { family:"warm",   grooves:["steady","half","dotted","push","one","backbeat","offbeat","waltz"] }
+  };
+  const mood = MOOD_MAP[state.scaleName] || MOOD_MAP.pentatonic;
+  const grooveKey = pick(mood.grooves);
+  const groove = GROOVES[grooveKey];
+
+  // ═══ DENSITY TIER ═══
+  const nObs = obsPool.length;
+  const density = (nObs <= 10) ? "chamber" : (nObs <= 30) ? "ensemble" : (nObs <= 60) ? "orchestra" : "chorus";
+
+  // ═══ VOICE MODE INSTRUMENTS ═══
+  function getPool(){
+    if(state.voiceMode==="night") return { bass:["weta"], lead:["boobook","banjo_frog"], mid:["gecko","katydid"], hi:["bat_click","gecko"], sync:["boobook"] };
+    if(state.voiceMode==="choir") return { bass:["bass_voice"], lead:["soprano"], mid:["alto","tenor"], hi:["soprano"], sync:["bass_voice"] };
+    if(state.voiceMode==="steelpan") return { bass:["bass_pan"], lead:["lead_pan"], mid:["double_second","guitar_pan"], hi:["lead_pan"], sync:["bass_pan"] };
+    const d = currentRankDepth();
+    const hi = ["bell","chime"]; if(d>=6) hi.push("harp"); if(d>=7) hi.push("bowl");
+    const mid = ["pluck","creek"]; if(d>=4) mid.push("ember"); if(d>=5) mid.push("handpan");
+    return { bass:["bass"], lead:["bell","chime"], mid, hi, sync:["pad"] };
+  }
+  const pool = getPool();
+
+  // ═══ BUILD UNITS ═══
   const unitsMap = new Map();
   for(const o of obsPool){
-    const user = (state.userBName && (o.userName === state.userBName)) ? "B" : "A";
+    const user = (state.userBName && (o.userName===state.userBName)) ? "B" : "A";
     const voiceKey = toneKeyForObs(o);
-    const voiceLabel = voiceKey;
     const key = `${user}::${voiceKey}`;
     if(!unitsMap.has(key)){
-      const pitch = pickPitch({ taxon:o.taxon, voiceKey, order:o.order, seed:state.seed, key:state.keyName, scaleName:state.scaleName });
-      const color = hslFromHash(hash32(`${toneKeyForObs(o)}::${state.seed}`), 65, 56);
-      const instrument = pickSongInstrument(voiceKey, state.seed);
-      unitsMap.set(key, {
-        key,
-        voiceKey,
-        voiceLabel,
-        user,
-        userName: o.userName || "",
-        taxon: o.taxon,
-        order: o.order,
-        family: o.family,
-        baseInstrument: instrument,
-        midi: pitch.midi,
-        freq: pitch.freq,
-        color,
-        obsList: [],
-        playCount: 0
-      });
+      const pitch = pickPitch({taxon:o.taxon, voiceKey, order:o.order, seed:state.seed, key:state.keyName, scaleName:state.scaleName});
+      const color = hslFromHash(hash32(`${voiceKey}::${state.seed}`), 65, 56);
+      unitsMap.set(key, { key, voiceKey, user, userName:o.userName||"", taxon:o.taxon, order:o.order, family:o.family,
+        midi:pitch.midi, freq:pitch.freq, color, obsList:[], playCount:0 });
     }
     unitsMap.get(key).obsList.push(o);
   }
-
   const units = Array.from(unitsMap.values());
-  if(!units.length){
-    return { events: [], eventByObsId };
-  }
-
-  // Stable pitch ordering for neighbour/contour choices.
+  if(!units.length) return { events:[], eventByObsId };
   const pitchSorted = units.slice().sort((a,b)=>a.midi-b.midi);
+  const byAbundance = units.slice().sort((a,b)=>b.obsList.length-a.obsList.length);
 
-  // ---------
-  // Eno-ish song logic: a few repeating behaviours (pulse + motif + ornaments) interacting.
-  // ---------
-  const styleRoll = prng();
-  const style = (styleRoll < 0.34) ? "ambient" : (styleRoll < 0.68) ? "motorik" : "hybrid";
-  const energy = clamp(prng()*0.75 + (style==="motorik" ? 0.25 : 0.08), 0, 1);
-  const swing = clamp(prng()*0.65 + (style==="motorik" ? 0.25 : 0.10), 0, 1);
-
-  // Choose a bar-grid that lands nicely inside the loop (so repetition is perceptible).
-  // 60s loop gives: motorik≈128 BPM (32 bars), hybrid≈96 BPM (24 bars), ambient≈64 BPM (16 bars)
-  const beatsPerBar = 4;
-  const bars = (style==="motorik") ? 32 : (style==="ambient") ? 16 : 24;
-  const totalBeats = bars * beatsPerBar;
-  const beatSec = state.loopLen / Math.max(1, totalBeats);
-
-  function secAt(bar, beat){ return (bar*beatsPerBar + beat) * beatSec; }
-  function isOffbeat(beat){ return Math.abs(beat - Math.round(beat)) > 1e-6; }
-
-  // "Lead" candidates (melody / hook) bias toward abundant taxa so the hook is actually recognisable.
-  const leadCount = Math.min(units.length, (style==="motorik") ? 6 : (style==="ambient") ? 7 : 7);
-  const leadUnits = units.slice().sort((a,b)=> (b.obsList.length - a.obsList.length) || (a.midi - b.midi)).slice(0, leadCount);
-
-  const grooveUnit = leadUnits[0] || pitchSorted[Math.floor(pitchSorted.length/2)];
-  const bassUnit = pitchSorted[0] || grooveUnit;
-
-  // Motif: a small sequence chosen from leadUnits, arranged to move in small pitch steps.
-  const motifLen = Math.min(Math.max(4, 4 + prngInt(3)), Math.min(7, leadUnits.length || 7));
-  const motifUnits = [];
-  if(leadUnits.length){
-    let current = pick(leadUnits);
-    motifUnits.push(current);
-    const remaining = leadUnits.filter(u=>u.key !== current.key);
-    while(motifUnits.length < motifLen && remaining.length){
-      // pick nearest in pitch (small steps feel "melodic")
-      remaining.sort((a,b)=> Math.abs(a.midi-current.midi) - Math.abs(b.midi-current.midi));
-      current = remaining.shift();
-      motifUnits.push(current);
+  // ═══ SYNCHRONICITY ═══
+  const hasDuet = !!(state.userAName && state.userBName && state.listenMode==="both");
+  const syncFracs = [];
+  if(hasDuet){
+    const mm = new Map();
+    for(const o of obsPool){
+      const u = (o.userName===state.userBName) ? "B" : "A";
+      const mk = Math.floor(o.t.getTime()/60000);
+      if(!mm.has(mk)) mm.set(mk, {A:false,B:false,t:o.t.getTime()});
+      const e = mm.get(mk); e[u]=true; if(o.t.getTime()<e.t) e.t=o.t.getTime();
     }
+    const times = obsPool.map(o=>o.t.getTime()).sort((a,b)=>a-b);
+    const span = Math.max(1, times[times.length-1]-times[0]);
+    for(const [,e] of mm){ if(e.A&&e.B) syncFracs.push(clamp((e.t-times[0])/span,0,1)); }
+    syncFracs.sort((a,b)=>a-b);
   }
-  // Fallback if tiny dataset.
-  while(motifUnits.length < Math.min(4, units.length)){
-    motifUnits.push(pitchSorted[(prngInt(pitchSorted.length))]);
+
+  // ═══ GRID ═══
+  const BARS = 8, BEATS = 4;
+  const beatSec = state.loopLen / (BARS*BEATS);
+  const loopLen = state.loopLen;
+  function timeAt(bar, beat){ return (bar*BEATS+beat)*beatSec; }
+
+  // ═══ CHORDS ═══
+  const scale = SCALES[state.scaleName] || SCALES.pentatonic;
+  const rootSemi = KEY_TO_SEMITONE[state.keyName] ?? 0;
+  function pitchClass(midi){ return ((midi-rootSemi)%12+12)%12; }
+  const maxCh = (density==="chamber") ? 2 : (density==="ensemble") ? 3 : 4;
+  function buildChords(){
+    const ch = [byAbundance.slice(0, Math.min(maxCh, Math.max(2, byAbundance.length)))];
+    function near(tgt){
+      const c = units.filter(u => scale.some(deg => Math.abs(pitchClass(u.midi)-((deg+tgt)%12))<=1));
+      return (c.length>=2) ? c.slice(0,Math.min(maxCh,c.length)) : ch[0];
+    }
+    ch.push(near(5)); ch.push(near(7)); ch.push(near(9));
+    return ch;
   }
+  const chords = buildChords();
+  const prog = [0,3,1,2,0,3,1,0].map(i => chords[i%chords.length]);
 
-  // Rhythmic motif (within a bar) — deliberately simple and repeatable.
-  const motifPattern =
-    (style==="ambient") ? [0, 2, 3] :
-    (style==="motorik") ? [0, 1, 1.5, 2.5, 3] :
-    [0, 1.5, 2, 3.5];
+  // ═══ THEME ═══
+  const themeLen = Math.min(4, Math.max(3, byAbundance.length));
+  const themeUnits = [];
+  let cur = byAbundance[0]; themeUnits.push(cur);
+  const rem = byAbundance.slice(1);
+  while(themeUnits.length<themeLen && rem.length){
+    rem.sort((a,b)=>Math.abs(a.midi-cur.midi)-Math.abs(b.midi-cur.midi));
+    cur=rem.shift(); themeUnits.push(cur);
+  }
+  const darkR  = [[0,2,3,3.5],[0,1.5,3,3.5],[0,2,3],[0,1,3]];
+  const brightR = [[0,1,2,3],[0,0.5,2,3],[0,1,2.5,3],[0,0.5,1.5,3]];
+  const warmR   = [[0,1.5,2,3.5],[0,1,2,3],[0,0.5,2,3.5],[0,1,2.5,3]];
+  const rPool = (mood.family==="dark") ? darkR : (mood.family==="bright") ? brightR : warmR;
+  const themeRhythm = pick(rPool).slice(0, themeLen);
+  const themeAt = (density==="chamber") ? [0,4] : [0,2,4,7];
 
-  // Ornament positions (offbeats) — where "all the other species" can sparkle.
-  const ornPositions = [0.5, 1.5, 2.5, 3.5];
+  // ═══ BAR ROLES ═══
+  const barRole = ["intro","breath","theme2","build","climax","climax2","release","resolve"];
 
-  // Slots are the "score": time + role. Units get assigned later.
-  const slots = [];
+  // ═══ EMITTERS ═══
+  const events = [];
   const usedUnits = new Set();
 
-  // Helper to add a slot and keep duplicates sane.
-  function addSlot(bar, beat, role, unit=null, extra=null){
-    slots.push({bar, beat, role, unit, extra});
+  function emit(atSec, unit, instrument, velScale){
+    if(!unit || !unit.obsList.length) return;
+    const o = unit.obsList[unit.playCount%unit.obsList.length]; unit.playCount++;
+    const ev = { kind:"obs", isSpecial:false, user:unit.user, userName:unit.userName||(o.userName||""), obs:o,
+      atSec:clamp(atSec,0,loopLen), taxon:unit.taxon, order:unit.order, family:unit.family,
+      voiceKey:unit.voiceKey, voiceLabel:unit.voiceKey, instrument, midi:unit.midi, freq:unit.freq,
+      density:1+Math.log2(Math.max(1,unit.obsList.length)), velScale:clamp(velScale||1.0,0.15,1.5),
+      color:unit.color, isEcho:false };
+    events.push(ev); usedUnits.add(unit.key);
+    if(!eventByObsId.has(o.id)) eventByObsId.set(o.id, ev);
   }
-
-  // Build the repeating behaviours.
-  for(let bar=0; bar<bars; bar++){
-    // Bass anchor: gives harmonic gravity.
-    if(style !== "ambient" || (bar % 2 === 0)){
-      addSlot(bar, 0, "bass", bassUnit);
-      usedUnits.add(bassUnit.key);
-    }
-
-    // Pulse behaviour: makes it feel like it has a body.
-    if(style === "motorik"){
-      // Steady motorik: quarters + occasional offbeat push.
-      for(const b of [0,1,2,3]){
-        addSlot(bar, b, "pulse", grooveUnit);
-      }
-      if(prng() < 0.72) addSlot(bar, 0.5, "pulse", grooveUnit);
-      if(prng() < 0.55) addSlot(bar, 2.5, "pulse", grooveUnit);
-      usedUnits.add(grooveUnit.key);
-    } else if(style === "hybrid"){
-      for(const b of [0,2]){
-        addSlot(bar, b, "pulse", grooveUnit);
-      }
-      if(prng() < 0.35) addSlot(bar, 1.5, "pulse", grooveUnit);
-      usedUnits.add(grooveUnit.key);
-    } else {
-      // Ambient: pulse is sparse, more like a slow lantern blink.
-      if(bar % 2 === 0 && prng() < 0.65){
-        addSlot(bar, 2, "pulse", grooveUnit);
-        usedUnits.add(grooveUnit.key);
-      }
-    }
-
-    // Motif returns every 4 bars (recognition), with gentle variation (surprise).
-    if(bar % 4 === 0){
-      const occ = Math.floor(bar/4);
-      const reverse = (prng() < 0.12);
-      const rotateBy = (occ * 2) % Math.max(1, motifUnits.length);
-      for(let i=0;i<motifPattern.length;i++){
-        const idx = reverse ? (motifPattern.length-1-i) : i;
-        addSlot(bar, motifPattern[idx], "motif", null, {occ, step:i, rotateBy, reverse});
-      }
-    }
-
-    // Ornaments: the rest of the night gets its required "appearance"
-    // and then becomes texture. Density breathes with energy.
-    let ornN = 0;
-    if(style === "ambient"){
-      ornN = (prng() < 0.55) ? 1 : 0;
-      if(energy > 0.75 && prng() < 0.25) ornN += 1;
-    } else if(style === "motorik"){
-      ornN = 2 + ((prng() < 0.45) ? 1 : 0) + ((energy > 0.8 && prng() < 0.25) ? 1 : 0);
-    } else {
-      ornN = 1 + ((prng() < 0.70) ? 1 : 0) + ((energy > 0.75 && prng() < 0.20) ? 1 : 0);
-    }
-
-    // choose ornament beats (offbeats preferred)
-    const pos = shuffle(ornPositions.slice());
-    for(let i=0;i<ornN;i++){
-      addSlot(bar, pos[i % pos.length], "orn", null, null);
-    }
+  function chordHit(at, ch, vel){ for(const u of ch) emit(at, u, pick(pool.mid), vel); }
+  function themePlay(barStart, vel){
+    for(let i=0;i<themeRhythm.length;i++) emit(barStart+themeRhythm[i]*beatSec, themeUnits[i%themeUnits.length], pick(pool.lead), vel);
   }
-
-  // ---------
-  // Assign motif units (fixed hook).
-  // ---------
-  function motifUnitFor(extra){
-    const occ = extra?.occ || 0;
-    const step = extra?.step || 0;
-    const rot = extra?.rotateBy || 0;
-    // A tiny, deterministic variation: rotate motif and occasionally "borrow" a neighbour.
-    let idx = (step + rot) % Math.max(1, motifUnits.length);
-    let u = motifUnits[idx] || grooveUnit;
-    // Once in a while, nudge to a close neighbour (feels like variation, not randomness).
-    if(prng() < 0.10 && pitchSorted.length > 2){
-      const pIdx = pitchSorted.findIndex(x=>x.key===u.key);
-      const dir = (prng() < 0.5) ? -1 : 1;
-      const alt = pitchSorted[(pIdx + dir + pitchSorted.length) % pitchSorted.length];
-      if(alt) u = alt;
-    }
-    return u;
+  function bassHit(at, vel){ emit(at, pitchSorted[0], pick(pool.bass), vel); }
+  function syncHit(at, vel){
+    if(!hasDuet) return;
+    const p = pickPitch({taxon:"Duet",voiceKey:"Duet",order:"Duet",seed:state.seed,key:state.keyName,scaleName:state.scaleName});
+    const m = p.midi-12;
+    events.push({ kind:"duet_sync", isSpecial:true, user:"AB", userName:"", obs:null,
+      atSec:clamp(at,0,loopLen), taxon:"Synchrony", order:"__DUET__", family:"",
+      voiceKey:"__DUET__", voiceLabel:"Synchrony", instrument:pick(pool.sync),
+      midi:m, freq:midiToFreq(m), density:1.5, velScale:clamp(vel,0.3,1.4),
+      color:"rgba(70,194,210,0.90)", isEcho:false });
   }
+  function grooveBass(bar, vel){ for(const b of groove.beats) bassHit(timeAt(bar,b), vel); }
+  function grooveSync(bar, vel){ if(!hasDuet) return; for(const b of groove.beats) syncHit(timeAt(bar,b), vel); }
 
-  for(const s of slots){
-    if(s.role === "motif"){
-      s.unit = motifUnitFor(s.extra);
-      usedUnits.add(s.unit.key);
-    }
-  }
+  // ═══ COMPOSE ═══
+  for(let bar=0; bar<BARS; bar++){
+    const role = barRole[bar];
+    const ch = prog[bar];
+    const t = (beat) => timeAt(bar, beat);
+    const hasTheme = themeAt.includes(bar);
 
-  // ---------
-  // Ensure: every unit (species voice) appears at least once per loop.
-  // We use ornaments first to "introduce" everyone, then let repeats create texture.
-  // ---------
-  const unused = units.filter(u=>!usedUnits.has(u.key));
-  shuffle(unused);
-
-  const ornSlots = slots.filter(s=>s.role === "orn" && !s.unit);
-  // If there are more unused units than ornament slots, add extra ornament slots.
-  while(unused.length > ornSlots.length){
-    const bar = prngInt(bars);
-    addSlot(bar, pick(ornPositions), "orn", null, null);
-    ornSlots.push(slots[slots.length-1]);
-  }
-
-  for(let i=0;i<ornSlots.length && unused.length;i++){
-    const u = unused.shift();
-    ornSlots[i].unit = u;
-    usedUnits.add(u.key);
-  }
-
-  // Fill remaining ornament slots with a weighted mix:
-  // motif units and groove unit recur more often (song-ness),
-  // but everyone has a chance (ecological richness).
-  const motifSet = new Set(motifUnits.map(u=>u.key));
-  for(const s of slots){
-    if(s.role !== "orn" || s.unit) continue;
-
-    const weights = units.map(u=>{
-      let w = 1.0;
-      if(u.key === grooveUnit.key) w *= 2.35;
-      if(motifSet.has(u.key)) w *= 1.85;
-      // a little duet "conversation" if both are present
-      if(state.listenMode === "both" && (prng() < 0.12)){
-        // lightly favour alternating users
-        w *= 1.05;
-      }
-      // avoid over-favouring very abundant units for ornaments
-      w *= 1.0 / (1.0 + Math.log2(1 + u.obsList.length) * 0.25);
-      return w;
-    });
-    s.unit = weightedPick(units, weights);
-  }
-
-  // ---------
-  // Build events from slots.
-  // ---------
-  const events = [];
-  const firstTimeByUnit = new Map();
-
-  // Sort chronologically (bars/beat), then apply micro-humanisation.
-  slots.sort((a,b)=> (a.bar-b.bar) || (a.beat-b.beat));
-
-  for(const s of slots){
-    const u = s.unit || grooveUnit;
-    if(!u || !u.obsList.length) continue;
-
-    const obs = u.obsList[u.playCount % u.obsList.length];
-    u.playCount += 1;
-
-    let at = secAt(s.bar, s.beat);
-
-    // Humanise + swing (offbeats breathe).
-    const micro = (prng()*2 - 1) * Math.min(0.05, beatSec * 0.22);
-    at += micro;
-    if(isOffbeat(s.beat)){
-      at += beatSec * 0.14 * swing * (style==="ambient" ? 0.55 : 1.0);
-    }
-    at = clamp(at, 0, state.loopLen);
-
-    // Instrument + register by role (hierarchy).
-    let instrument = u.baseInstrument;
-
-    if(s.role === "bass"){
-      instrument = "bass";
-    } else if(s.role === "motif"){
-      if(style==="ambient"){
-        instrument = (prng() < 0.58) ? "pad" : "bell";
-      } else if(style==="motorik"){
-        instrument = (prng() < 0.22) ? "bell" : "pluck";
-      } else {
-        instrument = (prng() < 0.20) ? "bell" : ((prng() < 0.22) ? "pad" : "pluck");
-      }
-    } else if(s.role === "pulse"){
-      instrument = (style==="ambient" && prng() < 0.45) ? "pad" : "pluck";
-    } else { // ornament
-      instrument = (prng() < 0.28) ? "bell" : ((style==="ambient" && prng() < 0.35) ? "pad" : "pluck");
-    }
-
-    let midi = u.midi;
-    if(instrument === "bass") midi -= 12;
-    if(instrument === "bell") midi += 12;
-    if(style==="ambient" && instrument==="pad" && prng() < 0.25) midi -= 12; // warmth
-    const freq = midiToFreq(midi);
-
-    const density = 1 + Math.log2(Math.max(1, u.obsList.length));
-
-    const ev = {
-      kind:"obs",
-      isSpecial:false,
-      user: u.user,
-      userName: u.userName || (obs.userName || ""),
-      obs,
-      atSec: at,
-      taxon: u.taxon,
-      order: u.order,
-      family: u.family,
-      voiceKey: u.voiceKey,
-      voiceLabel: u.voiceLabel,
-      instrument,
-      midi,
-      freq,
-      density,
-      color: u.color,
-      isEcho:false
-    };
-
-    events.push(ev);
-
-    if(!firstTimeByUnit.has(u.key)){
-      firstTimeByUnit.set(u.key, at);
+    switch(role){
+      case "intro":
+        grooveBass(bar, 0.55); grooveSync(bar, 0.45);
+        if(hasTheme) themePlay(t(0), 0.65);
+        break;
+      case "breath":
+        grooveBass(bar, 0.35); grooveSync(bar, 0.3);
+        if(pitchSorted.length>1) emit(t(3), pitchSorted[pitchSorted.length-1], pick(pool.hi), 0.3);
+        break;
+      case "theme2":
+        grooveBass(bar, 0.65); grooveSync(bar, 0.55);
+        chordHit(t(0), ch.slice(0,Math.min(3,ch.length)), 0.5);
+        if(hasTheme) themePlay(t(0), 0.8);
+        chordHit(t(3), ch.slice(0,2), 0.4);
+        break;
+      case "build":
+        grooveBass(bar, 0.75); grooveSync(bar, 0.7);
+        chordHit(t(0), ch, 0.6);
+        chordHit(t(2), ch.slice(0,Math.min(3,ch.length)), 0.5);
+        if(density!=="chamber" && units.length>3){
+          emit(t(1), pick(units), pick(pool.hi), 0.4);
+          emit(t(3), pick(units), pick(pool.hi), 0.35);
+        }
+        if(hasDuet){
+          const uA=units.find(u=>u.user==="A"), uB=units.find(u=>u.user==="B");
+          if(uA) emit(t(1)+beatSec*0.5, uA, pick(pool.lead), 0.55);
+          if(uB) emit(t(3)+beatSec*0.5, uB, pick(pool.lead), 0.5);
+        }
+        break;
+      case "climax":
+        grooveBass(bar, 0.95); grooveSync(bar, 1.1);
+        chordHit(t(0), ch, 0.85);
+        if(hasTheme) themePlay(t(0), 1.1);
+        chordHit(t(2), ch, 0.7);
+        if(pitchSorted.length>1){
+          emit(t(1), pitchSorted[pitchSorted.length-1], pick(pool.hi), 0.6);
+          emit(t(3), pitchSorted[Math.max(0,pitchSorted.length-2)], pick(pool.hi), 0.5);
+        }
+        break;
+      case "climax2":
+        grooveBass(bar, 1.0); grooveSync(bar, 1.0);
+        if(density==="chamber"){ chordHit(t(0),ch,0.7); chordHit(t(2),ch,0.6); }
+        else { for(let b=0;b<BEATS;b++) chordHit(t(b), ch.slice(0,Math.min(2+b,ch.length)), 0.55+b*0.1); }
+        const unused=units.filter(u=>!usedUnits.has(u.key)); shuffle(unused);
+        for(let i=0;i<unused.length;i++) emit(timeAt(bar,(i*0.7)%BEATS), unused[i], pick(pool.hi), 0.45);
+        break;
+      case "release":
+        grooveBass(bar, 0.5); grooveSync(bar, 0.4);
+        chordHit(t(0), ch.slice(0,Math.min(3,ch.length)), 0.45);
+        if(themeUnits.length>1){ emit(t(2),themeUnits[0],pick(pool.lead),0.45); emit(t(3),themeUnits[1],pick(pool.lead),0.35); }
+        break;
+      case "resolve":
+        grooveBass(bar, 0.35); grooveSync(bar, 0.3);
+        if(hasTheme){ for(let i=0;i<Math.min(2,themeRhythm.length);i++) emit(t(0)+themeRhythm[i]*beatSec, themeUnits[i%themeUnits.length], pick(pool.lead), 0.4); }
+        chordHit(t(3), ch.slice(0,2), 0.25);
+        break;
     }
   }
 
-  // Map each thumbnail's obs to a selection-friendly event (song-tuned).
-  for(const u of units){
-    const firstAt = firstTimeByUnit.get(u.key);
-    const atSec = (firstAt != null) ? firstAt : 0;
-    for(const o of u.obsList){
-      eventByObsId.set(o.id, {
-        kind:"obs",
-        isSpecial:false,
-        user: u.user,
-        userName: o.userName || u.userName || "",
-        obs: o,
-        atSec,
-        taxon: u.taxon,
-        order: u.order,
-        family: u.family,
-        instrument: u.baseInstrument,
-        midi: u.midi,
-        freq: u.freq,
-        density: 1 + Math.log2(Math.max(1, u.obsList.length)),
-        color: u.color,
-        isEcho:false
-      });
-    }
-  }
+  // ═══ REMAINING UNITS ═══
+  for(const u of units){ if(!usedUnits.has(u.key)) emit(timeAt(3+prngInt(3), prng()*BEATS), u, pick(pool.hi), 0.4); }
+
+  // ═══ DATA-DRIVEN SYNC ═══
+  if(hasDuet){ for(const f of syncFracs){ const at=f*loopLen; syncHit(at, (at>=timeAt(4,0)&&at<timeAt(6,0)) ? 1.0 : 0.5); } }
+
+  // ═══ SELECTION EVENTS ═══
+  for(const u of units){ for(const o of u.obsList){ if(!eventByObsId.has(o.id)){
+    eventByObsId.set(o.id, { kind:"obs", isSpecial:false, user:u.user, userName:o.userName||u.userName||"", obs:o, atSec:0,
+      taxon:u.taxon, order:u.order, family:u.family, instrument:pick(pool.mid), midi:u.midi, freq:u.freq,
+      density:1+Math.log2(Math.max(1,u.obsList.length)), color:u.color, isEcho:false });
+  }}}
 
   events.sort((a,b)=>a.atSec-b.atSec);
   return { events, eventByObsId };
@@ -4562,7 +4510,7 @@ function buildSongEvents(nightObs, countsByTaxon){
 
 
 function buildSequencer(nightObs){
-  const mode = state.spacingMode || "timeline";
+  const mode = state.spacingMode || "riff";
 
   // Riff mode: take a time-window slice of the night (local clock), then map it to the loop.
   let obsForTimeline = nightObs;
@@ -4908,7 +4856,8 @@ if(state.listenMode !== "both" && e.isSpecial){
       }
 
       const velBase = e.isSpecial ? (e.kind==="duet_sync" ? 0.26 : 0.20) : clamp(0.15 + 0.12*Math.log2(e.density), 0.12, 0.65);
-      const vel = velBase * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
+      const velScaleFactor = (e.velScale != null) ? e.velScale : 1.0;
+      const vel = velBase * velScaleFactor * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
       scheduleInstrument(audioCtx, e.instrument, tEvent, e.freq, vel);
       scheduleThumbGlow(e, tEvent);
       scheduleSelectionOverlay(e, tEvent);
@@ -5838,8 +5787,8 @@ function initUI(){
   try{
     const saved = localStorage.getItem("moth.spacingMode");
     if(saved === "riff") state.spacingMode = "riff";
+    else if(saved === "song") state.spacingMode = "song";
     else if(saved === "timeline") state.spacingMode = "timeline";
-    else if(saved === "song") state.spacingMode = "timeline";
   }catch(_){}
 
   function setSpacingMode(mode){
@@ -5851,14 +5800,16 @@ function initUI(){
     rebuildDerived();
   }
   function updateModeButtons(){
-    const t = $("modeTimelineBtn"), r = $("modeRiffBtn");
+    const t = $("modeTimelineBtn"), s = $("modeSongBtn"), r = $("modeRiffBtn");
     const m = state.spacingMode || "timeline";
     if(t) t.classList.toggle("primary", m==="timeline");
+    if(s) s.classList.toggle("primary", m==="song");
     if(r) r.classList.toggle("primary", m==="riff");
     const ctl = $("riffCtl");
     if(ctl) ctl.hidden = (m!=="riff");
   }
   if($("modeTimelineBtn")) $("modeTimelineBtn").addEventListener("click", ()=> setSpacingMode("timeline"));
+  if($("modeSongBtn")) $("modeSongBtn").addEventListener("click", ()=> setSpacingMode("song"));
   if($("modeRiffBtn")) $("modeRiffBtn").addEventListener("click", ()=> setSpacingMode("riff"));
 
 // riff window controls (only visible in Riff mode)
@@ -6758,18 +6709,25 @@ function initUI(){
         inatFetchBtn.disabled = false;
         return;
       }
-      state.obs = obs;
+
+      // Merge with existing observations: deduplicate by id, keeping new data
+      const existingById = new Map();
+      for(const o of state.obs) existingById.set(o.id, o);
+      for(const o of obs) existingById.set(o.id, o);
+      state.obs = Array.from(existingById.values());
+      state.obs.sort((a,b) => a.t.getTime() - b.t.getTime());
+
       clearSelection();
       hardResetPlayback("inat");
       rebuildDerived();
-      inatStatusEl.textContent = `Loaded ${obs.length} observations across ${state.nights ? state.nights.size : "?"} nights. Enriching common names…`;
+      inatStatusEl.textContent = `Loaded ${obs.length} new observations (${state.obs.length} total) across ${state.nights ? state.nights.size : "?"} nights. Enriching common names…`;
       inatEnrichBtn.disabled = false;
 
       // Auto-enrich common names via GBIF
       const result = await enrichCommonNamesGbif(state.obs, (done, total)=>{
         inatStatusEl.textContent = `GBIF: ${done}/${total} lookups…`;
       });
-      inatStatusEl.textContent = `Done — ${obs.length} obs, ${result.filled} common names enriched via GBIF.`;
+      inatStatusEl.textContent = `Done — ${state.obs.length} obs total, ${result.filled} common names enriched via GBIF.`;
 
       // Rebuild to pick up enriched names
       rebuildDerived();
@@ -7454,6 +7412,156 @@ window.addEventListener("resize", ()=>{ _cachedCanvasRect = null; fitCanvasFast(
       } else { lastTap=now; }
     }
     gX=null;
+  }, {passive:true});
+})();
+
+/* ═══ GALLERY FULLSCREEN TRANSPORT + GESTURES ═══ */
+(function(){
+  const gtPlay = document.getElementById("gtPlay");
+  const gtRemix = document.getElementById("gtRemix");
+  const gtVoice = document.getElementById("gtVoice");
+  const gtExit = document.getElementById("gtExit");
+  const gtLabel = document.getElementById("gtModeLabel");
+  const playBtn = document.getElementById("playBtn");
+  const remixBtn = document.getElementById("remixBtn");
+
+  function isGalleryFs(){
+    const wrap = document.querySelector(".thumbGridWrap");
+    return wrap && (wrap.classList.contains("iosFakeFs") || document.fullscreenElement === wrap);
+  }
+
+  function exitGalleryFs(){
+    const wrap = document.querySelector(".thumbGridWrap");
+    if(!wrap) return;
+    if(wrap.classList.contains("iosFakeFs")){
+      wrap.classList.remove("iosFakeFs");
+      document.body.classList.remove("iosFsActive","galleryFsActive");
+    } else if(document.fullscreenElement === wrap){
+      document.exitFullscreen();
+    }
+    const panel = document.getElementById("photoPanel");
+    if(panel) panel.classList.remove("galleryVisible");
+    const tbGallery = document.getElementById("tbGallery");
+    if(tbGallery) tbGallery.classList.remove("galleryActive");
+  }
+
+  function syncGalleryTransport(){
+    if(!isGalleryFs()) return;
+    const playSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>';
+    const pauseSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
+    if(gtPlay) gtPlay.innerHTML = state.isPlaying ? pauseSvg : playSvg;
+    if(gtLabel){
+      const voiceLbl = (typeof VOICE_MODE_LABELS !== "undefined" && VOICE_MODE_LABELS[state.voiceMode]) || state.voiceMode;
+      const toneLbl = toneByLabel();
+      gtLabel.textContent = voiceLbl + " · " + toneLbl;
+    }
+  }
+
+  // Wire buttons
+  if(gtPlay) gtPlay.addEventListener("click", ()=>{ if(playBtn) playBtn.click(); setTimeout(syncGalleryTransport, 50); });
+  if(gtRemix) gtRemix.addEventListener("click", ()=>{ if(remixBtn) remixBtn.click(); });
+  if(gtVoice) gtVoice.addEventListener("click", ()=>{
+    const idx = VOICE_MODES.indexOf(state.voiceMode);
+    const next = (idx + 1) % VOICE_MODES.length;
+    state.voiceMode = VOICE_MODES[next];
+    const vmSel = document.getElementById("voiceModeSel");
+    if(vmSel) vmSel.value = state.voiceMode;
+    showModeToast(VOICE_MODE_LABELS[state.voiceMode] || state.voiceMode);
+    clearSelection();
+    softRebuild();
+    syncGalleryTransport();
+  });
+  if(gtExit) gtExit.addEventListener("click", exitGalleryFs);
+
+  // Sync periodically
+  setInterval(syncGalleryTransport, 400);
+
+  // Track gallery fullscreen state on body for CSS
+  const gObserver = new MutationObserver(()=>{
+    const wrap = document.querySelector(".thumbGridWrap");
+    const isFs = wrap && wrap.classList.contains("iosFakeFs");
+    document.body.classList.toggle("galleryFsActive", isFs);
+    if(isFs) syncGalleryTransport();
+  });
+  const gWrap = document.querySelector(".thumbGridWrap");
+  if(gWrap) gObserver.observe(gWrap, {attributes:true, attributeFilter:["class"]});
+
+  // ── Gallery fullscreen touch gestures ──
+  if(!('ontouchstart' in window) && navigator.maxTouchPoints <= 0) return;
+
+  const wrap = document.querySelector(".thumbGridWrap");
+  if(!wrap) return;
+
+  let gX=null, gY=null, gT=0, gHandled=false, lastTap=0;
+  const SWIPE_MIN=50, DTAP_MS=350;
+
+  function showGalleryIndicator(text){
+    const el = document.getElementById("galleryGestureIndicator");
+    if(!el) return;
+    el.textContent = text;
+    el.classList.add("visible");
+    clearTimeout(el._t);
+    el._t = setTimeout(()=> el.classList.remove("visible"), 800);
+  }
+
+  wrap.addEventListener("touchstart", function(ev){
+    if(!isGalleryFs()) return;
+    if(ev.touches.length !== 1) return;
+    const t = ev.touches[0];
+    gX = t.clientX; gY = t.clientY; gT = Date.now(); gHandled = false;
+  }, {passive:true});
+
+  wrap.addEventListener("touchend", function(ev){
+    if(!isGalleryFs()) return;
+    if(gHandled || gX == null) return;
+    const t = ev.changedTouches[0]; if(!t) return;
+    const dx = t.clientX - gX, dy = t.clientY - gY;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    const elapsed = Date.now() - gT;
+
+    if(elapsed < 500){
+      // Horizontal swipe → voice family
+      if(ax > SWIPE_MIN && ax > ay * 1.5){
+        gHandled = true;
+        const vmSel = document.getElementById("voiceModeSel");
+        if(vmSel && typeof VOICE_MODES !== "undefined"){
+          const i = VOICE_MODES.indexOf(state.voiceMode);
+          const n = dx > 0 ? (i+1) % VOICE_MODES.length : (i-1+VOICE_MODES.length) % VOICE_MODES.length;
+          state.voiceMode = VOICE_MODES[n];
+          vmSel.value = state.voiceMode;
+          const lbl = (typeof VOICE_MODE_LABELS !== "undefined" && VOICE_MODE_LABELS[state.voiceMode]) || state.voiceMode;
+          showModeToast(lbl); showGalleryIndicator(lbl);
+          clearSelection(); softRebuild(); syncGalleryTransport();
+        }
+        gX = null; return;
+      }
+      // Vertical swipe → taxonomic rank
+      if(ay > SWIPE_MIN && ay > ax * 1.5){
+        gHandled = true;
+        const sel = document.getElementById("toneSelect");
+        if(sel && sel.options.length){
+          const cur = sel.selectedIndex;
+          const n = dy < 0 ? (cur+1) % sel.options.length : (cur-1+sel.options.length) % sel.options.length;
+          sel.selectedIndex = n;
+          state.toneBy = sel.value;
+          const lbl = sel.options[n].textContent;
+          showModeToast("Tone: " + lbl); showGalleryIndicator(lbl);
+          clearSelection(); softRebuild(); syncGalleryTransport();
+        }
+        gX = null; return;
+      }
+    }
+
+    // Double-tap → remix
+    if(ax < 15 && ay < 15 && elapsed < 300){
+      const now = Date.now();
+      if(now - lastTap < DTAP_MS){
+        gHandled = true; lastTap = 0;
+        if(remixBtn) remixBtn.click();
+        showGalleryIndicator("Remix");
+      } else { lastTap = now; }
+    }
+    gX = null;
   }, {passive:true});
 })();
 
