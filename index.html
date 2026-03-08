@@ -62,11 +62,6 @@ button,select,input{font-family:var(--font);}
 }
 canvas{width:100%;height:100%;display:block;touch-action:none;}
 
-/* Give the ring breathing room above the transport bar on touch devices */
-@media(max-width:1023px){
-  canvas{height:calc(100% - 36px);}
-}
-
 .corner{
   position:absolute; right:10px; bottom:10px;
   padding:5px 10px; border-radius:999px;
@@ -5037,6 +5032,11 @@ function fitCanvasFast(cvs){
   return {w,h,dpr:_cachedDpr};
 }
 
+// Vertical offset to lift the ring above the transport bar on touch devices
+function ringOffsetY(){
+  return (window.innerWidth < 1024) ? Math.round(28 * (window.devicePixelRatio || 1)) : 0;
+}
+
 /* ── Cached voice index map (rebuilt on sequencer change) ── */
 let _voiceIndexMap = new Map();
 let _voiceListSig = "";
@@ -5061,7 +5061,7 @@ function drawFrame(){
     return;
   }
   const {w,h,dpr} = fitCanvasFast(canvas);
-  const cx = w/2, cy = h/2;
+  const cx = w/2, cy = h/2 - ringOffsetY();
   const baseR = Math.min(w,h)*0.35;
 
   // background (cached to offscreen canvas)
@@ -5396,7 +5396,7 @@ async function setPlayheadToAngle(clientX, clientY){
   const x = (clientX - rect.left) * dpr;
   const y = (clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
-  const cx = w / 2, cy = h / 2;
+  const cx = w / 2, cy = h / 2 - ringOffsetY();
   const angle = Math.atan2(y - cy, x - cx) + Math.PI / 2;
   const norm = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
   const frac = norm / (Math.PI * 2);
@@ -5443,7 +5443,7 @@ canvas.addEventListener("mousedown", (ev) => {
   const x = (ev.clientX - rect.left) * dpr;
   const y = (ev.clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
-  const cx = w / 2, cy = h / 2;
+  const cx = w / 2, cy = h / 2 - ringOffsetY();
   const radius = Math.min(w, h) * 0.35;
   const dist = Math.hypot(x - cx, y - cy);
 
@@ -5485,7 +5485,7 @@ canvas.addEventListener("mousemove", (ev) => {
   const x = (ev.clientX - rect.left) * dpr;
   const y = (ev.clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
-  const cx = w / 2, cy = h / 2;
+  const cx = w / 2, cy = h / 2 - ringOffsetY();
   const radius = Math.min(w, h) * 0.35;
   const dist = Math.hypot(x - cx, y - cy);
   canvas.style.cursor = (dist < radius * 1.15 && dist > radius * 0.15) ? "grab" : "default";
@@ -5506,7 +5506,7 @@ canvas.addEventListener("touchstart", (ev) => {
   const x = (touch.clientX - rect.left) * dpr;
   const y = (touch.clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
-  const cx = w / 2, cy = h / 2;
+  const cx = w / 2, cy = h / 2 - ringOffsetY();
   const radius = Math.min(w, h) * 0.35;
   const dist = Math.hypot(x - cx, y - cy);
 
@@ -5569,7 +5569,7 @@ canvas.addEventListener("touchend", (ev) => {
     const x = (touch.clientX - rect.left) * dpr;
     const y = (touch.clientY - rect.top) * dpr;
     const {w, h} = fitCanvasToDisplay(canvas);
-    const cx = w / 2, cy = h / 2;
+    const cx = w / 2, cy = h / 2 - ringOffsetY();
     const radius = Math.min(w, h) * 0.35;
     const voices = (state.sequencer.meta.voiceList && state.sequencer.meta.voiceList.length) ? state.sequencer.meta.voiceList : (state.availableVoices || state.availableOrders);
     const voiceIndex = new Map(voices.map((v,i)=>[v,i]));
@@ -5606,7 +5606,7 @@ canvas.addEventListener("click", (ev)=>{
   const y = (ev.clientY - rect.top)*dpr;
 
   const {w,h} = fitCanvasToDisplay(canvas);
-  const cx = w/2, cy = h/2;
+  const cx = w/2, cy = h/2 - ringOffsetY();
   const radius = Math.min(w,h)*0.35;
 
   const voices = (state.sequencer.meta.voiceList && state.sequencer.meta.voiceList.length) ? state.sequencer.meta.voiceList : (state.availableVoices || state.availableOrders);
