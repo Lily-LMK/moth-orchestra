@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+"""
+Moth Orchestra — Pre-demo patch (8 March 2026)
+
+Fixes:
+1. Gallery transport buttons invisible on iPhone (CSS layout)
+2. Audio crackle when changing key during playback (JS race condition)
+3. Pinch-to-exit gallery fullscreen (JS gesture)
+
+Usage:
+  python3 patch_moth_orchestra.py moth_orchestra_iphone.html
+
+Creates: moth_orchestra_iphone_patched.html
+"""
+
+import sys, os
+
+if len(sys.argv) < 2:
+    print("Usage: python3 patch_moth_orchestra.py <input.html>")
+    print("Creates: <input>_patched.html")
+    sys.exit(1)
+
+infile = sys.argv[1]
+base, ext = os.path.splitext(infile)
+outfile = base + "_patched" + ext
+
+with open(infile, "r", encoding="utf-8") as f:
+    html = f.read()
+
+original_len = len(html)
+fixes = []
+
+# ═══ FIX 1A: Gallery container — add dvh fallback ═══
+
+old = """  width:100vw!important;height:100vh!important;
+  z-index:99999;background:#040610;
+  padding:14px;overflow:hidden;border-radius:0!important;margin:0;
+}"""
+
+new = """  width:100vw!important;height:100vh!important;height:100dvh!important;
+  z-index:99999;background:#040610;
+  padding:14px;overflow:hidden;border-radius:0!important;margin:0;
+}"""
+
+if old in html:
+    # Only replace the first occurrence (the main gallery fullscreen rule,
+    # not the :fullscreen one which has the same content)
+    html = html.replace(old, new, 1)
+    fixes.append("1A: dvh on gallery container")
+else:
+    print("WARNING: Fix 1A pattern not found", file=sys.stderr)
+
+
+# ═══ FIX 1B: Mobile gallery — bottom padding + word cloud cap + fixed transport ═══
+
+old = """@media(max-width:767px){
+  .thumbGridWrap.iosFakeFs{
+    padding:calc(6px + var(--safe-t)) 10px 0;
+  }
+  .thumbGridWrap.iosFakeFs .fsInner{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr auto auto;
+    gap:4px;
+    padding:0;
+  }
+  .thumbGridWrap.iosFakeFs .fsThumbPane{padding-right:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .thumbGridWrap.iosFakeFs .fsWordPane{
+    padding:4px 8px;
+  }
+  .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:2px 4px;gap:2px 8px;}
+}"""
+
+new = """@media(max-width:767px){
+  .thumbGridWrap.iosFakeFs{
+    padding:calc(6px + var(--safe-t)) 10px calc(54px + var(--safe-b));
+  }
+  .thumbGridWrap.iosFakeFs .fsInner{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr auto auto;
+    gap:4px;
+    padding:0;
+  }
+  .thumbGridWrap.iosFakeFs .fsThumbPane{padding-right:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .thumbGridWrap.iosFakeFs .fsWordPane{
+    padding:4px 8px;
+    max-height:90px;
+    overflow-y:auto;
+  }
+  .thumbGridWrap.iosFakeFs .fsWordPane .wordCloud{padding:2px 4px;gap:2px 8px;}
+  body.galleryFsActive .galleryTransport{
+    position:fixed!important;
+    bottom:0;left:0;right:0;
+    z-index:100002;
+    background:rgba(4,6,10,.92);
+    padding:8px 0 calc(8px + var(--safe-b));
+    justify-content:center;
+  }
+}"""
+
+if old in html:
+    html = html.replace(old, new, 1)
+    fixes.append("1B: mobile gallery layout (padding + word cloud cap + fixed transport)")
+else:
+    print("WARNING: Fix 1B pattern not found", file=sys.stderr)
+
+
+# ═══ FIX 2: Key-change crackle — stop scheduler before fade drain ═══
+
+old = """    // Fade volume to zero
+    masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, fadeOut * 0.4);
+
+    $(\"playBtn\").textContent = \"\\u2026\";
+    state.isPlaying = false;
+    _softRebuildWasPlaying = true;"""
+
+new = """    // Fade volume to zero
+    masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, fadeOut * 0.4);
+
+    $(\"playBtn\").textContent = \"\\u2026\";
+    state.isPlaying = false;
+    stopScheduler(); // Kill scheduler immediately so old-key notes don't fire during fade
+    _softRebuildWasPlaying = true;"""
+
+if old in html:
+    html = html.replace(old, new, 1)
+    fixes.append("2: stopScheduler() in softRebuild crossfade")
+else:
+    # Try with literal ellipsis character instead of unicode escape
+    old2 = old.replace("\\u2026", "\u2026")
+    new2 = new.replace("\\u2026", "\u2026")
+    if old2 in html:
+        html = html.replace(old2, new2, 1)
+        fixes.append("2: stopScheduler() in softRebuild crossfade (ellipsis variant)")
+    else:
+        # Try finding just the key lines
+        old3 = '    state.isPlaying = false;\n    _softRebuildWasPlaying = true;'
+        new3 = '    state.isPlaying = false;\n    stopScheduler(); // Kill scheduler immediately so old-key notes don\'t fire during fade\n    _softRebuildWasPlaying = true;'
+        if old3 in html:
+            html = html.replace(old3, new3, 1)
+            fixes.append("2: stopScheduler() in softRebuild crossfade (minimal match)")
+        else:
+            print("WARNING: Fix 2 pattern not found — trying fuzzy", file=sys.stderr)
+            # Last resort: find the line and insert after
+            idx = html.find('state.isPlaying = false;')
+            if idx > 0:
+                # Find this specific instance (in softRebuild, near _softRebuildWasPlaying)
+                search_from = html.find('_softRebuildWasPlaying')
+                if search_from > 0:
+                    idx2 = html.rfind('state.isPlaying = false;', 0, search_from)
+                    if idx2 > 0:
+                        insert_at = html.index('\n', idx2) + 1
+                        html = html[:insert_at] + '    stopScheduler(); // Kill scheduler immediately so old-key notes don\'t fire during fade\n' + html[insert_at:]
+                        fixes.append("2: stopScheduler() in softRebuild (fuzzy insert)")
+                    else:
+                        print("WARNING: Fix 2 could not be applied", file=sys.stderr)
+
+
+# ═══ FIX 3: Pinch-to-exit gallery fullscreen ═══
+# Insert pinch gesture detection before the existing touchend handler
+# in the gallery fullscreen gestures IIFE.
+
+# Find the second wrap.addEventListener("touchend" in the gallery IIFE
+# (the first is the canvas gesture system, the second is gallery)
+pinch_code = """
+  // Pinch-to-exit: track two-finger spread
+  let _pinchStartDist = null;
+  wrap.addEventListener("touchstart", function(ev){
+    if(!isGalleryFs()) return;
+    if(ev.touches.length === 2){
+      const dx = ev.touches[0].clientX - ev.touches[1].clientX;
+      const dy = ev.touches[0].clientY - ev.touches[1].clientY;
+      _pinchStartDist = Math.hypot(dx, dy);
+    }
+  }, {passive:true});
+
+  wrap.addEventListener("touchmove", function(ev){
+    if(!isGalleryFs() || _pinchStartDist == null || ev.touches.length !== 2) return;
+    const dx = ev.touches[0].clientX - ev.touches[1].clientX;
+    const dy = ev.touches[0].clientY - ev.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if(dist - _pinchStartDist > 80){
+      _pinchStartDist = null;
+      exitGalleryFs();
+      showGalleryIndicator("Exit");
+    }
+  }, {passive:true});
+
+  wrap.addEventListener("touchend", function(ev){
+    if(ev.touches.length < 2) _pinchStartDist = null;
+  }, {passive:true});
+
+"""
+
+# Find the gallery touchend handler (it follows showGalleryIndicator definition)
+marker = '  function showGalleryIndicator(text){'
+idx = html.find(marker)
+if idx > 0:
+    # Find the touchend handler after this marker
+    te_marker = '  wrap.addEventListener("touchend", function(ev){\n    if(!isGalleryFs()) return;\n    if(gHandled || gX == null) return;'
+    te_idx = html.find(te_marker, idx)
+    if te_idx > 0:
+        html = html[:te_idx] + pinch_code + html[te_idx:]
+        fixes.append("3: pinch-to-exit gallery fullscreen")
+    else:
+        print("WARNING: Fix 3 — gallery touchend marker not found", file=sys.stderr)
+else:
+    print("WARNING: Fix 3 — showGalleryIndicator marker not found", file=sys.stderr)
+
+
+# ═══ Write output ═══
+
+with open(outfile, "w", encoding="utf-8") as f:
+    f.write(html)
+
+print(f"\nPatched: {outfile}")
+print(f"  Original: {original_len:,} chars")
+print(f"  Patched:  {len(html):,} chars")
+print(f"  Fixes applied ({len(fixes)}):")
+for fix in fixes:
+    print(f"    ✓ {fix}")
+
+if len(fixes) < 4:
+    print(f"\n  ⚠ Expected 4 fixes, only {len(fixes)} applied — check warnings above")
+else:
+    print(f"\n  All fixes applied. Ready for testing.")
