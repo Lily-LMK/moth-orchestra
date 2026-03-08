@@ -1355,14 +1355,19 @@ function pickInstrument(order, seed){
       const pool = ["lead_pan","double_second","guitar_pan","bass_pan"];
       return pool[h % pool.length];
     }
+
+    if(state.voiceMode === "biosphere"){
+      const pool = ["song_breath","handpan","song_voice","kalimba","pizzicato","song_cloud","bowl","harp","creek"];
+      return pool[h % pool.length];
+    }
   }
   const pool = instrumentPoolForDepth(currentRankDepth());
   const h = hash32(`${order}::${seed}`);
   return pool[h % pool.length];
 }
 
-const VOICE_MODES = ["mixed","night","choir","steelpan"];
-const VOICE_MODE_LABELS = { mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies" };
+const VOICE_MODES = ["mixed","night","choir","steelpan","biosphere"];
+const VOICE_MODE_LABELS = { mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies", biosphere:"Biosphere" };
 
 /** ------------------------------ Audio engine ------------------------------ */
 let audioCtx = null;
@@ -3304,6 +3309,70 @@ function scheduleInstrument(ctx, instrument, when, freq, velocity){
     return;
   }
 
+  // ── song_breath: Biosphere breathing bass pad ──
+  if(instrument === "song_breath"){
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(velocity*0.85, when+0.18);
+    g.gain.setTargetAtTime(velocity*0.7, when+0.35, 0.5);
+    g.gain.setTargetAtTime(0.0001, when+2.0, 0.45);
+    const ob1=ctx.createOscillator(); ob1.type="sine"; ob1.frequency.value=freq;
+    const ob1G=ctx.createGain(); ob1G.gain.value=0.7;
+    const osub=ctx.createOscillator(); osub.type="sine"; osub.frequency.value=freq/2;
+    const osubG=ctx.createGain(); osubG.gain.value=0.55;
+    const ob2=ctx.createOscillator(); ob2.type="triangle"; ob2.frequency.value=freq*1.002;
+    const ob2G=ctx.createGain(); ob2G.gain.value=0.25;
+    const blfo=ctx.createOscillator(); blfo.type="sine"; blfo.frequency.value=0.3;
+    const blfoG=ctx.createGain(); blfoG.gain.value=velocity*0.08;
+    blfo.connect(blfoG); blfoG.connect(g.gain);
+    const blp=ctx.createBiquadFilter(); blp.type="lowpass"; blp.frequency.value=900; blp.Q.value=0.6;
+    ob1.connect(ob1G); ob1G.connect(blp); osub.connect(osubG); osubG.connect(blp); ob2.connect(ob2G); ob2G.connect(blp);
+    blp.connect(g); g.connect(out);
+    ob1.start(when); osub.start(when); ob2.start(when); blfo.start(when);
+    const bs=when+3.5; ob1.stop(bs); osub.stop(bs); ob2.stop(bs); blfo.stop(bs);
+    return;
+  }
+
+  // ── song_cloud: Biosphere harmonic cloud (chord sustain) ──
+  if(instrument === "song_cloud"){
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(velocity*0.40, when+0.20);
+    g.gain.setTargetAtTime(velocity*0.30, when+0.5, 0.45);
+    g.gain.setTargetAtTime(0.0001, when+1.6, 0.4);
+    const oc1=ctx.createOscillator(); oc1.type="sine"; oc1.frequency.value=freq;
+    const oc2=ctx.createOscillator(); oc2.type="sine"; oc2.frequency.value=freq*1.0015;
+    const oc3=ctx.createOscillator(); oc3.type="sine"; oc3.frequency.value=freq*0.9985;
+    const oc1G=ctx.createGain(); oc1G.gain.value=0.4;
+    const oc2G=ctx.createGain(); oc2G.gain.value=0.25;
+    const oc3G=ctx.createGain(); oc3G.gain.value=0.25;
+    const clfo=ctx.createOscillator(); clfo.type="sine"; clfo.frequency.value=0.12;
+    const clfoG=ctx.createGain(); clfoG.gain.value=0.3;
+    clfo.connect(clfoG); clfoG.connect(oc2.frequency); clfoG.connect(oc3.frequency);
+    const clp=ctx.createBiquadFilter(); clp.type="lowpass"; clp.frequency.value=3000; clp.Q.value=0.3;
+    oc1.connect(oc1G); oc2.connect(oc2G); oc3.connect(oc3G);
+    oc1G.connect(clp); oc2G.connect(clp); oc3G.connect(clp);
+    clp.connect(g); g.connect(out);
+    oc1.start(when); oc2.start(when); oc3.start(when); clfo.start(when);
+    const cs=when+2.5; oc1.stop(cs); oc2.stop(cs); oc3.stop(cs); clfo.stop(cs);
+    return;
+  }
+
+  // ── song_voice: Biosphere warm steady tone ──
+  if(instrument === "song_voice"){
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(velocity*0.42, when+0.08);
+    g.gain.setTargetAtTime(velocity*0.28, when+0.15, 0.12);
+    g.gain.setTargetAtTime(0.0001, when+0.5, 0.12);
+    const ov1=ctx.createOscillator(); ov1.type="sine"; ov1.frequency.value=freq;
+    const ov2=ctx.createOscillator(); ov2.type="triangle"; ov2.frequency.value=freq;
+    const ov2G=ctx.createGain(); ov2G.gain.value=0.1;
+    const vlp=ctx.createBiquadFilter(); vlp.type="lowpass"; vlp.frequency.value=2800; vlp.Q.value=0.3;
+    ov1.connect(vlp); ov2.connect(ov2G); ov2G.connect(vlp);
+    vlp.connect(g); g.connect(out);
+    ov1.start(when); ov2.start(when);
+    const vs=when+0.9; ov1.stop(vs); ov2.stop(vs);
+    return;
+  }
+
   // ── Oscillator-based instruments (pluck, bell, pad, bass, chime, bubble fallback) ──
   g.gain.exponentialRampToValueAtTime(clamp(velocity, 0.05, 1.0), when+0.005);
 
@@ -3850,7 +3919,9 @@ const INSTRUMENT_LABELS = {
   moth_flutter:"Moth Flutter", possum_rustle:"Possum Rustle", boobook:"Boobook",
   lead_pan:"Lead Pan", double_second:"Double Second", guitar_pan:"Guitar Pan", bass_pan:"Bass Pan",
   choir_ah:"Choir (Ah)", choir_oh:"Choir (Oh)", choir_mm:"Choir (Mm)",
-  bell:"Bell", chime:"Chime", kalimba:"Kalimba", marimba:"Marimba", gong:"Gong"
+  bell:"Bell", chime:"Chime", kalimba:"Kalimba", marimba:"Marimba", gong:"Gong",
+  song_breath:"Breath", song_cloud:"Cloud", song_voice:"Voice",
+  pizzicato:"Pizzicato"
 };
 
 function setThumbInfo(o){
@@ -4234,6 +4305,11 @@ function pickSongInstrument(order, seed){
       const pool = ["lead_pan","double_second","guitar_pan","bass_pan"];
       return pool[h % pool.length];
     }
+
+    if(state.voiceMode === "biosphere"){
+      const pool = ["song_breath","handpan","song_voice","kalimba","pizzicato","song_cloud","bowl","harp","creek"];
+      return pool[h % pool.length];
+    }
   }
   // "Song" mode: only pitched voices (no hat). Unlocks with rank depth.
   const depth = currentRankDepth();
@@ -4299,6 +4375,7 @@ function buildSongEvents(nightObs, countsByTaxon){
     if(state.voiceMode==="night") return { bass:["weta"], lead:["boobook","banjo_frog"], mid:["gecko","katydid"], hi:["bat_click","gecko"], sync:["boobook"] };
     if(state.voiceMode==="choir") return { bass:["bass_voice"], lead:["soprano"], mid:["alto","tenor"], hi:["soprano"], sync:["bass_voice"] };
     if(state.voiceMode==="steelpan") return { bass:["bass_pan"], lead:["lead_pan"], mid:["double_second","guitar_pan"], hi:["lead_pan"], sync:["bass_pan"] };
+    if(state.voiceMode==="biosphere") return { bass:["song_breath"], lead:["kalimba","handpan","song_voice"], mid:["pizzicato","song_cloud","bowl"], hi:["harp","bowl","creek"], sync:["song_breath"] };
     const d = currentRankDepth();
     const hi = ["bell","chime"]; if(d>=6) hi.push("harp"); if(d>=7) hi.push("bowl");
     const mid = ["pluck","creek"]; if(d>=4) mid.push("ember"); if(d>=5) mid.push("handpan");
@@ -4388,34 +4465,34 @@ function buildSongEvents(nightObs, countsByTaxon){
   const events = [];
   const usedUnits = new Set();
 
-  function emit(atSec, unit, instrument, velScale){
+  function emit(atSec, unit, instrument){
     if(!unit || !unit.obsList.length) return;
     const o = unit.obsList[unit.playCount%unit.obsList.length]; unit.playCount++;
     const ev = { kind:"obs", isSpecial:false, user:unit.user, userName:unit.userName||(o.userName||""), obs:o,
       atSec:clamp(atSec,0,loopLen), taxon:unit.taxon, order:unit.order, family:unit.family,
       voiceKey:unit.voiceKey, voiceLabel:unit.voiceKey, instrument, midi:unit.midi, freq:unit.freq,
-      density:1+Math.log2(Math.max(1,unit.obsList.length)), velScale:clamp(velScale||1.0,0.15,1.5),
+      density:1+Math.log2(Math.max(1,unit.obsList.length)),
       color:unit.color, isEcho:false };
     events.push(ev); usedUnits.add(unit.key);
     if(!eventByObsId.has(o.id)) eventByObsId.set(o.id, ev);
   }
-  function chordHit(at, ch, vel){ for(const u of ch) emit(at, u, pick(pool.mid), vel); }
-  function themePlay(barStart, vel){
-    for(let i=0;i<themeRhythm.length;i++) emit(barStart+themeRhythm[i]*beatSec, themeUnits[i%themeUnits.length], pick(pool.lead), vel);
+  function chordHit(at, ch){ for(const u of ch) emit(at, u, pick(pool.mid)); }
+  function themePlay(barStart){
+    for(let i=0;i<themeRhythm.length;i++) emit(barStart+themeRhythm[i]*beatSec, themeUnits[i%themeUnits.length], pick(pool.lead));
   }
-  function bassHit(at, vel){ emit(at, pitchSorted[0], pick(pool.bass), vel); }
-  function syncHit(at, vel){
+  function bassHit(at){ emit(at, pitchSorted[0], pick(pool.bass)); }
+  function syncHit(at){
     if(!hasDuet) return;
     const p = pickPitch({taxon:"Duet",voiceKey:"Duet",order:"Duet",seed:state.seed,key:state.keyName,scaleName:state.scaleName});
     const m = p.midi-12;
     events.push({ kind:"duet_sync", isSpecial:true, user:"AB", userName:"", obs:null,
       atSec:clamp(at,0,loopLen), taxon:"Synchrony", order:"__DUET__", family:"",
       voiceKey:"__DUET__", voiceLabel:"Synchrony", instrument:pick(pool.sync),
-      midi:m, freq:midiToFreq(m), density:1.5, velScale:clamp(vel,0.3,1.4),
+      midi:m, freq:midiToFreq(m), density:1.5,
       color:"rgba(70,194,210,0.90)", isEcho:false });
   }
-  function grooveBass(bar, vel){ for(const b of groove.beats) bassHit(timeAt(bar,b), vel); }
-  function grooveSync(bar, vel){ if(!hasDuet) return; for(const b of groove.beats) syncHit(timeAt(bar,b), vel); }
+  function grooveBass(bar){ for(const b of groove.beats) bassHit(timeAt(bar,b)); }
+  function grooveSync(bar){ if(!hasDuet) return; for(const b of groove.beats) syncHit(timeAt(bar,b)); }
 
   // ═══ COMPOSE ═══
   for(let bar=0; bar<BARS; bar++){
@@ -4426,68 +4503,68 @@ function buildSongEvents(nightObs, countsByTaxon){
 
     switch(role){
       case "intro":
-        grooveBass(bar, 0.55); grooveSync(bar, 0.45);
-        if(hasTheme) themePlay(t(0), 0.65);
+        grooveBass(bar); grooveSync(bar);
+        if(hasTheme) themePlay(t(0));
         break;
       case "breath":
-        grooveBass(bar, 0.35); grooveSync(bar, 0.3);
-        if(pitchSorted.length>1) emit(t(3), pitchSorted[pitchSorted.length-1], pick(pool.hi), 0.3);
+        grooveBass(bar); grooveSync(bar);
+        if(pitchSorted.length>1) emit(t(3), pitchSorted[pitchSorted.length-1], pick(pool.hi));
         break;
       case "theme2":
-        grooveBass(bar, 0.65); grooveSync(bar, 0.55);
-        chordHit(t(0), ch.slice(0,Math.min(3,ch.length)), 0.5);
-        if(hasTheme) themePlay(t(0), 0.8);
-        chordHit(t(3), ch.slice(0,2), 0.4);
+        grooveBass(bar); grooveSync(bar);
+        chordHit(t(0), ch.slice(0,Math.min(3,ch.length)));
+        if(hasTheme) themePlay(t(0));
+        chordHit(t(3), ch.slice(0,2));
         break;
       case "build":
-        grooveBass(bar, 0.75); grooveSync(bar, 0.7);
-        chordHit(t(0), ch, 0.6);
-        chordHit(t(2), ch.slice(0,Math.min(3,ch.length)), 0.5);
+        grooveBass(bar); grooveSync(bar);
+        chordHit(t(0), ch);
+        chordHit(t(2), ch.slice(0,Math.min(3,ch.length)));
         if(density!=="chamber" && units.length>3){
-          emit(t(1), pick(units), pick(pool.hi), 0.4);
-          emit(t(3), pick(units), pick(pool.hi), 0.35);
+          emit(t(1), pick(units), pick(pool.hi));
+          emit(t(3), pick(units), pick(pool.hi));
         }
         if(hasDuet){
           const uA=units.find(u=>u.user==="A"), uB=units.find(u=>u.user==="B");
-          if(uA) emit(t(1)+beatSec*0.5, uA, pick(pool.lead), 0.55);
-          if(uB) emit(t(3)+beatSec*0.5, uB, pick(pool.lead), 0.5);
+          if(uA) emit(t(1)+beatSec*0.5, uA, pick(pool.lead));
+          if(uB) emit(t(3)+beatSec*0.5, uB, pick(pool.lead));
         }
         break;
       case "climax":
-        grooveBass(bar, 0.95); grooveSync(bar, 1.1);
-        chordHit(t(0), ch, 0.85);
-        if(hasTheme) themePlay(t(0), 1.1);
-        chordHit(t(2), ch, 0.7);
+        grooveBass(bar); grooveSync(bar);
+        chordHit(t(0), ch);
+        if(hasTheme) themePlay(t(0));
+        chordHit(t(2), ch);
         if(pitchSorted.length>1){
-          emit(t(1), pitchSorted[pitchSorted.length-1], pick(pool.hi), 0.6);
-          emit(t(3), pitchSorted[Math.max(0,pitchSorted.length-2)], pick(pool.hi), 0.5);
+          emit(t(1), pitchSorted[pitchSorted.length-1], pick(pool.hi));
+          emit(t(3), pitchSorted[Math.max(0,pitchSorted.length-2)], pick(pool.hi));
         }
         break;
       case "climax2":
-        grooveBass(bar, 1.0); grooveSync(bar, 1.0);
-        if(density==="chamber"){ chordHit(t(0),ch,0.7); chordHit(t(2),ch,0.6); }
-        else { for(let b=0;b<BEATS;b++) chordHit(t(b), ch.slice(0,Math.min(2+b,ch.length)), 0.55+b*0.1); }
+        grooveBass(bar); grooveSync(bar);
+        if(density==="chamber"){ chordHit(t(0),ch); chordHit(t(2),ch); }
+        else { for(let b=0;b<BEATS;b++) chordHit(t(b), ch.slice(0,Math.min(2+b,ch.length))); }
         const unused=units.filter(u=>!usedUnits.has(u.key)); shuffle(unused);
-        for(let i=0;i<unused.length;i++) emit(timeAt(bar,(i*0.7)%BEATS), unused[i], pick(pool.hi), 0.45);
+        for(let i=0;i<unused.length;i++) emit(timeAt(bar,(i*0.7)%BEATS), unused[i], pick(pool.hi));
         break;
       case "release":
-        grooveBass(bar, 0.5); grooveSync(bar, 0.4);
-        chordHit(t(0), ch.slice(0,Math.min(3,ch.length)), 0.45);
-        if(themeUnits.length>1){ emit(t(2),themeUnits[0],pick(pool.lead),0.45); emit(t(3),themeUnits[1],pick(pool.lead),0.35); }
+        grooveBass(bar); grooveSync(bar);
+        chordHit(t(0), ch.slice(0,Math.min(3,ch.length)));
+        if(themeUnits.length>1){ emit(t(2),themeUnits[0],pick(pool.lead)); emit(t(3),themeUnits[1],pick(pool.lead)); }
         break;
       case "resolve":
-        grooveBass(bar, 0.35); grooveSync(bar, 0.3);
-        if(hasTheme){ for(let i=0;i<Math.min(2,themeRhythm.length);i++) emit(t(0)+themeRhythm[i]*beatSec, themeUnits[i%themeUnits.length], pick(pool.lead), 0.4); }
-        chordHit(t(3), ch.slice(0,2), 0.25);
+        grooveBass(bar); grooveSync(bar);
+        if(hasTheme){ for(let i=0;i<Math.min(2,themeRhythm.length);i++) emit(t(0)+themeRhythm[i]*beatSec, themeUnits[i%themeUnits.length], pick(pool.lead)); }
+        chordHit(t(3), ch.slice(0,2));
         break;
     }
   }
 
   // ═══ REMAINING UNITS ═══
-  for(const u of units){ if(!usedUnits.has(u.key)) emit(timeAt(3+prngInt(3), prng()*BEATS), u, pick(pool.hi), 0.4); }
+  for(const u of units){ if(!usedUnits.has(u.key)) emit(timeAt(3+prngInt(3), prng()*BEATS), u, pick(pool.hi)); }
 
   // ═══ DATA-DRIVEN SYNC ═══
-  if(hasDuet){ for(const f of syncFracs){ const at=f*loopLen; syncHit(at, (at>=timeAt(4,0)&&at<timeAt(6,0)) ? 1.0 : 0.5); } }
+  if(hasDuet){ for(const f of syncFracs){ syncHit(f*loopLen); } }
 
   // ═══ SELECTION EVENTS ═══
   for(const u of units){ for(const o of u.obsList){ if(!eventByObsId.has(o.id)){
@@ -4849,8 +4926,7 @@ if(state.listenMode !== "both" && e.isSpecial){
       }
 
       const velBase = e.isSpecial ? (e.kind==="duet_sync" ? 0.26 : 0.20) : clamp(0.15 + 0.12*Math.log2(e.density), 0.12, 0.65);
-      const velScaleFactor = (e.velScale != null) ? e.velScale : 1.0;
-      const vel = velBase * velScaleFactor * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
+      const vel = velBase * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
       scheduleInstrument(audioCtx, e.instrument, tEvent, e.freq, vel);
       scheduleThumbGlow(e, tEvent);
       scheduleSelectionOverlay(e, tEvent);
