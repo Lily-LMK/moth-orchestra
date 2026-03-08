@@ -5773,6 +5773,10 @@ function initUI(){
   function setListenMode(mode){
     state.listenMode = mode; // "both" | "A" | "B"
     updateListenButtons();
+    // In Song mode, recompose — different observations produce a different song
+    if(state.spacingMode === "song"){
+      softRebuild();
+    }
   }
   function updateListenButtons(){
     const both = $("listenBothBtn"), a = $("listenABtn"), b = $("listenBBtn");
