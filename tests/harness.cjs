@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 // Execute the actual application functions without starting its UI/audio loop.
-function loadApp(htmlPath = path.join(__dirname, '..', 'index.html')) {
+function loadApp(htmlPath = path.join(__dirname, '..', 'index.html'), overrides = {}) {
   const html = fs.readFileSync(htmlPath, 'utf8');
   const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const boundary = script.indexOf('\ninitUI();');
@@ -15,7 +15,8 @@ function loadApp(htmlPath = path.join(__dirname, '..', 'index.html')) {
     document: { getElementById() { return element; }, addEventListener() {} },
     window: { addEventListener() {}, devicePixelRatio: 1 },
     setTimeout, clearTimeout, setInterval, clearInterval,
-    performance: { now: () => 0 }, requestAnimationFrame() {}, cancelAnimationFrame() {}
+    performance: { now: () => 0 }, requestAnimationFrame() {}, cancelAnimationFrame() {},
+    ...overrides
   });
   vm.runInContext(script.slice(0, boundary) + '\nObject.assign(globalThis, {state, DEMO_CSV});', context, { filename: htmlPath });
   return context;

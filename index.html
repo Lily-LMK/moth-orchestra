@@ -940,9 +940,12 @@ function downloadBlob(filename, text, mime){
   setTimeout(()=>URL.revokeObjectURL(a.href), 2500);
 }
 
+function canvasPixelRatio(){
+  return state.demoMode ? 1 : Math.max(1, Math.floor(window.devicePixelRatio || 1));
+}
 function fitCanvasToDisplay(canvas){
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const dpr = canvasPixelRatio();
   const w = Math.max(1, Math.floor(rect.width * dpr));
   const h = Math.max(1, Math.floor(rect.height * dpr));
   if(canvas.width !== w || canvas.height !== h){
@@ -4815,12 +4818,34 @@ function resetPlaybackClock(){
   _pendingGlows.length = 0;
   _pendingOverlays.length = 0;
 }
+function getPlaybackAbsoluteSec(){
+  if(audioCtx && state.schedInterval != null){
+    return Math.max(0, audioCtx.currentTime - state.schedLoopStart);
+  }
+  return Math.max(0, (performance.now() - state.perfStart)/1000);
+}
 function getPlayheadSec(){
   if(!state.isPlaying) return state.lastPlayhead;
-  const now = performance.now();
-  const sec = ((now - state.perfStart)/1000) % state.loopLen;
+  const sec = getPlaybackAbsoluteSec() % state.loopLen;
   state.lastPlayhead = sec;
   return sec;
+}
+// Return only recently crossed events, including both sides of a loop boundary.
+// An event at loopLen belongs to the outgoing cycle; zero belongs to the incoming one.
+function collectVisualEvents(events, previousAbsolute, currentAbsolute, loopLen){
+  if(!events.length || !(loopLen > 0) || !Number.isFinite(previousAbsolute) ||
+     !Number.isFinite(currentAbsolute) || currentAbsolute <= previousAbsolute) return [];
+  const start = Math.max(previousAbsolute, currentAbsolute - 0.25);
+  const firstCycle = Math.max(0, Math.ceil(start/loopLen)-1);
+  const lastCycle = Math.floor(currentAbsolute/loopLen);
+  const crossed = [];
+  for(let cycle=firstCycle;cycle<=lastCycle;cycle++){
+    for(const event of events){
+      const absoluteSec = cycle*loopLen + event.atSec;
+      if(absoluteSec > start && absoluteSec <= currentAbsolute) crossed.push({event,absoluteSec});
+    }
+  }
+  return crossed.sort((a,b)=>a.absoluteSec-b.absoluteSec);
 }
 function stopScheduler(){
   if(state.schedInterval){
@@ -4832,6 +4857,7 @@ function stopScheduler(){
 }
 
 async function killAudioContext(){
+  cancelSoftRebuild();
   try{
     state.isPlaying = false;
     stopScheduler();
@@ -4868,15 +4894,9 @@ function startScheduler(resumeFromSec){
     state.schedLoopStart = audioCtx.currentTime - resumeFromSec;
     // Seek schedNextIndex to the first event after resumeFromSec
     const events = state.sequencer.events;
-    state.schedNextIndex = 0;
-    if(events.length){
-      for(let i = 0; i < events.length; i++){
-        if(events[i].atSec > resumeFromSec){
-          state.schedNextIndex = i;
-          break;
-        }
-      }
-    }
+    const next = events.findIndex(e=>e.atSec > resumeFromSec);
+    state.schedNextIndex = next < 0 ? 0 : next;
+    state.schedCycle = next < 0 ? 1 : 0;
   } else {
     // Fresh start
     state.schedCycle = 0;
@@ -4884,6 +4904,7 @@ function startScheduler(resumeFromSec){
     state.schedLoopStart = audioCtx.currentTime + 0.03;
   }
 
+  state.visAbsoluteSec = resumeFromSec > 0 ? resumeFromSec : -Number.EPSILON;
   const lookahead = 0.30;
   const tickMs = 25;
 
@@ -4899,6 +4920,22 @@ function startScheduler(resumeFromSec){
       const e = events[state.schedNextIndex];
       const tEvent = state.schedLoopStart + state.schedCycle*state.loopLen + e.atSec;
       if(tEvent > windowEnd) break;
+      if(tEvent < now){
+        // Drop missed history after throttling/stalls; never cram it into "now".
+        const elapsed = Math.max(0, now - state.schedLoopStart);
+        state.schedCycle = Math.max(0, Math.ceil(elapsed/state.loopLen)-1);
+        const offset = elapsed - state.schedCycle*state.loopLen;
+        const next = events.findIndex(event=>event.atSec >= offset);
+        state.schedNextIndex = next < 0 ? 0 : next;
+        if(next < 0) state.schedCycle++;
+        // Rounding at an exact boundary must still advance the cursor.
+        const candidate = state.schedLoopStart + state.schedCycle*state.loopLen + events[state.schedNextIndex].atSec;
+        if(candidate < now){
+          state.schedNextIndex++;
+          if(state.schedNextIndex >= events.length){state.schedNextIndex=0;state.schedCycle++;}
+        }
+        continue;
+      }
 
 // In solo mode, duet-only rings (special events) should remain silent.
 if(state.listenMode !== "both" && e.isSpecial){
@@ -4935,6 +4972,7 @@ if(state.listenMode !== "both" && e.isSpecial){
 }
 
 function hardResetPlayback(reason){
+  cancelSoftRebuild();
   // stop + reset
   state.isPlaying = false;
   stopScheduler();
@@ -4968,6 +5006,15 @@ function rebuildSequencerOnly(){
 
 let _softRebuildTimer = null;
 let _softRebuildWasPlaying = false;
+function cancelSoftRebuild(){
+  if(_softRebuildTimer != null) clearTimeout(_softRebuildTimer);
+  _softRebuildTimer = null;
+  _softRebuildWasPlaying = false;
+  if(audioCtx && masterGain){
+    masterGain.gain.cancelScheduledValues?.(audioCtx.currentTime);
+    masterGain.gain.setTargetAtTime(1, audioCtx.currentTime, 0.02);
+  }
+}
 
 function softRebuild(fullRebuild){
   const wasPlaying = state.isPlaying || _softRebuildWasPlaying;
@@ -4985,6 +5032,7 @@ function softRebuild(fullRebuild){
     const fadeIn  = 0.15;
 
     // Fade volume to zero
+    masterGain.gain.cancelScheduledValues?.(audioCtx.currentTime);
     masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, fadeOut * 0.4);
 
     $("playBtn").textContent = "…";
@@ -5093,7 +5141,7 @@ let _cachedDpr = 1;
 function fitCanvasFast(cvs){
   if(!_cachedCanvasRect) _cachedCanvasRect = cvs.getBoundingClientRect();
   const rect = _cachedCanvasRect;
-  _cachedDpr = state.demoMode ? 1 : Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  _cachedDpr = canvasPixelRatio();
   const w = Math.max(1, Math.floor(rect.width * _cachedDpr));
   const h = Math.max(1, Math.floor(rect.height * _cachedDpr));
   if(cvs.width !== w || cvs.height !== h){
@@ -5105,7 +5153,7 @@ function fitCanvasFast(cvs){
 
 // Vertical offset to lift the ring above the transport bar on touch devices
 function ringOffsetY(){
-  return (window.innerWidth < 1024) ? Math.round(28 * (window.devicePixelRatio || 1)) : 0;
+  return (window.innerWidth < 1024) ? Math.round(28 * canvasPixelRatio()) : 0;
 }
 
 /* ── Cached voice index map (rebuilt on sequencer change) ── */
@@ -5136,6 +5184,7 @@ function drawFrame(){
   const baseR = Math.min(w,h)*0.35;
 
   // background (cached to offscreen canvas)
+  ctx.globalAlpha = 1;
   ctx.clearRect(0,0,w,h);
 
   if(!_bgCache || _bgCacheW !== w || _bgCacheH !== h){
@@ -5248,21 +5297,11 @@ function drawFrame(){
   const thetaHead = (playhead/state.loopLen)*Math.PI*2 - Math.PI/2;
 
   if(state.isPlaying && events.length){
-    const last = state.visLastFrameMs || performance.now();
-    const nowMs = performance.now();
-    state.visLastFrameMs = nowMs;
-    const dt = clamp((nowMs-last)/1000, 0, 0.25);
-    const prev = (playhead - dt + state.loopLen) % state.loopLen;
-
-    // wrap-around: reset the pointer
-    if(prev > playhead){
-      state.visNextIndex = 0;
-    }
-    while(state.visNextIndex < events.length){
-      const e = events[state.visNextIndex];
-      if(e.atSec > playhead) break;
-
-      if(e.atSec >= prev || prev > playhead){
+    const absoluteSec = getPlaybackAbsoluteSec();
+    const previousSec = state.visAbsoluteSec ?? absoluteSec;
+    const crossed = collectVisualEvents(events, previousSec, absoluteSec, state.loopLen);
+    state.visAbsoluteSec = absoluteSec;
+    for(const {event:e} of crossed){
         const idx = voiceIndex.get(e.voiceKey || e.order) ?? 0;
         let rr = baseR*(0.55 + 0.38*(idx/Math.max(1,voices.length-1)));
     if(e.isSpecial){
@@ -5301,16 +5340,11 @@ function drawFrame(){
             spawnCallout({ text: toneLabel, x, y, color: toneColor });
           }
         }
-      }
-      state.visNextIndex++;
-      if(state.visNextIndex >= events.length){
-        state.visNextIndex = 0;
-        break;
-      }
     }
   }
 
   // particles
+  ctx.save();
   const drag = 0.985;
   const fade = 0.012;
   const particles = state.particles;
@@ -5334,6 +5368,8 @@ function drawFrame(){
   }
 
   
+  ctx.restore();
+
   // floating family callouts
   const calloutFont = `${(state.demoMode ? 15 : 13)*dpr}px ${getFontFamily()}`;
   const callouts = state.callouts;
@@ -5469,7 +5505,7 @@ let _touchMoved = false;
 
 async function setPlayheadToAngle(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const dpr = canvasPixelRatio();
   const x = (clientX - rect.left) * dpr;
   const y = (clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
@@ -5508,7 +5544,8 @@ async function setPlayheadToAngle(clientX, clientY){
     if(events[i].atSec > targetSec){ state.visNextIndex = i; break; }
     if(i === events.length - 1) state.visNextIndex = 0;
   }
-  state.schedNextIndex = state.visNextIndex;
+  state.visAbsoluteSec = targetSec;
+  if(state.isPlaying) startScheduler(targetSec);
   state.particles = [];
   state.callouts = [];
 }
@@ -5516,7 +5553,7 @@ async function setPlayheadToAngle(clientX, clientY){
 canvas.addEventListener("mousedown", (ev) => {
   if(!state.sequencer.events.length) return;
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const dpr = canvasPixelRatio();
   const x = (ev.clientX - rect.left) * dpr;
   const y = (ev.clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
@@ -5558,7 +5595,7 @@ canvas.addEventListener("mousemove", (ev) => {
     return;
   }
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const dpr = canvasPixelRatio();
   const x = (ev.clientX - rect.left) * dpr;
   const y = (ev.clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
@@ -5579,7 +5616,7 @@ canvas.addEventListener("touchstart", (ev) => {
   const touch = ev.touches[0];
   if(!touch) return;
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const dpr = canvasPixelRatio();
   const x = (touch.clientX - rect.left) * dpr;
   const y = (touch.clientY - rect.top) * dpr;
   const {w, h} = fitCanvasToDisplay(canvas);
@@ -5642,7 +5679,7 @@ canvas.addEventListener("touchend", (ev) => {
     const touch = ev.changedTouches[0];
     if(!touch) return;
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    const dpr = canvasPixelRatio();
     const x = (touch.clientX - rect.left) * dpr;
     const y = (touch.clientY - rect.top) * dpr;
     const {w, h} = fitCanvasToDisplay(canvas);
@@ -5678,7 +5715,7 @@ canvas.addEventListener("click", (ev)=>{
   if(_wasDragging){ _wasDragging = false; return; }
   if(!state.sequencer.events.length) return;
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const dpr = canvasPixelRatio();
   const x = (ev.clientX - rect.left)*dpr;
   const y = (ev.clientY - rect.top)*dpr;
 
@@ -6096,6 +6133,14 @@ function initUI(){
   // play/pause
   $("playBtn").addEventListener("click", async ()=>{
     if(!state.sequencer.events.length) return;
+    if(_softRebuildWasPlaying){
+      cancelSoftRebuild();
+      state.isPlaying = false;
+      stopScheduler();
+      $("playBtn").textContent = "Play";
+      updateCornerStatus();
+      return;
+    }
     if(!state.isPlaying){
       // start or resume
       await ensureAudio();
@@ -6118,6 +6163,7 @@ function initUI(){
       startScheduler(resumeSec);
     } else {
       // pause (preserves lastPlayhead)
+      getPlayheadSec();
       state.isPlaying = false;
       stopScheduler();
       $("playBtn").textContent = "Play";
