@@ -129,3 +129,38 @@ for (const window of [[1140, 1240, ['evening']], [1380, 60, ['late', 'early']]])
 for (const scenario of ['gaps below one hour remain proportional', 'gaps exactly one hour remain proportional', 'gaps above one hour shorten', 'multiple long gaps preserve observation order', 'midnight crossing uses elapsed time', 'empty and single-record inputs are valid', 'shared-minute evidence is unchanged by remapping', 'disabled option preserves original Timeline and Riff is unchanged']) {
   test.todo(`Future gap remapping: ${scenario}`);
 }
+
+for (const mode of modes) {
+  test(`${mode}: ten-minute separation cannot create genuine synchrony`, () => {
+    const c = app(mode, { loopLen: 3 });
+    const seq = c.buildSequencer([obs(c, 'a', 'A', '2026-01-28T09:00:00Z'), obs(c, 'b', 'B', '2026-01-28T09:10:00Z')]);
+    assert.equal(shared(seq).length, 0);
+    assert.equal(seq.events.filter(e => ['duet_minute', 'duet_sync'].includes(e.kind)).length, 0);
+  });
+  test(`${mode}: observations 58 seconds apart in same minute share a minute`, () => {
+    const c = app(mode);
+    const seq = c.buildSequencer([obs(c, 'a', 'A', '2026-01-28T09:00:01Z'), obs(c, 'b', 'B', '2026-01-28T09:00:59Z')]);
+    assert.equal(shared(seq).length, 1);
+    assert.equal(seq.events.filter(e => e.kind === 'duet_sync').length, 0);
+  });
+  test(`${mode}: sequencing does not mutate source observations or their order`, () => {
+    const c = app(mode);
+    const rows = [obs(c, 'b', 'B', '2026-01-28T09:00:30Z'), obs(c, 'a', 'A', '2026-01-28T09:00:00Z')];
+    const original = JSON.stringify(rows);
+    c.buildSequencer(rows);
+    assert.equal(JSON.stringify(rows), original);
+  });
+}
+for (const mode of ['timeline', 'riff']) test(`${mode}: exactly five original seconds qualifies for near synchrony`, () => {
+  const c = app(mode);
+  const seq = c.buildSequencer([obs(c, 'a', 'A', '2026-01-28T09:00:00Z'), obs(c, 'b', 'B', '2026-01-28T09:00:05Z')]);
+  assert.equal(seq.events.filter(e => e.kind === 'duet_sync').length, 1);
+});
+test('Riff: matches outside selected window are excluded; endpoints remain inclusive', () => {
+  const c = app('riff', { riffStartMin: 1140, riffEndMin: 1240 });
+  const rows = ['08:59:00', '09:00:00', '10:40:00', '10:41:00'].flatMap((time, i) =>
+    ['A', 'B'].map(user => obs(c, `${user}${i}`, user, `2026-01-28T${time}Z`)));
+  const seq = c.buildSequencer(rows);
+  assert.equal(shared(seq).length, 2);
+  assert.deepEqual(Array.from(seq.events.filter(e => e.obs), e => e.obs.id).sort(), ['A1', 'A2', 'B1', 'B2']);
+});

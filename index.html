@@ -599,8 +599,9 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
       <button class="btn pill small" id="modeRiffBtn" type="button">Riff</button>
     </div>
     <div class="riffCtl" id="riffCtl" hidden>
-      <div class="riffRow"><span>In</span><input id="riffStart" type="time" step="60"></div>
-      <div class="riffRow"><span>Out</span><input id="riffEnd" type="time" step="60"></div>
+      <div style="font-size:11px;color:#d7dce3">Brisbane time (UTC+10)</div>
+      <div class="riffRow"><label for="riffStart">In</label><input id="riffStart" type="time" step="60"></div>
+      <div class="riffRow"><label for="riffEnd">Out</label><input id="riffEnd" type="time" step="60"></div>
     </div>
     <button class="fsBtn" id="fsBtn" type="button">Full screen</button>
     <div class="modeToast" id="modeToast"></div>
@@ -701,6 +702,13 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
         <div class="stat"><div class="k">Taxa</div><div class="v" id="statTaxa">–</div></div>
         <div class="stat"><div class="k">Loop</div><div class="v" id="statLoop">19s</div></div>
       </div>
+
+      <details id="sharedMinuteDetails" style="margin-top:10px;font-size:12px;color:#d7dce3">
+        <summary id="sharedMinuteSummary" style="color:#d7dce3;cursor:pointer">Shared minutes: 0</summary>
+        <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
+        <p id="sharedMinuteContext"></p>
+        <ol id="sharedMinuteList" style="padding-left:20px;max-height:220px;overflow:auto"></ol>
+      </details>
 
       <!-- Remix + Help -->
       <div class="row" style="gap:6px;margin-top:4px;">
@@ -954,7 +962,7 @@ function localDateKey(d){
 function fmtHM(d){
   if(!d) return "";
   try{
-    return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", timeZone:"Australia/Brisbane"});
   }catch(e){
     const hh = String(d.getHours()).padStart(2,"0");
     const mm = String(d.getMinutes()).padStart(2,"0");
@@ -1258,10 +1266,10 @@ function nightHasBothUsers(arr, userA, userB){
 
 
 function applyFocusFilter(arr){
-  // Focus mode: ignore observations between 03:00 and 15:00 (local time).
+  // Focus mode: ignore observations between 03:00 and 15:00 Brisbane time.
   return arr.filter(o=>{
     if(!o || !o.t) return true;
-    const h = o.t.getHours();
+    const h = Math.floor(sessionMinute(o.t)/60);
     return (h < 3 || h >= 15);
   });
 }
@@ -3421,7 +3429,7 @@ const state = {
   // derived
   nightObs: [],
   availableOrders: [],
-  sequencer: { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], countsByTaxon:new Map(), countsByVoice:new Map() } },
+  sequencer: { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], countsByTaxon:new Map(), countsByVoice:new Map() } },
   // playback
   perfStart: 0,
   lastPlayhead: 0,
@@ -3806,7 +3814,7 @@ async function auditionEvent(e){
     const ctx = await ensureAudio();
     const when = ctx.currentTime + 0.015;
     const dens = (e.density != null) ? e.density : 1;
-    const velBase = e.isSpecial ? (e.kind==="duet_sync" ? 0.26 : 0.20) : clamp(0.18 + 0.12*Math.log2(dens), 0.14, 0.75);
+    const velBase = e.isSpecial ? (e.velocity ?? (e.kind==="duet_sync" || e.kind==="accompaniment" ? 0.26 : 0.20)) : clamp(0.18 + 0.12*Math.log2(dens), 0.14, 0.75);
     const vel = velBase * clamp(state.volume, 0, 1);
     scheduleInstrument(ctx, e.instrument, when, e.freq, vel);
   }catch(err){
@@ -4267,13 +4275,45 @@ function pickSongInstrument(order, seed){
 
 
 
+// This backyard performance uses Brisbane civil time, independently of the viewer.
+const SESSION_TIME_ZONE = "Australia/Brisbane";
+function sessionMinute(d){
+  const parts = new Intl.DateTimeFormat("en-GB", {timeZone:SESSION_TIME_ZONE,
+    hour:"2-digit", minute:"2-digit", hourCycle:"h23"}).formatToParts(d);
+  return Number(parts.find(p=>p.type==="hour").value)*60 + Number(parts.find(p=>p.type==="minute").value);
+}
+function observerRole(o){
+  if(state.userAName && o.userName === state.userAName) return "A";
+  if(state.userBName && o.userName === state.userBName) return "B";
+  return (!state.userAName && !state.userBName) ? "A" : null;
+}
+function selectedObservations(obs){
+  return (obs || []).filter(o=>o && o.t && Number.isFinite(o.t.getTime()) &&
+    observerRole(o) && (state.listenMode === "both" || observerRole(o) === state.listenMode));
+}
+function findSharedMinutes(obs){
+  if(state.listenMode !== "both" || !state.userAName || !state.userBName || state.userAName === state.userBName) return [];
+  const minutes = new Map();
+  for(const o of obs){
+    const role = observerRole(o);
+    if(!role || !o.t || !Number.isFinite(o.t.getTime())) continue;
+    const minuteKey = Math.floor(o.t.getTime()/60000);
+    if(!minutes.has(minuteKey)) minutes.set(minuteKey, {minuteKey, observations:{A:[],B:[]}});
+    const group = minutes.get(minuteKey).observations[role];
+    if(!group.some(existing=>existing.id === o.id)) group.push(o);
+  }
+  return Array.from(minutes.values()).filter(m=>m.observations.A.length && m.observations.B.length)
+    .sort((a,b)=>a.minuteKey-b.minuteKey);
+}
+function matchTime(match){
+  return Math.min(...match.observations.A.concat(match.observations.B).map(o=>o.t.getTime()));
+}
+
 function buildSongEvents(nightObs, countsByTaxon){
   const eventByObsId = new Map();
   if(!nightObs || !nightObs.length) return { events:[], eventByObsId };
 
-  let obsPool = nightObs;
-  if(state.listenMode === "A") obsPool = nightObs.filter(o => !(state.userBName && (o.userName === state.userBName)));
-  else if(state.listenMode === "B") obsPool = nightObs.filter(o => (state.userBName && (o.userName === state.userBName)));
+  let obsPool = selectedObservations(nightObs);
   if(!obsPool.length) return { events:[], eventByObsId };
 
   // ═══ PRNG ═══
@@ -4327,7 +4367,7 @@ function buildSongEvents(nightObs, countsByTaxon){
   // ═══ BUILD UNITS ═══
   const unitsMap = new Map();
   for(const o of obsPool){
-    const user = (state.userBName && (o.userName===state.userBName)) ? "B" : "A";
+    const user = observerRole(o);
     const voiceKey = toneKeyForObs(o);
     const key = `${user}::${voiceKey}`;
     if(!unitsMap.has(key)){
@@ -4344,21 +4384,10 @@ function buildSongEvents(nightObs, countsByTaxon){
   const byAbundance = units.slice().sort((a,b)=>b.obsList.length-a.obsList.length);
 
   // ═══ SYNCHRONICITY ═══
-  const hasDuet = !!(state.userAName && state.userBName && state.listenMode==="both");
-  const syncFracs = [];
-  if(hasDuet){
-    const mm = new Map();
-    for(const o of obsPool){
-      const u = (o.userName===state.userBName) ? "B" : "A";
-      const mk = Math.floor(o.t.getTime()/60000);
-      if(!mm.has(mk)) mm.set(mk, {A:false,B:false,t:o.t.getTime()});
-      const e = mm.get(mk); e[u]=true; if(o.t.getTime()<e.t) e.t=o.t.getTime();
-    }
-    const times = obsPool.map(o=>o.t.getTime()).sort((a,b)=>a-b);
-    const span = Math.max(1, times[times.length-1]-times[0]);
-    for(const [,e] of mm){ if(e.A&&e.B) syncFracs.push(clamp((e.t-times[0])/span,0,1)); }
-    syncFracs.sort((a,b)=>a-b);
-  }
+  const hasDuet = state.listenMode === "both" && nightHasBothUsers(obsPool, state.userAName, state.userBName);
+  const sharedMinutes = findSharedMinutes(obsPool);
+  const times = obsPool.map(o=>o.t.getTime()).sort((a,b)=>a-b);
+  const span = Math.max(1, times[times.length-1]-times[0]);
 
   // ═══ GRID ═══
   const BARS = 8, BEATS = 4;
@@ -4422,15 +4451,15 @@ function buildSongEvents(nightObs, countsByTaxon){
     for(let i=0;i<themeRhythm.length;i++) emit(barStart+themeRhythm[i]*beatSec, themeUnits[i%themeUnits.length], pick(pool.lead));
   }
   function bassHit(at){ emit(at, pitchSorted[0], pick(pool.bass)); }
-  function syncHit(at){
+  function syncHit(at, match=null){
     if(!hasDuet) return;
     const p = pickPitch({taxon:"Duet",voiceKey:"Duet",order:"Duet",seed:state.seed,key:state.keyName,scaleName:state.scaleName});
     const m = p.midi-12;
-    events.push({ kind:"duet_sync", isSpecial:true, user:"AB", userName:"", obs:null,
-      atSec:clamp(at,0,loopLen), taxon:"Synchrony", order:"__DUET__", family:"",
-      voiceKey:"__DUET__", voiceLabel:"Synchrony", instrument:pick(pool.sync),
+    events.push({ kind:match ? "duet_minute" : "accompaniment", match, velocity:0.26, isSpecial:true, user:"AB", userName:"", obs:null,
+      atSec:clamp(at,0,loopLen), taxon:match ? "Shared minute" : "Accompaniment", order:"__DUET__", family:"",
+      voiceKey:"__DUET__", voiceLabel:match ? "Shared minute" : "Accompaniment", instrument:pick(pool.sync),
       midi:m, freq:midiToFreq(m), density:1.5,
-      color:"rgba(70,194,210,0.90)", isEcho:false });
+      color:match ? "rgba(70,194,210,0.90)" : "rgba(205,205,210,0.65)", isEcho:false });
   }
   function grooveBass(bar){ for(const b of groove.beats) bassHit(timeAt(bar,b)); }
   function grooveSync(bar){ if(!hasDuet) return; for(const b of groove.beats) syncHit(timeAt(bar,b)); }
@@ -4505,7 +4534,7 @@ function buildSongEvents(nightObs, countsByTaxon){
   for(const u of units){ if(!usedUnits.has(u.key)) emit(timeAt(3+prngInt(3), prng()*BEATS), u, pick(pool.hi)); }
 
   // ═══ DATA-DRIVEN SYNC ═══
-  if(hasDuet){ for(const f of syncFracs){ syncHit(f*loopLen); } }
+  if(hasDuet){ for(const match of sharedMinutes){ syncHit(clamp((matchTime(match)-times[0])/span,0,1)*loopLen, match); } }
 
   // ═══ SELECTION EVENTS ═══
   for(const u of units){ for(const o of u.obsList){ if(!eventByObsId.has(o.id)){
@@ -4515,15 +4544,16 @@ function buildSongEvents(nightObs, countsByTaxon){
   }}}
 
   events.sort((a,b)=>a.atSec-b.atSec);
-  return { events, eventByObsId };
+  return { events, eventByObsId, sharedMinutes };
 }
 
 
 
 function buildSequencer(nightObs){
+  nightObs = selectedObservations(nightObs);
   const mode = state.spacingMode || "riff";
 
-  // Riff mode: take a time-window slice of the night (local clock), then map it to the loop.
+  // Riff mode: take a time-window slice of the night (Brisbane clock), then map it to the loop.
   let obsForTimeline = nightObs;
   if(mode === "riff"){
     const s = (state.riffStartMin==null) ? 0 : state.riffStartMin;
@@ -4533,16 +4563,16 @@ function buildSequencer(nightObs){
       return (m >= s || m <= e); // wraps midnight
     };
     obsForTimeline = nightObs.filter(o=>{
-      const m = o.t.getHours()*60 + o.t.getMinutes();
+      const m = sessionMinute(o.t);
       return inWindow(m);
     });
   }
 
   if(mode !== "song" && !obsForTimeline.length){
-    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
+    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
   }
   if(mode === "song" && !nightObs.length){
-    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
+    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
   }
 
   // "Song" mode uses the whole night's palette; timeline/riff use obsForTimeline.
@@ -4570,7 +4600,7 @@ function buildSequencer(nightObs){
 if(mode === "song"){
     // "Song" mode: ignore timestamps; turn the night's available notes into an intentional melodic loop.
     const built = buildSongEvents(nightObs, countsByTaxon);
-    return { events: built.events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId: built.eventByObsId } };
+    return { events: built.events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId: built.eventByObsId, sharedMinutes:built.sharedMinutes || [] } };
   }
 
   const events = [];
@@ -4586,7 +4616,7 @@ if(mode === "song"){
     const instrument = pickInstrument(voiceKey, state.seed);
     const pitch = pickPitch({ taxon:o.taxon, voiceKey, order:o.order, seed:state.seed, key:state.keyName, scaleName:state.scaleName });
     const color = hslFromHash(hash32(`${voiceKey}::${state.seed}`), 65, 56);
-const user = (state.userBName && (o.userName === state.userBName)) ? "B" : "A";
+const user = observerRole(o);
     const baseEv = {
       kind:"obs",
       isSpecial:false,
@@ -4602,28 +4632,19 @@ const user = (state.userBName && (o.userName === state.userBName)) ? "B" : "A";
   // Duet gestures (minimal duet v1):
   // - Shared-minute flourish: one gentle bell accent per minute where both users recorded.
   // - Near-simultaneous pulse: a warm pad hit when records fall within a few seconds.
-  if(state.userAName && state.userBName){
-    const minuteMap = new Map(); // minuteKey -> {A:boolean,B:boolean, atSec:number}
-    for(const o of baseObs){
-      const u = (o.userName === state.userBName) ? "B" : "A";
-      const mk = Math.floor(o.t.getTime()/60000);
-      const ev = eventByObsId.get(o.id);
-      if(!ev) continue;
-      if(!minuteMap.has(mk)) minuteMap.set(mk, {A:false, B:false, atSec: ev.atSec});
-      const entry = minuteMap.get(mk);
-      entry[u] = true;
-      if(ev.atSec < entry.atSec) entry.atSec = ev.atSec;
-    }
-    for(const [mk, entry] of minuteMap){
-      if(entry.A && entry.B){
+  const sharedMinutes = findSharedMinutes(baseObs);
+  if(state.listenMode === "both" && state.userAName && state.userBName && state.userAName !== state.userBName){
+    for(const match of sharedMinutes){
+      const atSec = clamp((matchTime(match)-startMs)/1000/spanSec*state.loopLen, 0, state.loopLen);
         const pitch = pickPitch({ taxon:"Duet Minute", voiceKey:"Duet", order:"Duet", seed:state.seed, key:state.keyName, scaleName:state.scaleName });
         events.push({
           kind:"duet_minute",
+          match,
           isSpecial:true,
           user:"AB",
           userName:"",
           obs:null,
-          atSec: clamp(entry.atSec, 0, state.loopLen),
+          atSec,
           taxon:"Shared minute",
           order:"__DUET__",
           family:"",
@@ -4636,34 +4657,34 @@ const user = (state.userBName && (o.userName === state.userBName)) ? "B" : "A";
           color:"rgba(70,194,210,0.90)",
           isEcho:false
         });
-      }
     }
 
     // Near-simultaneous pulses (within N seconds)
     const win = clamp(state.duetSyncWindowSec || 5, 1, 15);
-    const A = events.filter(e=>!e.isEcho && !e.isSpecial && e.user==="A").slice().sort((a,b)=>a.atSec-b.atSec);
-    const B = events.filter(e=>!e.isEcho && !e.isSpecial && e.user==="B").slice().sort((a,b)=>a.atSec-b.atSec);
+    const A = events.filter(e=>!e.isEcho && !e.isSpecial && e.user==="A").slice().sort((a,b)=>a.obs.t-b.obs.t);
+    const B = events.filter(e=>!e.isEcho && !e.isSpecial && e.user==="B").slice().sort((a,b)=>a.obs.t-b.obs.t);
     let j = 0;
-    const used = new Set(); // de-dupe by quantized second bucket
+    const used = new Set(); // de-dupe by original observation pair
     for(let i=0;i<A.length;i++){
       const a = A[i];
-      while(j < B.length && B[j].atSec < a.atSec - win) j++;
+      while(j < B.length && B[j].obs.t.getTime() < a.obs.t.getTime() - win*1000) j++;
       let best = null, bestD = Infinity;
       for(let k=j;k<B.length;k++){
         const b = B[k];
-        const d = Math.abs(b.atSec - a.atSec);
+        const d = Math.abs(b.obs.t.getTime() - a.obs.t.getTime())/1000;
         if(d > win) break;
         if(d < bestD){ bestD = d; best = b; }
       }
       if(best){
         const at = (a.atSec + best.atSec)/2;
-        const bucket = Math.floor(at*10); // 0.1s bucket
+        const bucket = `${a.obs.id}::${best.obs.id}`; // evidence, independent of loop length
         if(used.has(bucket)) continue;
         used.add(bucket);
 
         const pitch = pickPitch({ taxon:"Duet Pulse", voiceKey:"Duet", order:"Duet", seed:state.seed ^ 0xA5A5A5A5, key:state.keyName, scaleName:state.scaleName });
         events.push({
           kind:"duet_sync",
+          match:{minuteKey:Math.floor(a.obs.t.getTime()/60000), observations:{A:[a.obs],B:[best.obs]}},
           isSpecial:true,
           user:"AB",
           userName:"",
@@ -4686,7 +4707,7 @@ const user = (state.userBName && (o.userName === state.userBName)) ? "B" : "A";
   }
 
   events.sort((a,b)=>a.atSec-b.atSec);
-  return { events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId } };
+  return { events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId, sharedMinutes } };
 }
 
 /** ------------------------------ UI population ------------------------------ */
@@ -4726,7 +4747,39 @@ function populateNightSelect(keys, sharedSet){
 }
 
 
+function updateSharedMinuteDetails(){
+  const matches = state.sequencer.meta.sharedMinutes || [];
+  const summary = $("sharedMinuteSummary"), list = $("sharedMinuteList"), context = $("sharedMinuteContext");
+  if(!summary || !list || !context) return;
+  summary.textContent = `Shared minutes: ${matches.length}`;
+  const pair = state.userAName && state.userBName ? `${state.userAName} + ${state.userBName}. ` : "Two named observers are needed for a shared minute. ";
+  const scope = state.listenMode !== "both" ? "Solo: shared-minute gestures are off. " :
+    state.spacingMode === "riff" ? "Within the selected Riff window. " : "Within the selected date. ";
+  context.textContent = pair + scope + "Times shown in Brisbane (AEST, UTC+10).";
+  list.replaceChildren();
+  for(const match of matches){
+    const item = document.createElement("li");
+    const stamp = new Intl.DateTimeFormat("en-AU", {timeZone:SESSION_TIME_ZONE,year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(match.minuteKey*60000));
+    item.append(document.createTextNode(stamp));
+    const observations = document.createElement("ul");
+    for(const o of match.observations.A.concat(match.observations.B)){
+      const row = document.createElement("li");
+      const label = `${o.userName} — ${o.taxon}, observation ${o.id}`;
+      if(/^\d+$/.test(String(o.id))){
+        const link = document.createElement("a");
+        link.href = `https://www.inaturalist.org/observations/${o.id}`;
+        link.textContent = label;
+        link.style.cssText = "color:#8ed9e5;text-decoration:underline";
+        row.append(link);
+      } else row.textContent = label;
+      observations.append(row);
+    }
+    item.append(observations); list.append(item);
+  }
+}
+
 function updateStats(totalInNight){
+  updateSharedMinuteDetails();
   const taxa = new Set(state.nightObs.map(o=>o.taxon));
   const voices = new Set(state.nightObs.map(o=>toneKeyForObs(o)).filter(v=>v));
   $("statObs").textContent = `${totalInNight}`;
@@ -4866,7 +4919,7 @@ if(state.listenMode !== "both" && e.isSpecial){
         continue;
       }
 
-      const velBase = e.isSpecial ? (e.kind==="duet_sync" ? 0.26 : 0.20) : clamp(0.15 + 0.12*Math.log2(e.density), 0.12, 0.65);
+      const velBase = e.isSpecial ? (e.velocity ?? (e.kind==="duet_sync" || e.kind==="accompaniment" ? 0.26 : 0.20)) : clamp(0.15 + 0.12*Math.log2(e.density), 0.12, 0.65);
       const vel = velBase * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
       scheduleInstrument(audioCtx, e.instrument, tEvent, e.freq, vel);
       scheduleThumbGlow(e, tEvent);
@@ -5142,6 +5195,12 @@ function drawFrame(){
     const x = cx + Math.cos(a)*rr;
     const y = cy + Math.sin(a)*rr;
 
+    if(e.kind === "accompaniment"){
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = e.color;
+      ctx.beginPath(); ctx.arc(x,y,2.1*dpr,0,Math.PI*2); ctx.fill();
+      continue;
+    }
     if(e.isSpecial){
       const alphaS = (e.kind === "duet_minute") ? 0.55 : 0.45;
       const rad = (e.kind === "duet_minute" ? 6.5 : 10.5)*dpr;
@@ -5784,10 +5843,8 @@ function initUI(){
   function setListenMode(mode){
     state.listenMode = mode; // "both" | "A" | "B"
     updateListenButtons();
-    // In Song mode, recompose — different observations produce a different song
-    if(state.spacingMode === "song"){
-      softRebuild();
-    }
+    // Refresh sound, visuals and evidence together in every mode.
+    softRebuild();
   }
   function updateListenButtons(){
     const both = $("listenBothBtn"), a = $("listenABtn"), b = $("listenBBtn");
@@ -5849,7 +5906,7 @@ function initUI(){
   function setRiffWindowFromNight(){
     const obs = state.nightObs || []; // already filtered by Players + Focus
     if(!obs.length) return;
-    const mins = obs.map(o=>o.t.getHours()*60 + o.t.getMinutes()).sort((a,b)=>a-b);
+    const mins = obs.map(o=>sessionMinute(o.t)).sort((a,b)=>a-b);
     const minM = mins[0], maxM = mins[mins.length-1];
 
     if(state.riffStartMin==null || state.riffEndMin==null){
@@ -7023,7 +7080,7 @@ async function renderOfflineBuffer(minDuration, statusEl){
 
         const when = offset + e.atSec;
         const velBase = e.isSpecial
-          ? (e.kind === "duet_sync" ? 0.26 : 0.20)
+          ? (e.velocity ?? (e.kind === "duet_sync" || e.kind === "accompaniment" ? 0.26 : 0.20))
           : clamp(0.15 + 0.12 * Math.log2(e.density), 0.12, 0.65);
         const vel = velBase * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
         scheduleInstrument(offCtx, e.instrument, when, e.freq, vel);
