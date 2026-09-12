@@ -43,3 +43,7 @@ Remaining gates include a listening review, real iPhone testing, gap-shortening 
 The second repair pass uses the audio clock for the playhead and visual note crossings, skips obsolete notes after delayed scheduler ticks, and advances to the next cycle when resuming after the last note. Loop-end visual events are now included. Cancelling a pending rebuild prevents it from restarting playback later. Background drawing is explicitly opaque; drawing and pointer hit testing use one display scale, including Present mode.
 
 See `docs/STABILITY-2026-09-12.md` for reproduction measurements and remaining limits. `tools/stability-player.py INPUT_HTML OUTPUT_HTML` produces an instrumented local test copy with a 40-keyboard-remix stress button. It is test tooling, not part of the published app. The existing on-screen Remix button stops/reset playback; the R keyboard shortcut performs a transition during playback. Both behaviors remain unchanged.
+
+## Continue in a new session
+
+Read `docs/NEXT-SESSION.md` for the accepted checkpoint, recommended next deliverable, test expectations and remaining release gates. The next proposed feature is optional Timeline gap shortening, with tests first and original synchrony evidence preserved.
