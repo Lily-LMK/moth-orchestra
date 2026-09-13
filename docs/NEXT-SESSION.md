@@ -1,4 +1,14 @@
-# Next session — the interface pass
+# Next session — a new instrument family for the gallery
+
+Read [PLAN-NEXT-FAMILY.md](PLAN-NEXT-FAMILY.md) first. It carries the measured
+case for a large palette, the naming question to settle with Lily before
+building, the three-strata proposal, the headroom problem that must be
+measured before any sub-bass is added, and the four answers needed from Lily to
+start.
+
+---
+
+## Standing state — the interface
 
 Lantern Glass is published. `main` carries it; GitHub Pages serves the root of
 `main`. Noctilucent is built, tested and deliberately withheld from the
