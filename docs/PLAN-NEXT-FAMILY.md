@@ -177,13 +177,20 @@ must never fire on something that did not happen.
 
 Bounded steps, each ending in something Lily can hear.
 
+0. ~~**Measure headroom.**~~ **Done 13 September 2026** — see §4. Nothing clips;
+   no master limiter; the sub gets its own bus.
 0. **Measure headroom.** Offline render of a dense Song at full volume on the
    current build. Establish what we have before spending it. Decide whether a
    master limiter is needed, and if so treat it as its own comparison against
    the accepted sound.
-1. **The palette.** Fourteen to sixteen voices. Audition at species rank
+1. **The palette.** ~~Fourteen to sixteen voices. Audition at species rank
    against Moth Orchestra, same night, same seed, gain-matched. Pass: the new
-   family is at least as rich at species and clearly its own thing.
+   family is at least as rich at species and clearly its own thing.~~
+   **Built 13 September 2026.** Fifteen voices, rank-graded 7/9/11/13/15.
+   Measured richer than Moth Orchestra at every rank from subfamily down, and
+   strictly richer at species (15 against 11). Audition rendered and
+   gain-matched. See [SESSION-2026-09-13-GONDWANA.md](SESSION-2026-09-13-GONDWANA.md).
+   **The pass condition is Lily's ear, and she has not heard it yet.**
 2. **The ground.** Two sub candidates for shared minutes, gain-matched, judged
    on headphones and on speakers. Pass: felt, not heard as a thud; audible as
    *something* on a laptop.
