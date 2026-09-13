@@ -699,40 +699,6 @@ input[type="range"]{
 .photoPanelTitle{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
   color:rgba(255,255,255,.34);}
 
-/* ── Legend: what the circle is saying ─────────────────────────────────────
-   Always present, never in the way. Collapsible so a performance can hide it
-   and an exhibition can leave it open. */
-.legend{
-  position:absolute;left:12px;bottom:calc(16px + var(--safe-b));z-index:7;
-  max-width:min(300px,calc(100% - 24px));
-  border:1px solid rgba(255,255,255,.075);border-radius:13px;
-  background:rgba(4,7,14,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  padding:9px 11px;font-size:10.5px;line-height:1.45;color:rgba(255,255,255,.62);
-}
-.legendToggle{
-  all:unset;cursor:pointer;display:block;
-  font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
-  color:rgba(255,255,255,.34);margin-bottom:7px;
-}
-.legendToggle:hover{color:rgba(255,255,255,.6);}
-.legendToggle:focus-visible{outline:2px solid var(--qm-green);outline-offset:3px;border-radius:3px;}
-.legend.collapsed .legendBody{display:none;}
-.legend.collapsed .legendToggle{margin-bottom:0;}
-.legendRow{display:flex;align-items:flex-start;gap:9px;margin-top:5px;}
-.lgMark{flex:0 0 14px;height:14px;margin-top:1px;position:relative;}
-.lgMark::before{
-  content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  border-radius:50%;
-}
-.lgA::before{width:7px;height:7px;background:rgba(255,255,255,.82);}
-.lgB::before{width:7px;height:7px;background:rgba(255,255,255,.82);
-  box-shadow:0 0 0 3px rgba(4,7,14,.95),0 0 0 4.4px rgba(70,194,210,.95);}
-.lgShared::before{width:13px;height:13px;border:1.8px solid rgba(255,255,255,.5);}
-.lgShared::after{content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;
-  border-radius:50%;background:rgba(255,255,255,.75);transform:translate(-50%,-50%);}
-.lgRing::before{width:13px;height:13px;border:1px dashed rgba(255,255,255,.38);}
-.lgText{flex:1 1 auto;min-width:0;}
-body.demoMode .legend{background:rgba(0,0,0,.62);}
 
 /* ── Small screens ── */
 @media(max-width:767px){
@@ -754,17 +720,181 @@ body.demoMode .legend{background:rgba(0,0,0,.62);}
   .iconBtn{flex:0 0 44px;width:44px;}
   .btn.primary.playPrimary{min-height:50px;}
   .statgrid{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .legend.collapsed{right:auto;width:auto;}
-  .legend{
-    left:10px;right:10px;max-width:none;
-    bottom:calc(84px + var(--safe-b));
-    font-size:10px;padding:8px 10px;
-  }
 }
 
 /* Someone who prefers less motion should not be made to watch transitions. */
 @media(prefers-reduced-motion:reduce){
-  .btn,select,.txt,.legendToggle,.disclose > summary::before{transition:none!important;}
+  .btn,select,.txt,.disclose > summary::before{transition:none!important;}
+}
+
+/* ═══ THE SOUNDING RECORD ═══════════════════════════════════════════════════
+   The ring frames a photograph. Whatever is sounding right now sits in the
+   middle of it with the minute it was actually recorded, because the point of
+   the instrument is that a real animal turned up at a real time. */
+:root{--ring-lift:0px;}
+@media(max-width:1023px){:root{--ring-lift:28px;}}
+
+.nowCard{
+  position:absolute; left:50%; top:calc(50% - var(--ring-lift));
+  transform:translate(-50%,-50%);
+  z-index:7; pointer-events:none; margin:0;
+  width:min(214px,44vmin);
+  display:flex; flex-direction:column; align-items:center; gap:11px;
+  text-align:center;
+}
+.nowCard[hidden]{display:none!important;}
+.nowThumb{
+  width:min(126px,26vmin); aspect-ratio:1/1; border-radius:15px; overflow:hidden;
+  background:rgba(255,255,255,.03);
+  box-shadow:0 14px 40px rgba(0,0,0,.62),0 0 0 1px rgba(255,255,255,.05);
+}
+.nowThumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.nowThumb img:not([src]){opacity:0;}
+.nowText{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;width:100%;}
+.nowClock{
+  font-size:27px;font-weight:200;letter-spacing:.005em;line-height:1.05;
+  color:rgba(255,255,255,.94);font-variant-numeric:tabular-nums;
+}
+.nowClock.unclocked{font-size:15px;font-style:italic;color:rgba(255,255,255,.5);letter-spacing:.06em;}
+.nowGap{
+  font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(255,255,255,.36);margin-bottom:4px;line-height:1.4;
+}
+.nowCard .selTitle{
+  font-size:13px;font-weight:400;line-height:1.35;color:rgba(255,255,255,.88);
+  white-space:normal;overflow:visible;text-overflow:clip;
+}
+.nowCard .selMeta{font-size:10.5px;color:rgba(255,255,255,.40);letter-spacing:.02em;margin-top:1px;}
+.nowWho{
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(255,255,255,.44);margin-top:5px;display:flex;align-items:center;gap:6px;
+}
+.nowWho:empty{display:none;}
+.nowWho::before{content:"";width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.35);}
+.nowCard.userA .nowWho::before{background:var(--userA);}
+.nowCard.userB .nowWho::before{background:var(--userB);}
+.nowCard .selSub{font-size:9.5px;color:rgba(255,255,255,.26);letter-spacing:.06em;margin-top:2px;}
+
+@media(max-width:767px){
+  .nowCard{
+    left:10px;right:10px;top:auto;bottom:calc(86px + var(--safe-b));
+    transform:none;width:auto;
+    flex-direction:row;align-items:center;gap:13px;text-align:left;
+    padding:11px 13px;border-radius:16px;
+    background:rgba(6,9,16,.72);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  }
+  .nowThumb{width:66px;flex:0 0 66px;border-radius:12px;}
+  .nowText{align-items:flex-start;text-align:left;}
+  .nowClock{font-size:21px;}
+  .nowGap{margin-bottom:2px;}
+  .nowCard .selSub{display:none;}
+}
+
+/* ═══ FOLDING THE CONTROLS AWAY ═════════════════════════════════════════════ */
+.railToggle{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  z-index:9;width:20px;height:62px;padding:0;cursor:pointer;
+  border:none;border-radius:0 10px 10px 0;
+  background:rgba(255,255,255,.045);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s ease;
+}
+.railToggle:hover{background:rgba(255,255,255,.10);}
+.railToggle:focus-visible{outline:2px solid var(--qm-green);outline-offset:2px;}
+.railChevron{
+  width:5px;height:5px;border-left:1.5px solid rgba(255,255,255,.5);
+  border-bottom:1.5px solid rgba(255,255,255,.5);
+  transform:rotate(45deg);margin-left:2px;transition:transform .2s ease;
+}
+body.sidebarHidden .railChevron{transform:rotate(-135deg);margin-left:-2px;}
+body.sidebarHidden .railToggle{width:26px;height:74px;background:rgba(255,255,255,.06);}
+@media(max-width:767px){.railToggle{display:none!important;}}
+@media(min-width:768px){
+  .desktopSidebar{transition:margin-left .3s cubic-bezier(.4,0,.2,1);}
+  body.sidebarHidden .desktopSidebar{margin-left:-380px;}
+  body.sidebarHidden.sidebarPeek .desktopSidebar{margin-left:0;box-shadow:0 0 60px rgba(0,0,0,.7);}
+}
+@media(min-width:1024px){body.sidebarHidden .desktopSidebar{margin-left:-420px;}}
+
+/* ═══ CIRCLE KEY, inside the help overlay ═══════════════════════════════════ */
+.helpOverlay .helpInner{max-width:380px;}
+.helpSection{margin-top:16px;border-top:1px solid rgba(255,255,255,.07);padding-top:14px;}
+.helpSection .helpTitle{font-size:13px;margin-bottom:8px;}
+.helpSection .helpRow{align-items:flex-start;font-size:12px;line-height:1.45;}
+.hMark{flex:0 0 15px;height:15px;margin-top:1px;position:relative;}
+.hMark::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;}
+.hA::before{width:7px;height:7px;background:rgba(255,255,255,.82);}
+.hB::before{width:7px;height:7px;background:rgba(255,255,255,.82);
+  box-shadow:0 0 0 3px rgba(4,6,12,.95),0 0 0 4.4px rgba(70,194,210,.95);}
+.hShared::before{width:13px;height:13px;border:1.8px solid rgba(255,255,255,.5);}
+.hRing::before{width:13px;height:13px;border:1px dashed rgba(255,255,255,.38);}
+.hClock::before{width:13px;height:1.5px;border-radius:0;background:rgba(255,255,255,.45);}
+@media(prefers-reduced-motion:reduce){
+  .desktopSidebar,.railChevron,.railToggle{transition:none!important;}
+}
+
+/* A record with no photograph still deserves its minute. */
+.nowCard.noPhoto .nowThumb{display:none;}
+
+/* ═══ LESS BOX, MORE AIR ════════════════════════════════════════════════════
+   The gallery view works because nothing is fenced. The control column follows
+   it: hairlines and spacing carry the structure, not outlines. */
+.stat{border:none;background:transparent;padding:2px 0 0;text-align:left;}
+.statgrid{gap:4px 18px;margin-bottom:14px;}
+.stat .v{font-size:22px;font-weight:200;letter-spacing:-.015em;color:rgba(255,255,255,.92);}
+.stat .k{font-size:8.5px;letter-spacing:.15em;color:rgba(255,255,255,.30);}
+.disclose{border:none;background:transparent;border-top:1px solid rgba(255,255,255,.055);
+  border-radius:0;margin-bottom:0;}
+.disclose > summary{padding:11px 0;}
+.disclose > summary:hover{background:transparent;}
+.discloseBody{padding:0 0 12px;}
+.segmented{background:transparent;border:1px solid rgba(255,255,255,.075);}
+select,.txt{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.085);}
+.btn{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.085);}
+.grpTitle{color:rgba(255,255,255,.30);}
+.desktopSidebar .sidebarHeader h1{font-weight:600;letter-spacing:.22em;}
+
+/* ═══ CHROME, QUIETENED ═════════════════════════════════════════════════════
+   Everything floating over the canvas should read as a caption on the work,
+   not as a toolbar in front of it. */
+.modePills{
+  background:transparent;border:none;padding:0;gap:2px;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+.modePills .btn{
+  min-height:30px;padding:5px 13px;font-size:11.5px;letter-spacing:.04em;
+  border:none;background:transparent;color:rgba(255,255,255,.42);border-radius:999px;
+}
+.modePills .btn:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.72);}
+.modePills .btn.primary{
+  background:rgba(255,255,255,.10);color:rgba(255,255,255,.96);font-weight:500;
+}
+.modePills .btn.primary:active{background:rgba(255,255,255,.14);}
+
+.riffCtl{
+  background:transparent;border:none;padding:2px 0;
+  backdrop-filter:none;-webkit-backdrop-filter:none;gap:4px 10px;
+}
+.riffCtl input[type="time"]{
+  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.07);
+  font-size:11.5px;padding:4px 7px;color:rgba(255,255,255,.8);
+}
+.riffCtl label{color:rgba(255,255,255,.34);font-size:10px;letter-spacing:.06em;margin:0;}
+.riffTz{color:rgba(255,255,255,.30);}
+
+.fsBtn{
+  background:transparent;border:none;color:rgba(255,255,255,.42);
+  padding:6px 10px;font-size:11.5px;letter-spacing:.04em;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
+.fsBtn:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05);}
+.corner{border:none;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;
+  color:rgba(255,255,255,.30);font-size:10px;letter-spacing:.06em;}
+
+@media(max-width:767px){
+  .modePills .btn{min-height:32px;font-size:11px;padding:5px 12px;}
+  .riffCtl{padding:0;gap:2px 8px;}
 }
 </style>
 </head>
@@ -795,6 +925,7 @@ body.demoMode .legend{background:rgba(0,0,0,.62);}
       <div class="riffRow"><label for="riffStart">In</label><input id="riffStart" type="time" step="60"></div>
       <div class="riffRow"><label for="riffEnd">Out</label><input id="riffEnd" type="time" step="60"></div>
     </div>
+    <button class="railToggle" id="railToggle" type="button" aria-controls="desktopSidebar" aria-expanded="true" title="Hide controls (H)"><span class="railChevron"></span></button>
     <button class="fsBtn" id="fsBtn" type="button">Full screen</button>
     <div class="modeToast" id="modeToast"></div>
     <div class="gestureIndicator" id="gestureIndicator"></div>
@@ -806,36 +937,37 @@ body.demoMode .legend{background:rgba(0,0,0,.62);}
         <div class="helpRow"><span class="kbd">↑ ↓</span> Taxonomic rank</div>
         <div class="helpRow"><span class="kbd">R</span> Remix</div>
         <div class="helpRow"><span class="kbd">A</span> Ambience on/off</div>
+        <div class="helpRow"><span class="kbd">H</span> Hide / show controls</div>
         <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;">
           <div class="helpTitle" style="font-size:13px;margin-bottom:8px;">Touch</div>
           <div class="helpRow">Swipe ⟷ — Voice family</div>
           <div class="helpRow">Swipe ↕ — Taxonomic rank</div>
           <div class="helpRow">Double-tap — Remix</div>
         </div>
+        <div class="helpSection">
+          <div class="helpTitle">Reading the circle</div>
+          <div class="helpRow"><span class="hMark hA"></span><span id="helpA">Observer A — plain dot</span></div>
+          <div class="helpRow"><span class="hMark hB"></span><span id="helpB">Observer B — outlined dot</span></div>
+          <div class="helpRow"><span class="hMark hShared"></span><span>Halo — both recorded in the same clock minute</span></div>
+          <div class="helpRow"><span class="hMark hRing"></span><span id="helpRank">Colour and distance from centre — taxonomic group</span></div>
+          <div class="helpRow"><span class="hMark hClock"></span><span>Outer marks — the clock of the night itself</span></div>
+        </div>
         <div class="helpClose">Tap anywhere to close</div>
       </div>
     </div>
     <canvas id="stage" aria-label="The Moth Orchestra" role="img"></canvas>
     <div class="corner" id="cornerStatus">Paused • 19s loop</div>
-    <div class="selOverlay" id="selOverlay" hidden>
-      <div class="selThumb"><img id="selImg" alt=""/></div>
-      <div class="selText">
+    <figure class="nowCard" id="selOverlay" hidden>
+      <div class="nowThumb"><img id="selImg" alt=""/></div>
+      <figcaption class="nowText">
+        <div class="nowClock" id="selClock"></div>
+        <div class="nowGap" id="selGap"></div>
         <div class="selTitle" id="selTitle"></div>
         <div class="selMeta" id="selMetaLine"></div>
+        <div class="nowWho" id="selWho"></div>
         <div class="selSub" id="selSub"></div>
-      </div>
-    </div>
-
-    <!-- Legend: what the circle is saying -->
-    <div class="legend" id="legend">
-      <button class="legendToggle" id="legendToggle" type="button" aria-expanded="true" aria-controls="legendBody">Key</button>
-      <div class="legendBody" id="legendBody">
-        <div class="legendRow"><span class="lgMark lgA"></span><span class="lgText" id="legendA">Observer A</span></div>
-        <div class="legendRow"><span class="lgMark lgB"></span><span class="lgText" id="legendB">Observer B</span></div>
-        <div class="legendRow"><span class="lgMark lgShared"></span><span class="lgText">Halo — both recorded in the same clock minute</span></div>
-        <div class="legendRow"><span class="lgMark lgRing"></span><span class="lgText" id="legendRank">Colour and distance from centre — taxonomic group</span></div>
-      </div>
-    </div>
+      </figcaption>
+    </figure>
 
     <!-- Floating transport (mobile only) -->
     <div class="transportBar" id="transportBar">
@@ -4140,6 +4272,45 @@ function applyGalleryCollapse(){
   }
 }
 
+
+/* How long the sheet was quiet before this arrival. A night at a moth sheet is
+   bursts and lulls, and the difference between 7:03 and 7:04 is most of what it
+   feels like to be standing there. Null in Song, which has no recorded clock,
+   and null for the first arrival, which follows nothing. */
+let _arrivalTimes = null, _arrivalSig = "";
+function previousArrivalGapMin(o){
+  if(!o || !o.t || state.spacingMode === "song") return null;
+  const seq = state.sequencer;
+  if(!seq || !seq.events) return null;
+  const sig = `${state.nightKey}|${state.spacingMode}|${state.listenMode}|${state.riffStartMin}|${state.riffEndMin}|${seq.events.length}`;
+  if(sig !== _arrivalSig){
+    _arrivalSig = sig;
+    const ts = [];
+    for(const e of seq.events){
+      if(e.kind === "obs" && !e.isEcho && e.obs && e.obs.t) ts.push(e.obs.t.getTime());
+    }
+    ts.sort((a,b)=>a-b);
+    _arrivalTimes = ts;
+  }
+  const t = o.t.getTime();
+  let lo = 0, hi = _arrivalTimes.length - 1, prev = null;
+  while(lo <= hi){
+    const mid = (lo + hi) >> 1;
+    if(_arrivalTimes[mid] < t){ prev = _arrivalTimes[mid]; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  if(prev == null) return null;
+  return Math.round((t - prev)/60000);
+}
+function describeGap(mins){
+  if(mins == null) return "first of the night";
+  if(mins <= 0) return "same minute as the one before";
+  if(mins === 1) return "a minute later";
+  if(mins < 60) return `${mins} minutes later`;
+  const h = Math.floor(mins/60), r = mins % 60;
+  return r ? `${h}h ${r}m later` : `${h}h later`;
+}
+
 function updateSelectionOverlay(e){
   const box = $("selOverlay");
   if(!box) return;
@@ -4162,24 +4333,41 @@ function updateSelectionOverlay(e){
     $("selTitle").innerHTML = "<i>" + escHTML(sn) + "</i>";
   }
 
-  const timeStr = o.t ? fmtHM(o.t) : "";
-  const line2 = `${e.order || "—"}${(e.family && e.family.trim()) ? " • " + e.family.trim() : ""} • ${timeStr || "—"}`;
-  $("selMetaLine").textContent = line2;
+  $("selMetaLine").textContent = `${e.order || "—"}${(e.family && e.family.trim()) ? " · " + e.family.trim() : ""}`;
+
+  // The clock is the recorded observation time, not the playhead's position, so
+  // it stays true however the loop is compressed or the window is moved.
+  const clockEl = $("selClock"), gapEl = $("selGap"), whoEl = $("selWho");
+  const clocked = !!(o.t && state.spacingMode !== "song");
+  if(clockEl){
+    clockEl.textContent = clocked ? fmtClock(o.t) : "arranged";
+    clockEl.classList.toggle("unclocked", !clocked);
+  }
+  if(gapEl) gapEl.textContent = clocked ? describeGap(previousArrivalGapMin(o))
+    : "Song is a composition, not a recorded sequence";
+  if(whoEl) whoEl.textContent = o.userName || "";
 
   const count = (state.sequencer && state.sequencer.meta && state.sequencer.meta.countsByTaxon)
     ? (state.sequencer.meta.countsByTaxon.get(o.taxon) || 1) : 1;
   $("selSub").textContent = `observed ${count}×`;
 
   const img = $("selImg");
+  const url = (o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+  box.classList.toggle("noPhoto", !url);
   if(img){
-    if(o.imageUrl && String(o.imageUrl).trim()){
-      img.src = String(o.imageUrl).trim();
-      img.onerror = ()=>{ img.removeAttribute("src"); };
+    if(url){
+      img.src = url;
+      // A broken or unreachable photo collapses the frame rather than leaving a
+      // grey slab where the animal should be.
+      img.onerror = ()=>{ img.removeAttribute("src"); box.classList.add("noPhoto"); };
+      img.onload = ()=>{ box.classList.remove("noPhoto"); };
     } else {
       img.removeAttribute("src");
     }
   }
   box.hidden = false;
+  // Each note lands as its own moment rather than the panel silently swapping.
+  try{ box.animate([{opacity:.28},{opacity:1}], {duration:340, easing:"ease-out"}); }catch(_){}
 }
 
 
@@ -5173,17 +5361,7 @@ function updateStats(totalInNight){
     const tl = toneByLabel();
     lbl.textContent = tl.charAt(0).toUpperCase() + tl.slice(1) + " voices";
   }
-  updateLegend();
   updateCornerStatus();
-}
-
-// The legend names the two people and the rank actually selected, so what the
-// circle means is readable without anyone explaining it.
-function updateLegend(){
-  const a = $("legendA"), b = $("legendB"), rank = $("legendRank");
-  if(a) a.textContent = state.userAName ? `${state.userAName} \u2014 plain dot` : "Observer A \u2014 plain dot";
-  if(b) b.textContent = state.userBName ? `${state.userBName} \u2014 outlined dot` : "Observer B \u2014 outlined dot";
-  if(rank) rank.textContent = `Colour and distance from centre \u2014 ${toneByLabel()} group`;
 }
 function updateExportButtons(){
   const has = state.sequencer.events.length>0;
@@ -5541,6 +5719,34 @@ function fitCanvasFast(cvs){
 }
 
 // Vertical offset to lift the ring above the transport bar on touch devices
+/* ── The night's clock ───────────────────────────────────────────────────────
+   Timeline and Riff map recorded time onto the loop, so any point on the ring
+   corresponds to a real Brisbane minute and can be named. Song is an
+   arrangement and deliberately has no clock: it returns null rather than a
+   plausible-looking time, because inventing one would be a lie about the data. */
+function loopSecToDate(sec){
+  const m = state.sequencer && state.sequencer.meta;
+  if(!m || !m.start || state.spacingMode === "song") return null;
+  const span = Math.max(1, m.spanSec);
+  const frac = clamp(sec / Math.max(0.001, state.loopLen), 0, 1);
+  return new Date(m.start.getTime() + frac * span * 1000);
+}
+function fmtClock(d){
+  if(!d) return "";
+  return d.toLocaleTimeString("en-AU", {hour:"numeric", minute:"2-digit", hour12:true,
+    timeZone:SESSION_TIME_ZONE}).replace(/\s*(am|pm)/i, (_, x) => " " + x.toUpperCase());
+}
+// Tick spacing chosen so a viewer can read minutes on a short window and hours
+// on a long one, without the ring turning into a solid band.
+function clockTickPlan(spanSec){
+  const m = spanSec / 60;
+  if(m <= 20)  return {minor:1,  major:5};
+  if(m <= 120) return {minor:1,  major:10};
+  if(m <= 360) return {minor:5,  major:30};
+  if(m <= 720) return {minor:15, major:60};
+  return {minor:30, major:180};
+}
+
 /* ── Ring geometry ──────────────────────────────────────────────────────────
    One place that decides where a note sits, so drawing and hit-testing cannot
    drift apart. Voice groups are spread between RING_INNER and RING_OUTER; a
@@ -5552,9 +5758,12 @@ function fitCanvasFast(cvs){
    wide screen height is the constraint and this is the previous 0.35 of the
    short side exactly; on a tall narrow phone the width becomes the constraint
    and the ring grows instead of staying pinned to the old short-side rule. */
-function baseRadius(w, h){ return Math.min(w * 0.42, h * 0.35); }
+function baseRadius(w, h){ return Math.min(w * 0.38, h * 0.32); }
 
-const RING_INNER = 0.58, RING_OUTER = 0.95, RING_SPECIAL = 1.04, RING_SWEEP = 1.09;
+const RING_INNER = 0.58, RING_OUTER = 0.95, RING_SPECIAL = 1.04, RING_SWEEP = 1.16;
+// The clock sits outside the arrivals; the centre is left clear for the record
+// that is sounding, so the ring frames a photograph instead of a diagram.
+const CLOCK_IN = 1.10, CLOCK_OUT = 1.16, CLOCK_LABEL = 1.235, SWEEP_IN = 0.50;
 function ringRadius(baseR, idx, groupCount){
   const groups = Math.max(1, groupCount);
   const spread = groups === 1 ? 1 : (idx / (groups - 1));
@@ -5581,6 +5790,90 @@ function getVoiceIndex(){
 
 let _bgCache = null;
 let _bgCacheW = 0, _bgCacheH = 0;
+
+
+/* Draws the ring as a clock face of the night itself. Brisbane has no daylight
+   saving, so minute boundaries align on absolute epoch minutes and ticks can be
+   placed without per-tick timezone maths. In Song mode there is no recorded
+   clock, so the ring gets neutral loop divisions instead of invented times. */
+const _uiFontStack = "Barlow, system-ui, -apple-system, sans-serif";
+function drawClockRing(ctx, cx, cy, baseR, dpr, tickColor){
+  const meta = state.sequencer && state.sequencer.meta;
+  const clocked = !!(meta && meta.start && meta.end && state.spacingMode !== "song");
+  ctx.save();
+  ctx.strokeStyle = tickColor;
+  ctx.lineCap = "butt";
+
+  if(!clocked){
+    ctx.globalAlpha = 0.16;
+    ctx.lineWidth = 1*dpr;
+    ctx.beginPath();
+    for(let i=0;i<16;i++){
+      const a = (i/16)*Math.PI*2 - Math.PI/2;
+      const len = (i%4===0) ? baseR*0.05 : baseR*0.028;
+      ctx.moveTo(cx+Math.cos(a)*(baseR*CLOCK_IN), cy+Math.sin(a)*(baseR*CLOCK_IN));
+      ctx.lineTo(cx+Math.cos(a)*(baseR*CLOCK_IN+len), cy+Math.sin(a)*(baseR*CLOCK_IN+len));
+    }
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  const startMs = meta.start.getTime();
+  const spanMs = Math.max(1000, meta.spanSec*1000);
+  const endMs = startMs + spanMs;
+  const plan = clockTickPlan(meta.spanSec);
+  const angleOf = ms => ((ms - startMs)/spanMs)*Math.PI*2 - Math.PI/2;
+  const step = plan.minor*60000;
+  const first = Math.ceil(startMs/step)*step;
+  // A very short window can ask for more ticks than the ring can show; drop the
+  // minor ring rather than draw a smear.
+  const minorCount = Math.floor((endMs-first)/step);
+  const showMinor = minorCount <= 240;
+
+  if(showMinor){
+    ctx.globalAlpha = 0.30;
+    ctx.lineWidth = 1*dpr;
+    ctx.beginPath();
+    for(let t=first; t<=endMs; t+=step){
+      if((t/60000) % plan.major === 0) continue;
+      const a = angleOf(t);
+      ctx.moveTo(cx+Math.cos(a)*(baseR*CLOCK_IN), cy+Math.sin(a)*(baseR*CLOCK_IN));
+      ctx.lineTo(cx+Math.cos(a)*(baseR*(CLOCK_IN+0.026)), cy+Math.sin(a)*(baseR*(CLOCK_IN+0.026)));
+    }
+    ctx.stroke();
+  }
+
+  const majorStep = plan.major*60000;
+  const firstMajor = Math.ceil(startMs/majorStep)*majorStep;
+  ctx.globalAlpha = 0.62;
+  ctx.lineWidth = 1.4*dpr;
+  ctx.beginPath();
+  for(let t=firstMajor; t<=endMs; t+=majorStep){
+    const a = angleOf(t);
+    ctx.moveTo(cx+Math.cos(a)*(baseR*CLOCK_IN), cy+Math.sin(a)*(baseR*CLOCK_IN));
+    ctx.lineTo(cx+Math.cos(a)*(baseR*CLOCK_OUT), cy+Math.sin(a)*(baseR*CLOCK_OUT));
+  }
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.58;
+  ctx.fillStyle = "rgba(255,255,255,0.82)";
+  ctx.font = `300 ${Math.round(10.5*dpr)}px ${_uiFontStack}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const pad = 8*dpr;
+  for(let t=firstMajor; t<=endMs; t+=majorStep){
+    const a = angleOf(t);
+    const label = fmtClock(new Date(t));
+    // A narrow phone would otherwise push the label off the edge of the canvas.
+    const halfW = ctx.measureText(label).width/2 + pad;
+    const halfH = 8*dpr + pad;
+    const lx = clamp(cx+Math.cos(a)*(baseR*CLOCK_LABEL), halfW, ctx.canvas.width - halfW);
+    const ly = clamp(cy+Math.sin(a)*(baseR*CLOCK_LABEL), halfH, ctx.canvas.height - halfH);
+    ctx.fillText(label, lx, ly);
+  }
+  ctx.restore();
+}
 
 function drawFrame(){
   // Skip rendering when tab is hidden (save battery in the field)
@@ -5622,21 +5915,7 @@ function drawFrame(){
   ctx.restore();
 
   // tick marks
-  ctx.save();
-  ctx.globalAlpha = 0.25;
-  ctx.strokeStyle = _tickColor;
-  ctx.lineWidth = 1*dpr;
-  const marks = 48;
-  ctx.beginPath();
-  for(let i=0;i<marks;i++){
-    const a = (i/marks)*Math.PI*2 - Math.PI/2;
-    const r1 = baseR*0.52;
-    ctx.moveTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
-    const len = (i%4===0) ? (baseR*0.08) : (baseR*0.045);
-    ctx.lineTo(cx+Math.cos(a)*(r1+len), cy+Math.sin(a)*(r1+len));
-  }
-  ctx.stroke();
-  ctx.restore();
+  drawClockRing(ctx, cx, cy, baseR, dpr, _tickColor);
 
   // event dots
   ctx.save();
@@ -5888,7 +6167,7 @@ function drawFrame(){
   ctx.strokeStyle = "rgba(255,255,255,0.22)";
   ctx.lineWidth = (state.demoMode ? 2.4 : 1.6)*dpr;
   ctx.beginPath();
-  ctx.moveTo(cx,cy);
+  ctx.moveTo(cx+Math.cos(thetaHead)*(baseR*SWEEP_IN), cy+Math.sin(thetaHead)*(baseR*SWEEP_IN));
   ctx.lineTo(cx+Math.cos(thetaHead)*(baseR*RING_SWEEP), cy+Math.sin(thetaHead)*(baseR*RING_SWEEP));
   ctx.stroke();
   ctx.fillStyle = "rgba(255,255,255,0.85)";
@@ -6541,20 +6820,6 @@ function initUI(){
     if($("loopLenPct")) $("loopLenPct").textContent = `${state.loopLen}s`;
     updateCornerStatus();
   });
-  const legendEl = $("legend"), legendBtn = $("legendToggle");
-  if(legendEl && legendBtn){
-    // A phone at the moth sheet needs the canvas; a screen an audience reads
-    // needs the key. Either way it is one tap away.
-    if(window.innerWidth < 768){
-      legendEl.classList.add("collapsed");
-      legendBtn.setAttribute("aria-expanded", "false");
-    }
-    legendBtn.addEventListener("click", ()=>{
-      const collapsed = legendEl.classList.toggle("collapsed");
-      legendBtn.setAttribute("aria-expanded", String(!collapsed));
-    });
-  }
-
   $("loopLen").addEventListener("change", ()=>{
     hardResetPlayback("loopLen");
     rebuildDerived();
@@ -6768,8 +7033,34 @@ function initUI(){
   });
 
   // Help overlay
+  // The controls fold away so the circle can be the whole screen. Hidden is a
+  // real state, not a fullscreen mode: the edge strip peeks them back without
+  // committing, and H toggles for a performance.
+  const rail = $("railToggle"), sidebar = $("desktopSidebar");
+  function setRail(hidden){
+    document.body.classList.toggle("sidebarHidden", hidden);
+    if(!hidden) document.body.classList.remove("sidebarPeek");
+    if(rail){
+      rail.setAttribute("aria-expanded", String(!hidden));
+      rail.title = hidden ? "Show controls (H)" : "Hide controls (H)";
+    }
+  }
+  if(rail) rail.addEventListener("click", ()=> setRail(!document.body.classList.contains("sidebarHidden")));
+  if(rail) rail.addEventListener("pointerenter", ()=>{
+    if(document.body.classList.contains("sidebarHidden")) document.body.classList.add("sidebarPeek");
+  });
+  if(sidebar) sidebar.addEventListener("pointerleave", ()=> document.body.classList.remove("sidebarPeek"));
+
+  function fillCircleKey(){
+    const a = $("helpA"), b = $("helpB"), rank = $("helpRank");
+    if(a) a.textContent = (state.userAName || "Observer A") + " \u2014 plain dot";
+    if(b) b.textContent = (state.userBName || "Observer B") + " \u2014 outlined dot";
+    if(rank) rank.textContent = `Colour and distance from centre \u2014 ${toneByLabel()} group`;
+  }
+
   const helpOverlay = $("helpOverlay");
   function toggleHelp(){
+    fillCircleKey();
     helpOverlay.classList.toggle("show");
   }
   $("helpBtn").addEventListener("click", toggleHelp);
@@ -6778,6 +7069,14 @@ function initUI(){
     if(e.key === "?" || (e.key === "/" && e.shiftKey)){
       e.preventDefault();
       toggleHelp();
+    }
+    if((e.key === "h" || e.key === "H") && !e.metaKey && !e.ctrlKey && !e.altKey){
+      const tag = (e.target && e.target.tagName) || "";
+      if(!/^(INPUT|SELECT|TEXTAREA)$/.test(tag)){
+        e.preventDefault();
+        setRail(!document.body.classList.contains("sidebarHidden"));
+        return;
+      }
     }
     if(e.key === "Escape" && helpOverlay.classList.contains("show")){
       helpOverlay.classList.remove("show");
@@ -7786,6 +8085,13 @@ requestAnimationFrame(drawFrame);
 
 // keep canvas crisp on resize
 window.addEventListener("resize", ()=>{ _cachedCanvasRect = null; fitCanvasFast(canvas); });
+// A window resize is not the only way the canvas changes size: folding the
+// controls away, entering fullscreen, or any future layout change resizes it
+// without resizing the window, and a stale cached rect leaves the drawing
+// stretched across a backing store of the wrong width.
+if(typeof ResizeObserver !== "undefined" && canvas){
+  new ResizeObserver(()=>{ _cachedCanvasRect = null; }).observe(canvas);
+}
 
 
 /* ═══ SHEET CONTROLS ═══ */

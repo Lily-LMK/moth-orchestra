@@ -16,7 +16,18 @@ an exhibition screen read at a distance and running unattended, Lily's laptop
 while she performs it in front of a room, and a phone held one-handed in the
 dark at the moth sheet. Lily chose all three, properly responsive.
 
-## Start here — Lily's eyes on the interface pass
+## Start here — Lily's eyes on the rebuilt circle
+
+See SESSION-2026-09-13-CIRCLE.md. The circle view was rebuilt around the
+sounding record and a real clock of the night, the floating key was removed,
+and the controls now fold away with the tab or H. None of it has been seen on
+real hardware or judged by ear.
+
+Known gaps: the gallery fullscreen view was not touched and has not been
+re-checked under the new design layer; "Class voices: 1" still tells a viewer
+nothing; Present/demo mode was not re-examined.
+
+## Earlier — the first interface pass
 
 The interface pass is built and measured but nobody has looked at it. Two ring
 conventions changed deliberately (single-group arrivals moved to the outer
