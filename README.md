@@ -1,5 +1,7 @@
 # Moth Orchestra
 
+Start with [the sonification design reference](docs/SONIFICATION-DESIGN.md) for the purpose, data-to-music rules, current limitations and proposed next steps.
+
 A portable, single-file biodiversity sonification instrument built around iNaturalist observations. Open `index.html` in a modern browser, load the demo or import a CSV, choose a date and press Play. Internet access is needed for remote observation photographs and API imports; the embedded demo and synthesis are local.
 
 ## Development and checks
@@ -16,7 +18,7 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 
 ## Observation and synchrony rules
 
-- CSV uses `id`, `time_observed_at`, `observed_on`, observer `user_name`, and taxonomic fields. Timestamps should contain an explicit UTC offset or `Z`; offset-free timestamps retain the legacy browser-local parsing behavior and are unsuitable for portable references. Rows without a parseable timestamp or date are omitted by the importer.
+- CSV uses `id`, `time_observed_at`, `observed_on`, observer `user_name` (falling back to `user_login` or `user_id`), and taxonomic fields. Timestamps should contain an explicit UTC offset or `Z`; offset-free timestamps retain the legacy browser-local parsing behavior and are unsuitable for portable references. Rows without a parseable timestamp or date are omitted by the importer.
 - A/B are selected automatically: `User_A` / `User_B` when present, otherwise the first two distinct named observers in chronological order. There is no manual pair picker yet. Other named observers are excluded from the sequencer; the gallery and raw counts can still include them. Unnamed data remains playable without duet gestures.
 - A genuine shared minute contains observations from both selected people in the same absolute UTC minute bucket. It does not mean the observations occurred at exactly the same instant. Evidence retains original observation IDs and timestamps, deduplicated by ID within each observer/minute.
 - Timeline uses the selected date; Riff applies its inclusive selected clock window, including windows that cross midnight. Riff, focus filtering and displayed times use **Australia/Brisbane (AEST, UTC+10)** independently of the viewer's timezone. Other session timezones are not configurable yet. CSV `observed_on` supplies the date grouping; a cross-midnight Riff window still works within that selected date, not an inferred multi-date night.
@@ -46,4 +48,12 @@ See `docs/STABILITY-2026-09-12.md` for reproduction measurements and remaining l
 
 ## Continue in a new session
 
-Read `docs/NEXT-SESSION.md` for the accepted checkpoint, recommended next deliverable, test expectations and remaining release gates. The next proposed feature is optional Timeline gap shortening, with tests first and original synchrony evidence preserved.
+Follow [the session roadmap](docs/SESSION-ROADMAP.md) and [the immediate handoff](docs/NEXT-SESSION.md). Establish the rehearsal reference first, then develop observer timbre and visual clarity. Gap shortening follows composition saving.
+
+## CSV and visual rule repair — 13 September 2026
+
+New CSV imports, through picker or drag/drop, reset Riff to 00:00–23:59 Brisbane time. This prevents the embedded demo's 19:00–20:40 window silently excluding new arrivals. Import status reports playable and omitted row counts. Explicit solo, focus, year/season and musical settings remain in effect; Both is required for flourishes. The window remains editable after import.
+
+Point fill follows the selected taxonomic voice and remix seed. Observer A is a plain filled dot; only B has a teal outline and radial offset. This restores the original convention after Lily corrected the first repair. At Class, Insecta observations correctly share one fill; Family and Genus yield finer groups. Missing selected ranks now use an explicit unknown label with the nearest supplied ancestor rather than treating a species name as that rank. Known-rank musical reference scores are unchanged. Song still uses composed instrument roles; strict arrival timing and rank-assigned instruments belong to Timeline/Riff.
+
+Validation: 80 passing tests, zero failures, eight existing gap-remapping TODOs. Includes both actual CSV event handlers and canvas outline/fill checks. Real export: 6,756 timed records, four omitted. Full-day versus inherited demo window: 3 September 2026 has 22 versus 17 shared minutes; 17 February has one versus zero. Browser verification was blocked by local-file URL policy, and listening/device acceptance remains outstanding. No release or deployment performed.

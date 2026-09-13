@@ -88,8 +88,11 @@ canvas{width:100%;height:100%;display:block;touch-action:none;}
 
 /* Riff controls */
 .riffCtl{
-  position:absolute; right:10px; top:calc(10px + var(--safe-t));
-  display:flex; gap:5px; align-items:center;
+  /* Sits below the Full screen button and the mode pills, which share the
+     top edge; both used to occupy this exact corner. */
+  position:absolute; right:10px; top:calc(52px + var(--safe-t));
+  max-width:calc(100% - 20px);
+  display:flex; gap:5px; align-items:center; flex-wrap:wrap; justify-content:flex-end;
   padding:4px 8px; border-radius:12px;
   border:1px solid rgba(255,255,255,.08);
   background:rgba(0,0,0,.45);
@@ -407,7 +410,7 @@ body.galleryFsActive .transportBar{display:none!important;}
 }
 .canvasCard.iosFakeFs .corner{bottom:calc(76px + var(--safe-b));right:18px;}
 .canvasCard.iosFakeFs .modePills{top:calc(var(--safe-t) + 12px);left:12px;}
-.canvasCard.iosFakeFs .riffCtl{top:calc(var(--safe-t) + 48px);right:12px;}
+.canvasCard.iosFakeFs .riffCtl{top:calc(var(--safe-t) + 60px);right:12px;}
 .canvasCard.iosFakeFs .fsBtn{top:calc(var(--safe-t) + 12px);right:12px;bottom:auto;}
 body.iosFsActive{overflow:hidden!important;}
 /* Allow sheet controls to appear over fullscreen canvas */
@@ -417,7 +420,7 @@ body.iosFsActive .sheetBackdrop{display:block!important;position:fixed!important
 .canvasCard:fullscreen{width:100vw;height:100vh;min-height:100vh;border-radius:0;border:0;}
 .canvasCard:fullscreen .corner{bottom:18px;right:18px;}
 .canvasCard:fullscreen .modePills{top:18px;left:18px;}
-.canvasCard:fullscreen .riffCtl{top:58px;right:18px;}
+.canvasCard:fullscreen .riffCtl{top:64px;right:18px;}
 .canvasCard:fullscreen .fsBtn{top:18px;right:18px;bottom:auto;}
 
 /* Gallery fullscreen */
@@ -663,7 +666,7 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
       </div>
       <div class="row" style="gap:6px;margin-bottom:12px;">
         <button class="btn pill" id="playBtn" style="flex:1;min-height:42px;font-size:13px;">Play</button>
-        <select id="voiceModeSel" style="flex:1;min-height:42px;" title="Voice family"></select>
+        <select id="voiceModeSel" style="flex:1;min-height:42px;" title="Voice family" aria-label="Voice family"></select>
         <button class="btn" id="restartBtn" title="Restart" style="flex:0 0 auto;min-height:42px;">↺</button>
       </div>
 
@@ -736,6 +739,7 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
             <button class="btn small" id="loadDemoBtn" style="flex:1">Load demo</button>
           </div>
         </div>
+        <div id="csvImportStatus" role="status" style="font-size:12px;color:#d7dce3;margin-top:6px"></div>
       </details>
       <details style="margin-top:8px">
         <summary>Export</summary>
@@ -1170,7 +1174,7 @@ function rowToObs(r){
   const url = safeStr(r.url) || safeStr(r.uri) || safeStr(r.observation_url) || "";
   const commonName = safeStr(r.common_name) || "";
   const placeGuess = safeStr(r.place_guess) || "";
-  const userName = safeStr(r.user_name) || safeStr(r.userName) || safeStr(r.user) || "";
+  const userName = safeStr(r.user_name) || safeStr(r.userName) || safeStr(r.user_login) || safeStr(r.user_id) || safeStr(r.user) || "";
 
 // Collect rank fields if present (header-driven)
 const ranks = {
@@ -1215,6 +1219,17 @@ function parseCSVText(csvText){
   const obs = rows.map(rowToObs).filter(o=>o.t && o.nightKey);
   obs.sort((a,b)=>a.t.getTime()-b.t.getTime());
   return obs;
+}
+// A new dataset must not inherit the bundled demo's narrow clock window.
+function importCSVData(text){
+  const rows = parseCSV(text);
+  const obs = rows.map(rowToObs).filter(o=>o.t && o.nightKey);
+  obs.sort((a,b)=>a.t.getTime()-b.t.getTime());
+  state.obs = obs;
+  state.riffStartMin = 0;
+  state.riffEndMin = 1439;
+  const status = $("csvImportStatus");
+  if(status) status.textContent = `${obs.length} observations imported; ${rows.length-obs.length} omitted without a valid observation time/date. Riff window reset to 00:00–23:59 (Brisbane).`;
 }
 function groupByNight(obs){
   const m = new Map();
@@ -1305,11 +1320,18 @@ function toneKeyForObs(o){
   const v = (o && o.ranks && typeof o.ranks[f] === "string") ? o.ranks[f] : "";
   if(v && v.trim()) return v.trim();
 
-  // Fallback: try the most specific label we still have
-  if(o && o.taxon && String(o.taxon).trim()) return String(o.taxon).trim();
-  if(o && o.family && o.family.trim()) return o.family.trim();
-  if(o && o.order && o.order.trim()) return o.order.trim();
-  return "Unknown";
+  // Missing rank is not evidence of a species-level identification.
+  const hierarchy = ["kingdom","phylum","class","order","superfamily","family","subfamily","tribe","subtribe","genus","species"];
+  const rank = f.replace(/^taxon_/, "").replace(/_name$/, "");
+  const depth = hierarchy.indexOf(rank);
+  if(depth >= 0){
+    for(let i=depth-1; i>=0; i--){
+      const ancestor = o && o.ranks && o.ranks[`taxon_${hierarchy[i]}_name`];
+      if(ancestor && ancestor.trim()) return `Unknown ${rank} · ${hierarchy[i]}: ${ancestor.trim()}`;
+    }
+    return `Unknown ${rank}`;
+  }
+  return (o && o.taxon) || "Unknown";
 }
 function pickPitch({taxon, voiceKey, order, seed, key, scaleName}){
   let scale = SCALES[scaleName] || SCALES.pentatonic;
@@ -1370,6 +1392,9 @@ function pickInstrument(order, seed){
     const depth = currentRankDepth();
     const h = hash32(`${order}::${seed}`);
 
+    if(state.voiceMode === "noctilucent") return NOCTILUCENT_INSTRUMENTS[h % NOCTILUCENT_INSTRUMENTS.length];
+    if(state.voiceMode === "lantern") return LANTERN_INSTRUMENTS[h % LANTERN_INSTRUMENTS.length];
+
     if(state.voiceMode === "night"){
       const pool = ["gecko","katydid","bat_click","weta","possum_rustle","boobook","banjo_frog"];
       return pool[h % pool.length];
@@ -1390,8 +1415,14 @@ function pickInstrument(order, seed){
   return pool[h % pool.length];
 }
 
-const VOICE_MODES = ["mixed","night","choir","steelpan"];
-const VOICE_MODE_LABELS = { mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies" };
+const NOCTILUCENT_INSTRUMENTS = ["noct_root","noct_bow","noct_halo","noct_prism","noct_choir","noct_spark","noct_tide","noct_wire"];
+const LANTERN_INSTRUMENTS = ["lantern_felt","lantern_glass","lantern_reed","lantern_bloom"];
+const VOICE_MODES = ["mixed","night","choir","steelpan","lantern","noctilucent"];
+// Families offered in the dropdown, keyboard cycling and swipes. Noctilucent
+// is implemented and tested but has not been accepted by ear, so it is kept
+// out of the published instrument until it has been.
+const PUBLIC_VOICE_MODES = VOICE_MODES.filter(m => m !== "noctilucent");
+const VOICE_MODE_LABELS = { mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies", lantern:"Lantern Glass", noctilucent:"Noctilucent" };
 
 /** ------------------------------ Audio engine ------------------------------ */
 let audioCtx = null;
@@ -2290,12 +2321,142 @@ function rootMidi(key, octave=3){
   return 12*(octave+1) + semi;
 }
 
+// Authored timbres, not recordings or biological traits. Each row is
+// [harmonic ratio, relative amplitude, decay relative to the fundamental].
+const LANTERN_VOICES = {
+  lantern_felt:  { attack:0.008, decay:0.62, partials:[[1,1,1],[2,0.30,0.50],[3,0.09,0.28]] },
+  lantern_glass: { attack:0.018, decay:1.12, partials:[[1,1,1],[2,0.46,0.65],[4,0.16,0.30]] },
+  lantern_reed:  { attack:0.055, decay:0.78, partials:[[1,1,1],[3,0.32,0.72],[5,0.08,0.38]] },
+  lantern_bloom: { attack:0.110, decay:1.35, partials:[[1,1,1],[2,0.18,0.86],[3,0.12,0.65]] }
+};
+
+// Noctilucent: eight authored instruments, never recordings or species traits.
+// A partial is [frequency ratio, weight, attack seconds, decay seconds].
+// Harmonic motion changes colour only: the scored fundamental is never moved.
+const NOCTILUCENT_VOICES = {
+  noct_root: { level:0.64, partials:[[1,1,.025,1.55],[2,.32,.035,.95],[3,.095,.012,.55],[4,.025,.008,.28]] },
+  noct_bow: { level:0.62, partials:[[1,1,.10,1.80],[2,.52,.17,1.54],[3,.29,.24,1.25],[4,.13,.29,.94],[6,.045,.34,.60]] },
+  noct_halo: { level:0.62, partials:[[1,1,.045,1.80],[2,.32,.12,1.72],[3,.09,.22,1.30],[4,.06,.30,.80]], fm:{partial:1,ratio:1,index:.32,attack:.22,decay:1.00} },
+  noct_prism: { level:0.60, partials:[[1,1,.006,1.60],[2.001,.48,.011,1.10],[3.998,.24,.017,.74],[6.02,.08,.008,.38],[8.01,.025,.005,.20]] },
+  noct_choir: { level:0.64, formants:true, partials:[[1,1,.09,1.92],[2,.50,.12,1.73],[3,.36,.16,1.50],[4,.25,.19,1.23],[5,.17,.21,.99],[6,.10,.23,.76],[7,.055,.25,.55]] },
+  noct_spark: { level:0.48, partials:[[1,1,.004,.59],[2,.46,.007,.39],[3.997,.27,.004,.24],[6.018,.10,.003,.15],[8,.035,.003,.095]] },
+  noct_tide: { level:0.65, partials:[[1,1,.18,1.90],[2,.40,.30,1.62],[3,.22,.41,1.28],[5,.08,.48,.93],[8,.025,.52,.54]] },
+  noct_wire: { level:0.59, partials:[[1,1,.004,1.08],[2,.44,.006,.64],[3,.20,.004,.40],[4,.075,.006,.26]], fm:{partial:1,ratio:1,index:.90,attack:.004,decay:.16} }
+};
+
+function scheduleNoctilucent(ctx, instrument, when, freq, velocity, out){
+  const voice = Object.prototype.hasOwnProperty.call(NOCTILUCENT_VOICES, instrument) ? NOCTILUCENT_VOICES[instrument] : null;
+  if(!voice) return false;
+  // A handled but silent request must not allocate or connect an audio graph.
+  if(!Number.isFinite(freq) || freq <= 0 || !Number.isFinite(velocity) || velocity <= 0 ||
+     !Number.isFinite(when) || !Number.isFinite(ctx.sampleRate) || ctx.sampleRate <= 0) return true;
+  const limit = ctx.sampleRate * .45;
+  if(freq >= limit) return true;
+  when = Math.max(when, ctx.currentTime + .002);
+  const level = Math.min(1, velocity);
+  const partials = voice.partials.map((p,index)=>({ ratio:p[0], weight:p[1], attack:p[2], decay:p[3], index }))
+    .filter(p=>freq*p.ratio < limit);
+  // Two broad, fixed vocal resonances create a gentle 'ah/oh' colour.
+  // They are synthesis choices, with no claims about animals or data confidence.
+  if(voice.formants){
+    for(const p of partials){
+      if(p.index === 0) continue;
+      const hz = freq*p.ratio;
+      const low = Math.exp(-.5*Math.pow((hz-650)/290,2));
+      const high = Math.exp(-.5*Math.pow((hz-1250)/460,2));
+      p.weight *= .32 + 1.25*low + .80*high;
+    }
+  }
+  const totalWeight = partials.reduce((sum,p)=>sum+p.weight,0);
+  const bus = ctx.createGain();
+  // Unity-bounded sum, slightly softer at the top of the scored register.
+  bus.gain.setValueAtTime(level*voice.level*Math.pow(440/Math.max(440,freq),.18), when);
+  bus.connect(out || ctx.destination);
+  const temporary = [bus];
+  let active = 0;
+  const finish = source=>{
+    source.disconnect();
+    if(--active===0) for(const node of temporary) node.disconnect();
+  };
+  const startSource = (source,end)=>{
+    active++;
+    source.onended = ()=>finish(source);
+    source.start(when);
+    source.stop(end);
+  };
+  for(const p of partials){
+    const oscillator = ctx.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(freq*p.ratio, when);
+    const envelope = ctx.createGain();
+    const peak = p.weight/totalWeight;
+    const end = when + p.attack + p.decay;
+    envelope.gain.setValueAtTime(0, when);
+    envelope.gain.linearRampToValueAtTime(peak, when+p.attack);
+    envelope.gain.exponentialRampToValueAtTime(.00001, end);
+    envelope.gain.linearRampToValueAtTime(0, end+.026);
+    oscillator.connect(envelope);
+    envelope.connect(bus);
+    temporary.push(envelope);
+    const fm = voice.fm;
+    // Reserve six sidebands for these low-index FM colours; at high pitches
+    // omit modulation and retain the harmonic carrier to protect the register.
+    if(fm && p.index===fm.partial && freq*(p.ratio+6*fm.ratio) < limit){
+      const modulator = ctx.createOscillator();
+      modulator.type = 'sine';
+      modulator.frequency.setValueAtTime(freq*fm.ratio,when);
+      const depth = ctx.createGain();
+      depth.gain.setValueAtTime(0,when);
+      depth.gain.linearRampToValueAtTime(freq*fm.index,when+fm.attack);
+      depth.gain.exponentialRampToValueAtTime(.00001,when+fm.attack+fm.decay);
+      depth.gain.linearRampToValueAtTime(0,when+fm.attack+fm.decay+.026);
+      modulator.connect(depth);
+      depth.connect(oscillator.frequency);
+      temporary.push(depth);
+      startSource(modulator,when+fm.attack+fm.decay+.036);
+    }
+    startSource(oscillator,end+.036);
+  }
+  return true;
+}
+
 function scheduleInstrument(ctx, instrument, when, freq, velocity){
   // Guard: never schedule in the past (causes RangeError on AudioParam)
   if(when < ctx.currentTime) when = ctx.currentTime + 0.002;
   const out = masterGain || ctx.destination;
+  if(scheduleNoctilucent(ctx, instrument, when, freq, velocity, out)) return;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, when);
+
+  // Lantern Glass: harmonic, finite resonances; no random noise or stereo cue.
+  // Ratios preserve the scored fundamental. Faster upper-partial decays soften
+  // the tail, leaving room for subsequent records and the shared-minute creek.
+  const lantern = LANTERN_VOICES[instrument];
+  if(lantern){
+    const level = Number.isFinite(velocity) ? clamp(velocity, 0, 1) : 0;
+    if(!Number.isFinite(freq) || freq <= 0 || level === 0){ g.disconnect(); return; }
+    const fundamental = freq;
+    const partials = lantern.partials.filter(p => fundamental*p[0] < ctx.sampleRate*0.45);
+    if(!partials.length){ g.disconnect(); return; }
+    const weight = partials.reduce((sum,p)=>sum+p[1],0);
+    g.gain.setValueAtTime(level*0.65, when);
+    g.connect(out);
+    let active = partials.length;
+    for(const [ratio, amplitude, decayScale] of partials){
+      const oscillator = ctx.createOscillator(); oscillator.type = "sine";
+      const envelope = ctx.createGain();
+      const end = when + lantern.attack + lantern.decay*decayScale;
+      oscillator.frequency.setValueAtTime(fundamental*ratio, when);
+      envelope.gain.setValueAtTime(0, when);
+      envelope.gain.linearRampToValueAtTime(amplitude/weight, when+lantern.attack);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, end);
+      envelope.gain.linearRampToValueAtTime(0, end+0.025);
+      oscillator.connect(envelope); envelope.connect(g);
+      oscillator.onended = ()=>{ oscillator.disconnect(); envelope.disconnect(); if(--active===0) g.disconnect(); };
+      oscillator.start(when); oscillator.stop(end+0.035);
+    }
+    return;
+  }
 
   // ── Hat: noise bandpass 8kHz, 40ms snap ──
   if(instrument === "hat"){
@@ -4249,6 +4410,9 @@ function pickSongInstrument(order, seed){
     const depth = currentRankDepth();
     const h = hash32(`${order}::${seed}`);
 
+    if(state.voiceMode === "noctilucent") return NOCTILUCENT_INSTRUMENTS[h % NOCTILUCENT_INSTRUMENTS.length];
+    if(state.voiceMode === "lantern") return LANTERN_INSTRUMENTS[h % LANTERN_INSTRUMENTS.length];
+
     if(state.voiceMode === "night"){
       const pool = ["gecko","katydid","bat_click","weta","possum_rustle","boobook","banjo_frog"];
       return pool[h % pool.length];
@@ -4357,6 +4521,8 @@ function buildSongEvents(nightObs, countsByTaxon){
 
   // ═══ VOICE MODE INSTRUMENTS ═══
   function getPool(){
+    if(state.voiceMode==="noctilucent") return { bass:["noct_root"], lead:["noct_halo","noct_wire","noct_prism"], mid:["noct_bow","noct_choir","noct_tide"], hi:["noct_spark","noct_prism"], sync:["creek"] };
+    if(state.voiceMode==="lantern") return { bass:["lantern_felt"], lead:["lantern_glass","lantern_reed"], mid:["lantern_felt","lantern_reed"], hi:["lantern_glass","lantern_bloom"], sync:["creek"] };
     if(state.voiceMode==="night") return { bass:["weta"], lead:["boobook","banjo_frog"], mid:["gecko","katydid"], hi:["bat_click","gecko"], sync:["boobook"] };
     if(state.voiceMode==="choir") return { bass:["bass_voice"], lead:["soprano"], mid:["alto","tenor"], hi:["soprano"], sync:["bass_voice"] };
     if(state.voiceMode==="steelpan") return { bass:["bass_pan"], lead:["lead_pan"], mid:["double_second","guitar_pan"], hi:["lead_pan"], sync:["bass_pan"] };
@@ -4758,7 +4924,7 @@ function updateSharedMinuteDetails(){
   const pair = state.userAName && state.userBName ? `${state.userAName} + ${state.userBName}. ` : "Two named observers are needed for a shared minute. ";
   const scope = state.listenMode !== "both" ? "Solo: shared-minute gestures are off. " :
     state.spacingMode === "riff" ? "Within the selected Riff window. " : "Within the selected date. ";
-  context.textContent = pair + scope + "Times shown in Brisbane (AEST, UTC+10).";
+  context.textContent = pair + scope + "Times shown in Brisbane (AEST, UTC+10). Point fill = taxonomic voice; plain dot = A, teal outline on an offset ring = B. At Class, insects share one fill; choose Family or Genus for finer groups.";
   list.replaceChildren();
   for(const match of matches){
     const item = document.createElement("li");
@@ -5275,7 +5441,7 @@ function drawFrame(){
       ctx.beginPath(); ctx.arc(x,y,size,0,Math.PI*2); ctx.fill();
       ctx.save();
       ctx.globalAlpha = Math.min(1, alpha*0.95);
-      ctx.strokeStyle = "rgba(70,194,210,0.85)";
+      ctx.strokeStyle = "rgba(70,194,210,0.95)";
       ctx.lineWidth = 1.25*dpr;
       ctx.beginPath(); ctx.arc(x,y,size*1.55,0,Math.PI*2); ctx.stroke();
       ctx.restore();
@@ -5503,6 +5669,32 @@ let _touchStartX = null;
 let _touchStartY = null;
 let _touchMoved = false;
 
+// Which events a playhead sweep from fromSec to toSec should audition.
+// Auditions real arrivals and genuine shared minutes only: composed
+// accompaniment and arrangement-only sync gestures are performance timing,
+// not evidence, and echoes are already a repetition of a note. The window is
+// open at the start and closed at the end so a stationary playhead is silent
+// and a sweep never replays the note it is resting on. When more events fall
+// under the sweep than the budget allows, genuine shared minutes are kept
+// first so a dense passage cannot bury the thing the sweep is for.
+function scrubEventsBetween(events, fromSec, toSec, listenMode, budget = 4){
+  if(!Array.isArray(events) || !(budget > 0)) return [];
+  const lo = Math.min(fromSec, toSec), hi = Math.max(fromSec, toSec);
+  if(!(hi > lo)) return [];
+  const solo = (listenMode === "A" || listenMode === "B") ? listenMode : null;
+  const audible = [];
+  for(const e of events){
+    if(e.isEcho) continue;
+    if(e.kind !== "obs" && e.kind !== "duet_minute") continue;
+    if(solo && e.user !== solo) continue;
+    if(!(e.atSec > lo && e.atSec <= hi)) continue;
+    audible.push(e);
+  }
+  audible.sort((a, b) =>
+    (a.kind === "duet_minute" ? 0 : 1) - (b.kind === "duet_minute" ? 0 : 1) || a.atSec - b.atSec);
+  return audible.slice(0, budget);
+}
+
 async function setPlayheadToAngle(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
   const dpr = canvasPixelRatio();
@@ -5515,23 +5707,17 @@ async function setPlayheadToAngle(clientX, clientY){
   const frac = norm / (Math.PI * 2);
   const targetSec = frac * state.loopLen;
 
-  // Trigger sounds as playhead sweeps past events
+  // Trigger sounds as the playhead sweeps past events (the "wand").
   const prevSec = _dragPrevSec;
   _dragPrevSec = targetSec;
   if(prevSec >= 0 && audioCtx){
-    const events = state.sequencer.events;
     const lo = Math.min(prevSec, targetSec);
     const hi = Math.max(prevSec, targetSec);
+    // A large jump is a seek, not a sweep: auditioning it would fire a burst.
     if(hi - lo < state.loopLen * 0.25){
-      let triggered = 0;
-      for(const e of events){
-        if(e.isEcho || e.isSpecial) continue;
-        if(triggered >= 4) break;
-        if(e.atSec > lo && e.atSec <= hi){
-          const vel = clamp(0.18 + 0.10 * Math.log2(e.density || 1), 0.12, 0.40) * clamp(state.volume, 0, 1);
-          scheduleInstrument(audioCtx, e.instrument, audioCtx.currentTime + 0.005, e.freq, vel);
-          triggered++;
-        }
+      for(const e of scrubEventsBetween(state.sequencer.events, lo, hi, state.listenMode)){
+        const vel = clamp(0.18 + 0.10 * Math.log2(e.density || 1), 0.12, 0.40) * clamp(state.volume, 0, 1);
+        scheduleInstrument(audioCtx, e.instrument, audioCtx.currentTime + 0.005, e.freq, vel);
       }
     }
   }
@@ -5861,7 +6047,7 @@ function initUI(){
   const vmSel = $("voiceModeSel");
   if(vmSel){
     vmSel.innerHTML = "";
-    for(const m of VOICE_MODES){
+    for(const m of PUBLIC_VOICE_MODES){
       const o = document.createElement("option");
       o.value = m;
       o.textContent = VOICE_MODE_LABELS[m] || m;
@@ -6049,9 +6235,9 @@ function initUI(){
     if(rb) rb.click();
   });
   if($("tVoice")) $("tVoice").addEventListener("click", ()=>{
-    const idx = VOICE_MODES.indexOf(state.voiceMode);
-    const next = (idx + 1) % VOICE_MODES.length;
-    state.voiceMode = VOICE_MODES[next];
+    const idx = PUBLIC_VOICE_MODES.indexOf(state.voiceMode);
+    const next = (idx + 1) % PUBLIC_VOICE_MODES.length;
+    state.voiceMode = PUBLIC_VOICE_MODES[next];
     const vmSel = $("voiceModeSel");
     if(vmSel) vmSel.value = state.voiceMode;
     showModeToast(VOICE_MODE_LABELS[state.voiceMode] || state.voiceMode);
@@ -6278,14 +6464,14 @@ function initUI(){
     // Left/Right: cycle voice modes (mid-loop, no stop)
     if(e.key === "ArrowRight" || e.key === "ArrowLeft"){
       e.preventDefault();
-      const idx = VOICE_MODES.indexOf(state.voiceMode);
+      const idx = PUBLIC_VOICE_MODES.indexOf(state.voiceMode);
       let next;
       if(e.key === "ArrowRight"){
-        next = (idx + 1) % VOICE_MODES.length;
+        next = (idx + 1) % PUBLIC_VOICE_MODES.length;
       } else {
-        next = (idx - 1 + VOICE_MODES.length) % VOICE_MODES.length;
+        next = (idx - 1 + PUBLIC_VOICE_MODES.length) % PUBLIC_VOICE_MODES.length;
       }
-      state.voiceMode = VOICE_MODES[next];
+      state.voiceMode = PUBLIC_VOICE_MODES[next];
       const vmSel = $("voiceModeSel");
       if(vmSel) vmSel.value = state.voiceMode;
       showModeToast(VOICE_MODE_LABELS[state.voiceMode] || state.voiceMode);
@@ -6310,9 +6496,9 @@ function initUI(){
     // M: cycle voice modes (legacy, same as ArrowRight)
     if(e.key === "m" || e.key === "M"){
       e.preventDefault();
-      const idx = VOICE_MODES.indexOf(state.voiceMode);
-      const next = (idx + 1) % VOICE_MODES.length;
-      state.voiceMode = VOICE_MODES[next];
+      const idx = PUBLIC_VOICE_MODES.indexOf(state.voiceMode);
+      const next = (idx + 1) % PUBLIC_VOICE_MODES.length;
+      state.voiceMode = PUBLIC_VOICE_MODES[next];
       const vmSel = $("voiceModeSel");
       if(vmSel) vmSel.value = state.voiceMode;
       showModeToast(VOICE_MODE_LABELS[state.voiceMode] || state.voiceMode);
@@ -6356,7 +6542,7 @@ function initUI(){
     const f = e.target.files && e.target.files[0];
     if(!f) return;
     const text = await f.text();
-    state.obs = parseCSVText(text);
+    importCSVData(text);
     clearSelection();
     hardResetPlayback("import");
     rebuildDerived();
@@ -6888,7 +7074,7 @@ function initUI(){
     if(!file) return;
     if(!file.name.toLowerCase().endsWith(".csv")) return;
     const text = await file.text();
-    state.obs = parseCSVText(text);
+    importCSVData(text);
     clearSelection();
     hardResetPlayback("drop");
     rebuildDerived();
@@ -7492,10 +7678,10 @@ window.addEventListener("resize", ()=>{ _cachedCanvasRect = null; fitCanvasFast(
       if(ax>SWIPE_MIN && ax>ay*1.5){
         gHandled=true;
         const vmSel=document.getElementById("voiceModeSel");
-        if(vmSel && typeof VOICE_MODES!=='undefined'){
-          const i=VOICE_MODES.indexOf(state.voiceMode);
-          const n=dx>0?(i+1)%VOICE_MODES.length:(i-1+VOICE_MODES.length)%VOICE_MODES.length;
-          state.voiceMode=VOICE_MODES[n];
+        if(vmSel && typeof PUBLIC_VOICE_MODES!=='undefined'){
+          const i=PUBLIC_VOICE_MODES.indexOf(state.voiceMode);
+          const n=dx>0?(i+1)%PUBLIC_VOICE_MODES.length:(i-1+PUBLIC_VOICE_MODES.length)%PUBLIC_VOICE_MODES.length;
+          state.voiceMode=PUBLIC_VOICE_MODES[n];
           vmSel.value=state.voiceMode;
           const lbl=(typeof VOICE_MODE_LABELS!=='undefined'&&VOICE_MODE_LABELS[state.voiceMode])||state.voiceMode;
           showModeToast(lbl); showIndicator(lbl);
@@ -7651,10 +7837,10 @@ window.addEventListener("resize", ()=>{ _cachedCanvasRect = null; fitCanvasFast(
       if(ax > SWIPE_MIN && ax > ay * 1.5){
         gHandled = true;
         const vmSel = document.getElementById("voiceModeSel");
-        if(vmSel && typeof VOICE_MODES !== "undefined"){
-          const i = VOICE_MODES.indexOf(state.voiceMode);
-          const n = dx > 0 ? (i+1) % VOICE_MODES.length : (i-1+VOICE_MODES.length) % VOICE_MODES.length;
-          state.voiceMode = VOICE_MODES[n];
+        if(vmSel && typeof PUBLIC_VOICE_MODES !== "undefined"){
+          const i = PUBLIC_VOICE_MODES.indexOf(state.voiceMode);
+          const n = dx > 0 ? (i+1) % PUBLIC_VOICE_MODES.length : (i-1+PUBLIC_VOICE_MODES.length) % PUBLIC_VOICE_MODES.length;
+          state.voiceMode = PUBLIC_VOICE_MODES[n];
           vmSel.value = state.voiceMode;
           const lbl = (typeof VOICE_MODE_LABELS !== "undefined" && VOICE_MODE_LABELS[state.voiceMode]) || state.voiceMode;
           showModeToast(lbl); showGalleryIndicator(lbl);

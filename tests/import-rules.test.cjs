@@ -1,0 +1,54 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {loadApp} = require('./harness.cjs');
+const csv = 'id,user_login,scientific_name,observed_on,time_observed_at,taxon_class_name,taxon_order_name,taxon_family_name\n1,alice,Agape chloropyga,2026-09-08,2026-09-08T11:00:01Z,Insecta,Lepidoptera,Erebidae\n2,bob,Agape chloropyga,2026-09-08,2026-09-08T11:00:59Z,Insecta,Lepidoptera,Erebidae';
+test('CSV usernames without display names retain both observers',()=>{
+ const c=loadApp();const obs=c.parseCSVText(csv);
+ assert.deepEqual(Array.from(c.computeDuetUsers(obs)),['alice','bob']);
+});
+test('new CSV clears the demo Riff window before sequencing shared arrivals',()=>{
+ const c=loadApp(); c.importCSVData(csv);
+ const pair=c.computeDuetUsers(c.state.obs);
+ Object.assign(c.state,{userAName:pair[0],userBName:pair[1]});
+ const seq=c.buildSequencer(c.state.obs);
+ assert.equal(seq.meta.sharedMinutes.length,1);
+ assert.equal(seq.events.filter(e=>e.kind==='duet_minute').length,1);
+ assert.equal(c.state.riffStartMin,0);assert.equal(c.state.riffEndMin,1439);
+});
+test('missing family never masquerades as a species-level voice',()=>{
+ const c=loadApp();c.state.toneBy='taxon_family_name';
+ const obs=c.parseCSVText(csv)[0];obs.ranks.taxon_family_name='';obs.family='';
+ assert.equal(c.toneKeyForObs(obs),'Unknown family · order: Lepidoptera');
+});
+test('same rank shares fill and instrument across observers; rank change changes grouping',()=>{
+ const c=loadApp(); const obs=c.parseCSVText(csv.replace('user_login','user_name'));
+ Object.assign(c.state,{userAName:'alice',userBName:'bob',spacingMode:'timeline',toneBy:'taxon_family_name'});
+ const e=c.buildSequencer(obs).events.filter(e=>e.obs);
+ assert.equal(e[0].color,e[1].color);assert.equal(e[0].instrument,e[1].instrument);
+ assert.equal(e[0].voiceKey,'Erebidae');
+ c.state.toneBy='taxon_order_name';assert.equal(c.buildSequencer(obs).events.find(e=>e.obs).voiceKey,'Lepidoptera');
+});
+for(const method of ['picker','drop']) test(`${method}: actual import handler rebuilds the new full-window score`,async()=>{
+ const fs=require('node:fs'), vm=require('node:vm');
+ const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
+ const marker=method==='picker'?'  $("csvFile").addEventListener("change",':'  window.addEventListener("drop",';
+ const start=html.indexOf(marker), end=html.indexOf('\n  });',start)+6;
+ const c=loadApp(); let handler;
+ c.document.getElementById=()=>({addEventListener:(type,fn)=>handler=fn});
+ c.window.addEventListener=(type,fn)=>handler=fn;
+ c.clearSelection=()=>{};c.hardResetPlayback=()=>{};
+ c.rebuildDerived=()=>{const pair=c.computeDuetUsers(c.state.obs);Object.assign(c.state,{userAName:pair[0],userBName:pair[1]});c.state.sequencer=c.buildSequencer(c.state.obs);};
+ vm.runInContext(html.slice(start,end),c);
+ const file={name:'arrivals.csv',text:async()=>csv};
+ await handler({target:{files:[file],value:'file'},dataTransfer:{files:[file]},preventDefault(){}});
+ assert.equal(c.state.sequencer.meta.sharedMinutes.length,1);
+ assert.equal(c.state.sequencer.events.filter(e=>e.obs).length,2);
+});
+test('import reports omitted rows and preserves explicit solo and musical choices',()=>{
+ const c=loadApp();const status={};c.document.getElementById=()=>status;
+ Object.assign(c.state,{listenMode:'B',seed:42,toneBy:'taxon_family_name'});
+ c.importCSVData(csv+'\n3,alice,Test moth,2026-09-08,,Insecta,Lepidoptera,');
+ assert.equal(c.state.obs.length,2);assert.match(status.textContent,/1 omitted/);
+ assert.equal(c.state.listenMode,'B');assert.equal(c.state.seed,42);assert.equal(c.state.toneBy,'taxon_family_name');
+});

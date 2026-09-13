@@ -77,3 +77,15 @@ test('visual collection accepts empty score and stationary playhead', () => {
   assert.deepEqual(collect(c, [], 0, 1), []);
   assert.deepEqual(collect(c, [{ id: 'a', atSec: 1 }], 1, 1), []);
 });
+
+test('only observer B has an outline; both retain taxonomic fills',()=>{
+ const {c,context}=canvasApp();const strokes=[],fills=[];
+ context.stroke=function(){strokes.push(this.strokeStyle);};
+ context.fill=function(){fills.push(this.fillStyle);};
+ Object.assign(c.state,{userAName:'Chris Burwell',userBName:'Lily Kumpe',spacingMode:'timeline'});
+ c.state.sequencer=c.buildSequencer(c.state.obs);
+ c.drawFrame();
+ assert.ok(!strokes.includes('rgba(247,148,29,0.95)'));
+ assert.equal(strokes.filter(s=>s==='rgba(70,194,210,0.95)').length, c.state.sequencer.events.filter(e=>!e.isSpecial && e.user==='B').length);
+ for(const e of c.state.sequencer.events.filter(e=>e.obs)) assert.ok(fills.includes(e.color));
+});

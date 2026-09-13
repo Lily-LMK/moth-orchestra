@@ -1,3 +1,5 @@
+> Historical plan, retained for context. The active session order is now SESSION-ROADMAP.md, with immediate instructions in NEXT-SESSION.md. Status counts and priorities below describe the earlier checkpoint.
+
 # Moth Orchestra — agreed direction and implementation plan
 
 Updated 12 September 2026 after implementation and Lily's listening review. This remains the overall first-release direction; the status below distinguishes completed work from remaining scope.
