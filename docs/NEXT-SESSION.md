@@ -16,7 +16,16 @@ an exhibition screen read at a distance and running unattended, Lily's laptop
 while she performs it in front of a room, and a phone held one-handed in the
 dark at the moth sheet. Lily chose all three, properly responsive.
 
-## Start here — Lily's eyes on the rebuilt circle
+## Start here — Lily's eyes on the shared minute
+
+See SESSION-2026-09-13-SHARED.md. Shared minutes now show both records; they
+never reached the card at all before. The centre card has an off switch (C),
+and the control column was rebuilt as a specification sheet.
+
+Still unchecked: the gallery fullscreen view under the new design layer, and
+Present/demo mode. Nothing has been judged by ear or on hardware.
+
+## Earlier — the rebuilt circle
 
 See SESSION-2026-09-13-CIRCLE.md. The circle view was rebuilt around the
 sounding record and a real clock of the night, the floating key was removed,

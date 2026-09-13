@@ -896,6 +896,226 @@ select,.txt{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.085
   .modePills .btn{min-height:32px;font-size:11px;padding:5px 12px;}
   .riffCtl{padding:0;gap:2px 8px;}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE CONTROL COLUMN AS A SPECIFICATION SHEET
+   Swiss typographic discipline and the conventions of an instrument colophon:
+   one alignment grid, label left and value right, the value carrying the
+   weight; hairlines instead of boxes; a single accent used exactly once. The
+   control is not drawn — the row is the control, with the native select laid
+   transparently over it, so what you read is the setting rather than a widget
+   containing the setting.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sheetInner{gap:0;}
+.grpTitle{
+  font-size:9px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(255,255,255,.26);margin:26px 0 2px;
+}
+.sheetInner > .grpTitle:first-of-type{margin-top:24px;}
+
+.spec{
+  position:relative;display:flex;align-items:baseline;justify-content:space-between;
+  gap:14px;padding:11px 0 10px;border-bottom:1px solid rgba(255,255,255,.055);
+  min-height:42px;
+}
+.spec:hover{border-bottom-color:rgba(255,255,255,.13);}
+.specK{
+  flex:0 0 auto;font-size:11px;letter-spacing:.03em;color:rgba(255,255,255,.40);
+  white-space:nowrap;
+}
+.specK label{display:inline;margin:0;font:inherit;color:inherit;letter-spacing:inherit;}
+.specV{
+  flex:1 1 auto;min-width:0;text-align:right;
+  font-size:14px;font-weight:300;letter-spacing:.005em;color:rgba(255,255,255,.90);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums;padding-right:13px;
+}
+.spec:has(select)::after{
+  content:"";position:absolute;right:2px;top:50%;
+  width:5px;height:5px;margin-top:-4px;
+  border-right:1px solid rgba(255,255,255,.34);
+  border-bottom:1px solid rgba(255,255,255,.34);
+  transform:rotate(45deg);pointer-events:none;
+}
+.spec select{
+  position:absolute;inset:0;width:100%;height:100%;
+  opacity:0;cursor:pointer;border:none;background:none;padding:0;min-height:0;
+}
+.spec select:focus-visible{opacity:0;}
+.spec:focus-within{border-bottom-color:var(--qm-green);}
+.specRange{border-bottom:none;padding-bottom:2px;}
+.specRange + input[type="range"]{margin-bottom:9px;border-bottom:none;}
+.specNote{font-size:10px;line-height:1.6;color:rgba(255,255,255,.32);padding:9px 0 0;}
+.specNote:empty{display:none;}
+.fieldLabel{display:block;font-size:10px;letter-spacing:.05em;color:rgba(255,255,255,.36);margin:0 0 6px;}
+
+/* One accent, used once. */
+.btn.primary.playPrimary{
+  width:100%;min-height:46px;margin:0 0 10px;border-radius:10px;
+  font-size:13.5px;font-weight:500;letter-spacing:.04em;
+  background:var(--qm-green);color:#04120b;border:none;box-shadow:none;
+}
+.btn.primary.playPrimary:hover{background:#00b96e;}
+.btn.primary.playPrimary:disabled{background:rgba(255,255,255,.07);color:rgba(255,255,255,.30);}
+
+/* Secondary actions are text, not buttons. */
+.miniRow{display:flex;gap:20px;align-items:center;padding:2px 0 0;flex-wrap:wrap;}
+.miniRow.wide{gap:16px;margin-top:10px;}
+.mini{
+  border:none;background:none;padding:2px 0;cursor:pointer;
+  font-family:var(--font);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:rgba(255,255,255,.44);border-bottom:1px solid transparent;
+}
+.mini:hover{color:rgba(255,255,255,.92);border-bottom-color:rgba(255,255,255,.30);}
+.mini:disabled{opacity:.35;cursor:not-allowed;}
+.mini:focus-visible{outline:2px solid var(--qm-green);outline-offset:3px;}
+.mini.asLabel{display:inline-block;}
+
+/* Listening: three words, the live one underlined. */
+.specSeg{align-items:center;}
+.seg3{display:flex;gap:16px;margin-left:auto;}
+.segBtn{
+  border:none;background:none;padding:2px 0;cursor:pointer;font-family:var(--font);
+  font-size:12.5px;font-weight:300;color:rgba(255,255,255,.34);
+  border-bottom:1.5px solid transparent;
+}
+.segBtn:hover{color:rgba(255,255,255,.72);}
+.segBtn.active{color:rgba(255,255,255,.95);border-bottom-color:rgba(255,255,255,.65);}
+#listenABtn.active{border-bottom-color:var(--userA);}
+#listenBBtn.active{border-bottom-color:var(--userB);}
+.segBtn:focus-visible{outline:2px solid var(--qm-green);outline-offset:3px;}
+
+/* Sliders: a hairline and a dot. */
+input[type="range"]{
+  -webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track{height:1px;background:rgba(255,255,255,.16);}
+input[type="range"]::-moz-range-track{height:1px;background:rgba(255,255,255,.16);}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:rgba(255,255,255,.9);margin-top:-5px;border:none;cursor:pointer;
+}
+input[type="range"]::-moz-range-thumb{
+  width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.9);
+  border:none;cursor:pointer;
+}
+
+/* Switch */
+.specSwitch{align-items:center;}
+.switch{
+  margin-left:auto;width:34px;height:18px;border-radius:999px;padding:0;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);background:transparent;
+  display:flex;align-items:center;transition:border-color .15s ease,background .15s ease;
+}
+.switch i{
+  width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.35);
+  margin-left:2px;transition:transform .18s cubic-bezier(.4,0,.2,1),background .15s ease;
+}
+.switch[aria-checked="true"]{border-color:rgba(0,165,97,.55);background:rgba(0,165,97,.13);}
+.switch[aria-checked="true"] i{transform:translateX(16px);background:var(--qm-green);}
+.switch:focus-visible{outline:2px solid var(--qm-green);outline-offset:3px;}
+
+/* The night's figures, set as type. */
+.tally{display:flex;gap:26px;padding:12px 0 4px;flex-wrap:wrap;}
+.tallyCell{display:flex;flex-direction:column;gap:1px;}
+.tallyCell b{
+  font-size:26px;font-weight:200;letter-spacing:-.02em;color:rgba(255,255,255,.93);
+  font-variant-numeric:tabular-nums;line-height:1;
+}
+.tallyCell span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);}
+
+.disclose{border:none;border-top:1px solid rgba(255,255,255,.055);border-radius:0;
+  background:transparent;margin:0;}
+.disclose > summary{padding:12px 0;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:rgba(255,255,255,.40);}
+.disclose > summary:hover{color:rgba(255,255,255,.85);background:transparent;}
+.discloseBody{padding:0 0 14px;font-size:11.5px;line-height:1.6;color:rgba(255,255,255,.48);}
+.capField{display:inline-flex;align-items:center;gap:7px;}
+.capField label{margin:0;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(255,255,255,.30);}
+.capField input{width:56px;min-height:30px;text-align:center;font-size:12px;
+  border:none;border-bottom:1px solid rgba(255,255,255,.14);border-radius:0;
+  background:transparent;color:#fff;outline:none;font-variant-numeric:tabular-nums;}
+.txt{border:none;border-bottom:1px solid rgba(255,255,255,.14);border-radius:0;
+  background:transparent;padding:7px 0;font-size:13px;min-height:0;}
+.txt:hover,.txt:focus{border-bottom-color:rgba(255,255,255,.35);}
+
+@media(min-width:768px){
+  .desktopSidebar{padding:22px 24px 32px;}
+  .desktopSidebar .sidebarHeader h1{font-size:11px;letter-spacing:.26em;font-weight:500;}
+  .desktopSidebar .sidebarHeader .title-tag{font-size:9px;letter-spacing:.11em;
+    color:rgba(255,255,255,.24);margin-top:5px;}
+  .desktopSidebar .photoPanel{margin-top:22px;padding-top:16px;}
+}
+@media(max-width:767px){
+  .spec{min-height:52px;padding:14px 0 13px;}
+  .specV{font-size:15px;}
+  .grpTitle{margin-top:28px;}
+}
+
+/* ═══ THE SHARED MINUTE ═════════════════════════════════════════════════════
+   Two records, side by side, joined. */
+.nowPair{display:flex;align-items:flex-start;justify-content:center;gap:0;}
+.nowSide{display:none;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto;}
+.nowSide:first-child{display:flex;}
+.nowJoin{display:none;}
+.nowCard .nowSide .nowThumb{width:min(126px,26vmin);}
+.pairWho,.pairTaxon{display:none;}
+
+.nowCard.shared{width:min(268px,58vmin);}
+.nowCard.shared .nowPair{gap:0;align-items:flex-start;}
+.nowCard.shared .nowSide{display:flex;flex:1 1 0;min-width:0;}
+.nowCard.shared .nowSide .nowThumb{width:100%;max-width:104px;}
+.nowCard.shared .nowJoin{
+  display:block;flex:0 0 26px;align-self:flex-start;position:relative;
+  height:104px;
+}
+.nowCard.shared .nowJoin::before{
+  content:"";position:absolute;left:0;right:0;top:52px;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.42),rgba(255,255,255,.05));
+}
+.nowCard.shared .nowJoin::after{
+  content:"";position:absolute;left:50%;top:52px;width:5px;height:5px;
+  margin:-2.5px 0 0 -2.5px;border-radius:50%;background:rgba(255,255,255,.75);
+  box-shadow:0 0 0 4px rgba(255,255,255,.10);
+}
+.nowCard.shared .pairWho{
+  display:block;font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:rgba(255,255,255,.46);text-align:center;line-height:1.3;
+}
+.nowCard.shared .nowSide:first-child .pairWho{color:var(--userA);}
+.nowCard.shared .nowSideB .pairWho{color:var(--userB);}
+.nowCard.shared .pairTaxon{
+  display:block;font-size:10px;font-style:italic;color:rgba(255,255,255,.55);
+  text-align:center;line-height:1.35;
+}
+.nowCard.shared .nowGap{
+  color:rgba(255,255,255,.62);letter-spacing:.24em;font-size:9.5px;margin-top:2px;
+}
+.nowCard.shared .selTitle{font-size:11.5px;color:rgba(255,255,255,.62);}
+.nowCard.shared .selSub{font-style:italic;color:rgba(255,255,255,.30);}
+@media(max-width:767px){
+  .nowCard.shared{flex-direction:column;align-items:stretch;width:auto;}
+  .nowCard.shared .nowPair{width:100%;}
+  .nowCard.shared .nowText{align-items:center;text-align:center;}
+  .nowCard.shared .nowSide .nowThumb{max-width:86px;}
+  .nowCard.shared .nowJoin{height:86px;}
+  .nowCard.shared .nowJoin::before,.nowCard.shared .nowJoin::after{top:43px;}
+}
+
+/* Air between the wordmark and the one loud element. */
+.sheetInner > .btn.primary.playPrimary:first-child{margin-top:22px;}
+@media(max-width:767px){.sheetInner > .btn.primary.playPrimary:first-child{margin-top:6px;}}
+
+/* The card sits inside the ring, and at finer ranks the inner arrivals come
+   close. A soft ground separates it without drawing a panel around it. */
+@media(min-width:768px){
+  .nowCard::before{
+    content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:165%;height:135%;border-radius:50%;z-index:-1;pointer-events:none;
+    background:radial-gradient(closest-side,rgba(5,8,16,.94) 42%,rgba(5,8,16,.72) 70%,rgba(5,8,16,0) 100%);
+  }
+}
 </style>
 </head>
 <body>
@@ -938,6 +1158,7 @@ select,.txt{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.085
         <div class="helpRow"><span class="kbd">R</span> Remix</div>
         <div class="helpRow"><span class="kbd">A</span> Ambience on/off</div>
         <div class="helpRow"><span class="kbd">H</span> Hide / show controls</div>
+        <div class="helpRow"><span class="kbd">C</span> Now playing card on / off</div>
         <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;">
           <div class="helpTitle" style="font-size:13px;margin-bottom:8px;">Touch</div>
           <div class="helpRow">Swipe ⟷ — Voice family</div>
@@ -958,7 +1179,19 @@ select,.txt{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.085
     <canvas id="stage" aria-label="The Moth Orchestra" role="img"></canvas>
     <div class="corner" id="cornerStatus">Paused • 19s loop</div>
     <figure class="nowCard" id="selOverlay" hidden>
-      <div class="nowThumb"><img id="selImg" alt=""/></div>
+      <div class="nowPair">
+        <div class="nowSide">
+          <div class="nowThumb"><img id="selImg" alt=""/></div>
+          <div class="pairWho" id="selWhoA"></div>
+          <div class="pairTaxon" id="selTaxonA"></div>
+        </div>
+        <div class="nowJoin" aria-hidden="true"></div>
+        <div class="nowSide nowSideB">
+          <div class="nowThumb"><img id="selImgB" alt=""/></div>
+          <div class="pairWho" id="selWhoB"></div>
+          <div class="pairTaxon" id="selTaxonB"></div>
+        </div>
+      </div>
       <figcaption class="nowText">
         <div class="nowClock" id="selClock"></div>
         <div class="nowGap" id="selGap"></div>
@@ -992,108 +1225,92 @@ select,.txt{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.085
     <div class="sheetHandle"></div>
     <div class="sheetInner">
 
-      <!-- ── THE NIGHT ── -->
-      <section class="grp">
-        <h2 class="grpTitle">The night</h2>
-        <div class="fld"><label for="nightSelect">Date</label><select id="nightSelect"></select></div>
-        <div class="fld mobileHide"><label for="seasonSelect">Season</label>
-          <select id="seasonSelect"><option value="all">All</option><option value="summer">Summer (Dec–Feb)</option><option value="autumn">Autumn (Mar–May)</option><option value="winter">Winter (Jun–Aug)</option><option value="spring">Spring (Sep–Nov)</option></select></div>
-        <select id="yearSelect" style="display:none"></select>
-        <div class="fld mobileHide"><label id="listenLabel">Listening to</label>
-          <div class="segmented" role="group" aria-labelledby="listenLabel">
-            <button class="btn seg" id="listenBothBtn" type="button">Both</button>
-            <button class="btn seg" id="listenABtn" type="button">A</button>
-            <button class="btn seg" id="listenBBtn" type="button">B</button>
-          </div>
-          <div class="playerStats" id="playerNamesHint"></div>
+      <button class="btn primary playPrimary" id="playBtn">Play</button>
+      <div class="miniRow">
+        <button class="mini" id="remixBtn" type="button" title="Remix (R)">Remix</button>
+        <button class="mini" id="restartBtn" type="button" title="Restart">Restart</button>
+        <button class="mini" id="helpBtn" type="button" title="Shortcuts and key">Key</button>
+      </div>
+
+      <h2 class="grpTitle">The night</h2>
+      <div class="spec"><span class="specK">Date</span><span class="specV">—</span>
+        <select id="nightSelect" aria-label="Date"></select></div>
+      <div class="spec mobileHide"><span class="specK">Season</span><span class="specV">—</span>
+        <select id="seasonSelect" aria-label="Season"><option value="all">All</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option><option value="spring">Spring</option></select></div>
+      <select id="yearSelect" hidden></select>
+      <div class="spec specSeg mobileHide"><span class="specK">Listening</span>
+        <span class="seg3" role="group" aria-label="Listening to">
+          <button class="segBtn" id="listenBothBtn" type="button">Both</button>
+          <button class="segBtn" id="listenABtn" type="button">A</button>
+          <button class="segBtn" id="listenBBtn" type="button">B</button>
+        </span></div>
+      <div class="specNote" id="playerNamesHint"></div>
+
+      <h2 class="grpTitle">Sound</h2>
+      <div class="spec"><span class="specK">Voice family</span><span class="specV">—</span>
+        <select id="voiceModeSel" aria-label="Voice family"></select></div>
+      <div class="spec"><span class="specK">Key</span><span class="specV">—</span>
+        <select id="keySelect" aria-label="Key"></select></div>
+      <div class="spec"><span class="specK">Scale</span><span class="specV">—</span>
+        <select id="scaleSelect" aria-label="Scale"></select></div>
+      <div class="spec"><span class="specK">Tone by</span><span class="specV">—</span>
+        <select id="toneSelect" aria-label="Tone by"></select></div>
+      <div class="spec specRange"><span class="specK"><label for="loopLen">Loop</label></span><span class="specV" id="loopLenPct">19s</span></div>
+      <input id="loopLen" type="range" min="2" max="60" step="1" value="19"/>
+      <div class="spec"><span class="specK">Ambience</span><span class="specV">—</span>
+        <select id="ambienceSelect" aria-label="Ambience"><option value="none">None</option><option value="spore_cloud">Spore Cloud</option><option value="quiet_beat">Lumen strings</option><option value="silk_thread">Silk thread</option><option value="firefly_field">Firefly field</option><option value="pollen_drift">Pollen drift</option></select></div>
+      <div class="spec specRange"><span class="specK"><label for="ambienceVol">Ambience level</label></span><span class="specV" id="ambVolPct">45%</span></div>
+      <input id="ambienceVol" type="range" min="0" max="1" step="0.01" value="0.45"/>
+
+      <h2 class="grpTitle">View</h2>
+      <div class="spec specSwitch"><span class="specK" id="nowCardLabel">Now playing card</span>
+        <button class="switch" id="nowCardToggle" type="button" role="switch" aria-checked="true" aria-labelledby="nowCardLabel"><i></i></button></div>
+
+      <h2 class="grpTitle">This night</h2>
+      <div class="tally">
+        <div class="tallyCell"><b id="statObs">–</b><span>records</span></div>
+        <div class="tallyCell"><b id="statTaxa">–</b><span>taxa</span></div>
+        <div class="tallyCell"><b id="statOrders">–</b><span id="statVoicesLabel">voices</span></div>
+      </div>
+      <span id="statLoop" hidden></span>
+      <details id="sharedMinuteDetails" class="disclose">
+        <summary id="sharedMinuteSummary">Shared minutes: 0</summary>
+        <div class="discloseBody">
+          <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
+          <p id="sharedMinuteContext"></p>
+          <ol id="sharedMinuteList" class="minuteList"></ol>
         </div>
-      </section>
+      </details>
 
-      <!-- ── TRANSPORT ── -->
-      <section class="grp">
-        <h2 class="grpTitle">Play</h2>
-        <button class="btn primary playPrimary" id="playBtn">Play</button>
-        <div class="fld"><label for="voiceModeSel">Voice family</label>
-          <select id="voiceModeSel" title="Voice family" aria-label="Voice family"></select></div>
-        <div class="btnRow">
-          <button class="btn" id="remixBtn" type="button" title="Remix (R)">Remix</button>
-          <button class="btn iconBtn" id="restartBtn" type="button" title="Restart" aria-label="Restart">↺</button>
-          <button class="btn iconBtn" id="helpBtn" type="button" title="Shortcuts" aria-label="Keyboard and touch shortcuts">?</button>
-        </div>
-      </section>
-
-      <!-- ── TUNING ── -->
-      <section class="grp">
-        <h2 class="grpTitle">Tuning</h2>
-        <div class="fldRow three">
-          <div class="fld"><label for="keySelect">Key</label><select id="keySelect"></select></div>
-          <div class="fld"><label for="scaleSelect">Scale</label><select id="scaleSelect"></select></div>
-          <div class="fld"><label for="toneSelect">Tone by</label><select id="toneSelect"></select></div>
-        </div>
-        <div class="fld"><div class="labelRow"><label for="loopLen">Loop length</label><span class="pct" id="loopLenPct">19s</span></div>
-          <input id="loopLen" type="range" min="2" max="60" step="1" value="19"/></div>
-      </section>
-
-      <!-- ── ATMOSPHERE ── -->
-      <section class="grp">
-        <h2 class="grpTitle">Atmosphere</h2>
-        <div class="fld"><label for="ambienceSelect">Ambience</label>
-          <select id="ambienceSelect"><option value="none">None</option><option value="spore_cloud">Spore Cloud</option><option value="quiet_beat">Lumen strings</option><option value="silk_thread">Silk thread</option><option value="firefly_field">Firefly field</option><option value="pollen_drift">Pollen drift</option></select></div>
-        <div class="fld"><div class="labelRow"><label for="ambienceVol">Volume</label><span class="pct" id="ambVolPct">45%</span></div>
-          <input id="ambienceVol" type="range" min="0" max="1" step="0.01" value="0.45"/></div>
-      </section>
-
-      <!-- ── WHAT YOU ARE HEARING ── -->
-      <section class="grp">
-        <h2 class="grpTitle">What you are hearing</h2>
-        <div class="statgrid">
-          <div class="stat"><div class="k">Records</div><div class="v" id="statObs">–</div></div>
-          <div class="stat"><div class="k" id="statVoicesLabel">Voices</div><div class="v" id="statOrders">–</div></div>
-          <div class="stat"><div class="k">Taxa</div><div class="v" id="statTaxa">–</div></div>
-          <div class="stat"><div class="k">Loop</div><div class="v" id="statLoop">19s</div></div>
-        </div>
-        <details id="sharedMinuteDetails" class="disclose">
-          <summary id="sharedMinuteSummary">Shared minutes: 0</summary>
-          <div class="discloseBody">
-            <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
-            <p id="sharedMinuteContext"></p>
-            <ol id="sharedMinuteList" class="minuteList"></ol>
+      <h2 class="grpTitle">Records</h2>
+      <details class="disclose">
+        <summary>Import</summary>
+        <div class="discloseBody">
+          <label class="fieldLabel" for="inatUsers">iNaturalist username(s)</label>
+          <input id="inatUsers" type="text" class="txt" placeholder="e.g. lily_kumpe"/>
+          <div class="note" id="inatTotals"></div>
+          <div class="miniRow wide">
+            <button class="mini" id="inatFetchBtn" type="button">Fetch</button>
+            <span class="capField"><label for="inatCap">Cap</label><input id="inatCap" type="number" value="5000" min="1" max="5000" step="10"/></span>
+            <button class="mini" id="inatEnrichBtn" type="button" disabled>GBIF</button>
           </div>
-        </details>
-      </section>
-
-      <!-- ── DATA ── -->
-      <section class="grp">
-        <h2 class="grpTitle">Records</h2>
-        <details class="disclose">
-          <summary>Import</summary>
-          <div class="discloseBody">
-            <div class="fld"><label for="inatUsers">iNaturalist username(s)</label>
-              <input id="inatUsers" type="text" class="txt" placeholder="e.g. lily_kumpe"/>
-              <div class="note" id="inatTotals"></div></div>
-            <div class="btnRow">
-              <button class="btn" id="inatFetchBtn" type="button">Fetch</button>
-              <div class="capField"><label for="inatCap">Cap</label><input id="inatCap" type="number" value="5000" min="1" max="5000" step="10"/></div>
-              <button class="btn" id="inatEnrichBtn" type="button" disabled>GBIF</button>
-            </div>
-            <div class="note" id="inatStatus"></div>
-            <div class="btnRow spaced">
-              <label class="btn asLabel">Import CSV<input id="csvFile" type="file" accept=".csv,text/csv" hidden/></label>
-              <button class="btn" id="loadDemoBtn" type="button">Load demo</button>
-            </div>
+          <div class="note" id="inatStatus"></div>
+          <div class="miniRow wide">
+            <label class="mini asLabel">Import CSV<input id="csvFile" type="file" accept=".csv,text/csv" hidden/></label>
+            <button class="mini" id="loadDemoBtn" type="button">Load demo</button>
           </div>
-        </details>
-        <details class="disclose">
-          <summary>Export</summary>
-          <div class="discloseBody">
-            <div class="btnRow">
-              <button class="btn" id="exportZipBtn" type="button" disabled>Export ZIP</button>
-              <button class="btn" id="exportRingtoneBtn" type="button" disabled>Ringtone</button>
-            </div>
-            <div class="note" id="exportStatus" style="display:none"></div>
+        </div>
+      </details>
+      <details class="disclose">
+        <summary>Export</summary>
+        <div class="discloseBody">
+          <div class="miniRow wide">
+            <button class="mini" id="exportZipBtn" type="button" disabled>Export ZIP</button>
+            <button class="mini" id="exportRingtoneBtn" type="button" disabled>Ringtone</button>
           </div>
-        </details>
-      </section>
+          <div class="note" id="exportStatus" hidden></div>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -3945,6 +4162,8 @@ const state = {
 
   // visual
   visNextIndex: 0,
+  sharedPulses: [],
+  hideNowCard: false,
   visLastFrameMs: 0,
   particles: [],
   callouts: [],
@@ -4311,13 +4530,63 @@ function describeGap(mins){
   return r ? `${h}h ${r}m later` : `${h}h later`;
 }
 
+
+let _sharedHoldUntil = 0;
+
+/* Two people at the same sheet inside the same minute. The card shows both
+   records at once, because showing one of them was showing the wrong thing:
+   the evidence is the pair, not either half of it. Nothing here is inferred —
+   the observations, their observers and the minute all come from the match
+   the sequencer already built from original timestamps. */
+function renderSharedMinute(box, e, nowMs){
+  const obs = e.match.observations || {};
+  const a = (obs.A && obs.A[0]) || null;
+  const b = (obs.B && obs.B[0]) || null;
+  const extra = Math.max(0, ((obs.A||[]).length - 1)) + Math.max(0, ((obs.B||[]).length - 1));
+  const when = e.match.minuteKey != null ? new Date(e.match.minuteKey*60000) : (a && a.t) || (b && b.t);
+
+  box.classList.add("shared");
+  box.classList.remove("userA","userB","noPhoto");
+
+  const setSide = (imgId, whoId, taxonId, o) => {
+    const img = $(imgId), who = $(whoId), taxon = $(taxonId);
+    const url = (o && o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+    if(img){
+      if(url){ img.src = url; img.onerror = ()=> img.removeAttribute("src"); }
+      else img.removeAttribute("src");
+    }
+    if(who) who.textContent = (o && o.userName) || "";
+    if(taxon) taxon.textContent = (o && (o.commonName || o.taxon)) || "";
+  };
+  setSide("selImg", "selWhoA", "selTaxonA", a);
+  setSide("selImgB", "selWhoB", "selTaxonB", b);
+
+  $("selClock").textContent = when ? fmtClock(when) : "";
+  $("selClock").classList.remove("unclocked");
+  $("selGap").textContent = "Shared minute";
+  $("selTitle").textContent = "Both recorded inside this minute";
+  $("selMetaLine").textContent = extra ? `and ${extra} more record${extra>1?"s":""} in the same minute` : "";
+  $("selWho").textContent = "";
+  $("selSub").textContent = "Same minute, not the same instant";
+  box.hidden = false;
+  try{ box.animate([{opacity:.2},{opacity:1}], {duration:520, easing:"cubic-bezier(.2,.7,.3,1)"}); }catch(_){}
+}
+
 function updateSelectionOverlay(e){
   const box = $("selOverlay");
   if(!box) return;
-  if(!e || !e.obs){
+  if(state.hideNowCard){ box.hidden = true; return; }
+  const shared = !!(e && e.kind === "duet_minute" && e.match && e.match.observations);
+  if(!e || (!e.obs && !shared)){
     box.hidden = true;
     return;
   }
+  // A shared minute is the point of the instrument, so it is given room to be
+  // felt: ordinary arrivals do not displace it for a beat and a half.
+  const nowMs = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  if(!shared && nowMs < _sharedHoldUntil) return;
+  if(shared){ _sharedHoldUntil = nowMs + 1600; renderSharedMinute(box, e, nowMs); return; }
+  box.classList.remove("shared");
   const o = e.obs;
 
   // Subtle user marker (A/B) for duet mode
@@ -4797,8 +5066,12 @@ function scheduleThumbGlow(e, tEvent){
 }
 
 function scheduleSelectionOverlay(e, tEvent){
-  // Show the observation card whenever its note actually sounds.
-  if(!e || !e.obs || e.isEcho) return;
+  // Show the observation card whenever its note actually sounds. A shared
+  // minute carries its evidence in e.match rather than e.obs, and used to be
+  // dropped here — which is why the moment the whole instrument is about never
+  // appeared on screen.
+  if(!e || e.isEcho) return;
+  if(!e.obs && !(e.kind === "duet_minute" && e.match)) return;
   if(!audioCtx) return;
   _pendingOverlays.push({ e, fireAt: tEvent });
   _ensureGlowRaf();
@@ -5348,6 +5621,19 @@ function updateSharedMinuteDetails(){
   }
 }
 
+
+// Mirrors every settings row's chosen option into the value shown beside its
+// label. Called after any rebuild so programmatic changes stay in step.
+function syncSpecRows(){
+  for(const sel of document.querySelectorAll(".spec select")){
+    const row = sel.closest(".spec");
+    const out = row && row.querySelector(".specV");
+    if(!out) continue;
+    const opt = sel.options[sel.selectedIndex];
+    out.textContent = (opt && opt.textContent.trim()) || "—";
+  }
+}
+
 function updateStats(totalInNight){
   updateSharedMinuteDetails();
   const taxa = new Set(state.nightObs.map(o=>o.taxon));
@@ -5359,8 +5645,9 @@ function updateStats(totalInNight){
   const lbl = $("statVoicesLabel");
   if(lbl){
     const tl = toneByLabel();
-    lbl.textContent = tl.charAt(0).toUpperCase() + tl.slice(1) + " voices";
+    lbl.textContent = tl + " voices";
   }
+  syncSpecRows();
   updateCornerStatus();
 }
 function updateExportButtons(){
@@ -5980,6 +6267,25 @@ function drawFrame(){
   }
   ctx.restore();
 
+  // Shared-minute pulses: an expanding, fading ring at the coincidence.
+  if(state.sharedPulses.length){
+    const tNow = performance.now ? performance.now() : Date.now();
+    ctx.save();
+    for(let i=state.sharedPulses.length-1;i>=0;i--){
+      const pz = state.sharedPulses[i];
+      const age = (tNow - pz.t0)/1500;
+      if(age >= 1){ state.sharedPulses.splice(i,1); continue; }
+      const ease = 1 - Math.pow(1-age, 3);
+      ctx.globalAlpha = (1-age)*0.5;
+      ctx.strokeStyle = pz.color || "rgba(255,255,255,.8)";
+      ctx.lineWidth = (1.8*(1-age)+0.4)*dpr;
+      ctx.beginPath();
+      ctx.arc(pz.x, pz.y, (6 + ease*46)*dpr, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // trigger visuals as playhead passes
   const playhead = getPlayheadSec();
   const thetaHead = (playhead/state.loopLen)*Math.PI*2 - Math.PI/2;
@@ -6003,14 +6309,22 @@ function drawFrame(){
         if(e.isSpecial){
           // Duet gestures: a visual "bridge" for shared minutes, and a warm pulse for near-simultaneous moments.
           if(e.kind === "duet_minute"){
-            const rA = baseR*0.58;
-            const rB = rA + 10*dpr;
+            const rA = baseR*RING_INNER;
+            const rB = baseR*RING_SPECIAL;
             for(let n=0;n<6;n++){
               const tt = n/5;
               const rr2 = rA + (rB - rA)*tt;
               const px = cx + Math.cos(a)*rr2;
               const py = cy + Math.sin(a)*rr2;
               spawnParticle({x:px,y:py,color:e.color,label:"duet",isEcho:false});
+            }
+            // A ring opening outward from the exact place on the clock where the
+            // two of them coincided.
+            state.sharedPulses.push({x, y, t0:(performance.now?performance.now():Date.now()), color:e.color});
+            if(state.sharedPulses.length > 12) state.sharedPulses.shift();
+            for(const side of [e.match && e.match.observations && e.match.observations.A,
+                               e.match && e.match.observations && e.match.observations.B]){
+              if(side) for(const oo of side) flashThumb(oo.id);
             }
           } else if(e.kind === "duet_sync"){
             for(let n=0;n<8;n++){
@@ -7033,6 +7347,22 @@ function initUI(){
   });
 
   // Help overlay
+  // Each settings row IS the control: a transparent native select covers the
+  // row, and the row shows the chosen value as type. Anything that sets a
+  // select programmatically is picked up by the sync call in updateStats.
+  document.addEventListener("change", (ev)=>{
+    const row = ev.target && ev.target.closest && ev.target.closest(".spec");
+    if(row) syncSpecRows();
+  });
+
+  const nowToggle = $("nowCardToggle");
+  function setNowCard(on){
+    state.hideNowCard = !on;
+    if(nowToggle) nowToggle.setAttribute("aria-checked", String(on));
+    if(!on){ const b = $("selOverlay"); if(b) b.hidden = true; }
+  }
+  if(nowToggle) nowToggle.addEventListener("click", ()=> setNowCard(state.hideNowCard));
+
   // The controls fold away so the circle can be the whole screen. Hidden is a
   // real state, not a fullscreen mode: the edge strip peeks them back without
   // committing, and H toggles for a performance.
@@ -7075,6 +7405,14 @@ function initUI(){
       if(!/^(INPUT|SELECT|TEXTAREA)$/.test(tag)){
         e.preventDefault();
         setRail(!document.body.classList.contains("sidebarHidden"));
+        return;
+      }
+    }
+    if((e.key === "c" || e.key === "C") && !e.metaKey && !e.ctrlKey && !e.altKey){
+      const tag2 = (e.target && e.target.tagName) || "";
+      if(!/^(INPUT|SELECT|TEXTAREA)$/.test(tag2)){
+        e.preventDefault();
+        setNowCard(state.hideNowCard);
         return;
       }
     }
@@ -8081,6 +8419,7 @@ function toCSV(rows){
 /** ------------------------------ Bootstrap ------------------------------ */
 initUI();
 rebuildDerived();
+syncSpecRows();
 requestAnimationFrame(drawFrame);
 
 // keep canvas crisp on resize
