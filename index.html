@@ -643,8 +643,6 @@ input[type="range"]{
   font-size:12px;color:rgba(255,255,255,.55);}
 .segmented .btn.seg:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);}
 .segmented .btn.seg.active{background:rgba(255,255,255,.13);color:rgba(255,255,255,.95);}
-#listenABtn.active{box-shadow:inset 0 -2px 0 var(--userA);}
-#listenBBtn.active{box-shadow:inset 0 -2px 0 var(--userB);}
 .playerStats{margin-top:7px;font-size:10.5px;line-height:1.5;color:rgba(255,255,255,.40);}
 
 /* ── Stats ── */
@@ -972,18 +970,6 @@ select,.txt{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.085
 .mini.asLabel{display:inline-block;}
 
 /* Listening: three words, the live one underlined. */
-.specSeg{align-items:center;}
-.seg3{display:flex;gap:16px;margin-left:auto;}
-.segBtn{
-  border:none;background:none;padding:2px 0;cursor:pointer;font-family:var(--font);
-  font-size:12.5px;font-weight:300;color:rgba(255,255,255,.34);
-  border-bottom:1.5px solid transparent;
-}
-.segBtn:hover{color:rgba(255,255,255,.72);}
-.segBtn.active{color:rgba(255,255,255,.95);border-bottom-color:rgba(255,255,255,.65);}
-#listenABtn.active{border-bottom-color:var(--userA);}
-#listenBBtn.active{border-bottom-color:var(--userB);}
-.segBtn:focus-visible{outline:2px solid var(--qm-green);outline-offset:3px;}
 
 /* Sliders: a hairline and a dot. */
 input[type="range"]{
@@ -1116,6 +1102,92 @@ input[type="range"]::-moz-range-thumb{
     background:radial-gradient(closest-side,rgba(5,8,16,.94) 42%,rgba(5,8,16,.72) 70%,rgba(5,8,16,0) 100%);
   }
 }
+
+/* ═══ MASTHEAD ══════════════════════════════════════════════════════════════
+   The title is the quietest confident thing on the page, not the loudest. The
+   accent belongs to the one action that does something, so the wordmark gives
+   it up. Mixed case at a generous size, one tracked descriptor beneath, and a
+   rule to close it. */
+.desktopSidebar .sidebarHeader,
+.sheet .sidebarHeader{margin:0;}
+.desktopSidebar .sidebarHeader h1{
+  font-size:21px;font-weight:200;letter-spacing:-.005em;line-height:1.15;
+  color:rgba(255,255,255,.95);text-transform:none;
+}
+.desktopSidebar .sidebarHeader .title-tag{
+  display:block;margin-top:7px;padding-bottom:17px;
+  border-bottom:1px solid rgba(255,255,255,.09);
+  font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:rgba(255,255,255,.24);
+}
+.sheetInner > .grpTitle:first-child,
+.sheetInner > #tallyDate{margin-top:19px;}
+#tallyDate{color:rgba(255,255,255,.34);letter-spacing:.18em;}
+
+/* The figures the night amounts to. */
+.tally{gap:0;display:grid;grid-template-columns:repeat(4,1fr);padding:10px 0 6px;}
+.tallyCell b{font-size:29px;}
+.tallyCell span{font-size:8px;letter-spacing:.13em;}
+
+/* ═══ PLAY ══════════════════════════════════════════════════════════════════
+   One filled element in the whole column. Square-ish, so it reads as a switch
+   on an instrument rather than a web button. */
+.btn.primary.playPrimary{
+  width:100%;min-height:50px;margin:22px 0 0;border-radius:3px;border:none;
+  font-size:11.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  background:var(--qm-green);color:#04150d;box-shadow:none;
+  transition:background .14s ease;
+}
+.btn.primary.playPrimary:hover{background:#12bd76;}
+.btn.primary.playPrimary:active{background:#009457;}
+.btn.primary.playPrimary:disabled{
+  background:transparent;color:rgba(255,255,255,.24);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+}
+.sheetInner > .btn.primary.playPrimary:first-child{margin-top:22px;}
+.miniRow{padding:13px 0 0;gap:22px;}
+
+/* The Date row leads the column, so it carries a little more weight. */
+.sheetInner > .spec:first-of-type .specV{font-size:15px;color:rgba(255,255,255,.94);}
+
+@media(max-width:767px){
+  .desktopSidebar .sidebarHeader h1{font-size:20px;}
+  .tally{grid-template-columns:repeat(4,1fr);}
+  .tallyCell b{font-size:25px;}
+}
+
+/* Play, dialled back. Still the only filled element, but a deeper green sits
+   on near-black without shouting, and a shorter bar stops it competing with
+   the figures above it. */
+.btn.primary.playPrimary{
+  min-height:44px;margin:20px 0 0;
+  background:#0d8f5c;color:#03170e;
+  font-size:11px;letter-spacing:.24em;
+}
+.btn.primary.playPrimary:hover{background:#12a76b;}
+.btn.primary.playPrimary:active{background:#0a7a4e;}
+
+/* The gallery header speaks the same language as the rest of the column. */
+.photoPanelTop{padding-top:14px;border-top:1px solid rgba(255,255,255,.055);}
+.photoPanelTitle{font-size:9px;letter-spacing:.2em;color:rgba(255,255,255,.26);}
+.photoPanelMeta{font-size:10px;letter-spacing:.06em;color:rgba(255,255,255,.30);
+  font-variant-numeric:tabular-nums;}
+.pillbox{gap:16px;}
+.photoPanel .btn.pill.small,
+.photoPanel .galleryToggle,
+#galleryFsBtn{
+  border:none;background:none;padding:2px 0;min-height:0;border-radius:0;
+  font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:rgba(255,255,255,.44);border-bottom:1px solid transparent;
+}
+.photoPanel .btn.pill.small:hover,#galleryFsBtn:hover{
+  color:rgba(255,255,255,.92);border-bottom-color:rgba(255,255,255,.3);background:none;
+}
+.thumbGridWrap{border:none;background:transparent;padding:0;margin-top:12px;}
+.qm-footer{margin-top:16px;}
+.pillbox{flex-wrap:nowrap;white-space:nowrap;}
+#galleryFsBtn{flex:0 0 auto;}
+.qm-footer-inner{border-top:1px solid rgba(255,255,255,.055);padding:12px 0 0;}
 </style>
 </head>
 <body>
@@ -1225,6 +1297,25 @@ input[type="range"]::-moz-range-thumb{
     <div class="sheetHandle"></div>
     <div class="sheetInner">
 
+      <h2 class="grpTitle" id="tallyDate">This night</h2>
+      <div class="tally">
+        <div class="tallyCell"><b id="statObs">–</b><span>records</span></div>
+        <div class="tallyCell"><b id="statTaxa">–</b><span>taxa</span></div>
+        <div class="tallyCell"><b id="statOrders">–</b><span id="statVoicesLabel">voices</span></div>
+        <div class="tallyCell"><b id="statShared">–</b><span>shared</span></div>
+      </div>
+      <span id="statLoop" hidden></span>
+      <details id="sharedMinuteDetails" class="disclose">
+        <summary id="sharedMinuteSummary">Shared minute evidence</summary>
+        <div class="discloseBody">
+          <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
+          <p id="sharedMinuteContext"></p>
+          <ol id="sharedMinuteList" class="minuteList"></ol>
+        </div>
+      </details>
+
+      <div class="spec"><span class="specK">Date</span><span class="specV">—</span>
+        <select id="nightSelect" aria-label="Date"></select></div>
       <button class="btn primary playPrimary" id="playBtn">Play</button>
       <div class="miniRow">
         <button class="mini" id="remixBtn" type="button" title="Remix (R)">Remix</button>
@@ -1232,19 +1323,7 @@ input[type="range"]::-moz-range-thumb{
         <button class="mini" id="helpBtn" type="button" title="Shortcuts and key">Key</button>
       </div>
 
-      <h2 class="grpTitle">The night</h2>
-      <div class="spec"><span class="specK">Date</span><span class="specV">—</span>
-        <select id="nightSelect" aria-label="Date"></select></div>
-      <div class="spec mobileHide"><span class="specK">Season</span><span class="specV">—</span>
-        <select id="seasonSelect" aria-label="Season"><option value="all">All</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option><option value="spring">Spring</option></select></div>
       <select id="yearSelect" hidden></select>
-      <div class="spec specSeg mobileHide"><span class="specK">Listening</span>
-        <span class="seg3" role="group" aria-label="Listening to">
-          <button class="segBtn" id="listenBothBtn" type="button">Both</button>
-          <button class="segBtn" id="listenABtn" type="button">A</button>
-          <button class="segBtn" id="listenBBtn" type="button">B</button>
-        </span></div>
-      <div class="specNote" id="playerNamesHint"></div>
 
       <h2 class="grpTitle">Sound</h2>
       <div class="spec"><span class="specK">Voice family</span><span class="specV">—</span>
@@ -1257,30 +1336,20 @@ input[type="range"]::-moz-range-thumb{
         <select id="toneSelect" aria-label="Tone by"></select></div>
       <div class="spec specRange"><span class="specK"><label for="loopLen">Loop</label></span><span class="specV" id="loopLenPct">19s</span></div>
       <input id="loopLen" type="range" min="2" max="60" step="1" value="19"/>
-      <div class="spec"><span class="specK">Ambience</span><span class="specV">—</span>
-        <select id="ambienceSelect" aria-label="Ambience"><option value="none">None</option><option value="spore_cloud">Spore Cloud</option><option value="quiet_beat">Lumen strings</option><option value="silk_thread">Silk thread</option><option value="firefly_field">Firefly field</option><option value="pollen_drift">Pollen drift</option></select></div>
-      <div class="spec specRange"><span class="specK"><label for="ambienceVol">Ambience level</label></span><span class="specV" id="ambVolPct">45%</span></div>
-      <input id="ambienceVol" type="range" min="0" max="1" step="0.01" value="0.45"/>
+      <details class="disclose">
+        <summary>Ambience</summary>
+        <div class="discloseBody">
+          <div class="spec"><span class="specK">Ambience</span><span class="specV">—</span>
+            <select id="ambienceSelect" aria-label="Ambience"><option value="none">None</option><option value="spore_cloud">Spore Cloud</option><option value="quiet_beat">Lumen strings</option><option value="silk_thread">Silk thread</option><option value="firefly_field">Firefly field</option><option value="pollen_drift">Pollen drift</option></select></div>
+          <div class="spec specRange"><span class="specK"><label for="ambienceVol">Ambience level</label></span><span class="specV" id="ambVolPct">45%</span></div>
+          <input id="ambienceVol" type="range" min="0" max="1" step="0.01" value="0.45"/>
+        </div>
+      </details>
 
       <h2 class="grpTitle">View</h2>
       <div class="spec specSwitch"><span class="specK" id="nowCardLabel">Now playing card</span>
         <button class="switch" id="nowCardToggle" type="button" role="switch" aria-checked="true" aria-labelledby="nowCardLabel"><i></i></button></div>
 
-      <h2 class="grpTitle">This night</h2>
-      <div class="tally">
-        <div class="tallyCell"><b id="statObs">–</b><span>records</span></div>
-        <div class="tallyCell"><b id="statTaxa">–</b><span>taxa</span></div>
-        <div class="tallyCell"><b id="statOrders">–</b><span id="statVoicesLabel">voices</span></div>
-      </div>
-      <span id="statLoop" hidden></span>
-      <details id="sharedMinuteDetails" class="disclose">
-        <summary id="sharedMinuteSummary">Shared minutes: 0</summary>
-        <div class="discloseBody">
-          <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
-          <p id="sharedMinuteContext"></p>
-          <ol id="sharedMinuteList" class="minuteList"></ol>
-        </div>
-      </details>
 
       <h2 class="grpTitle">Records</h2>
       <details class="disclose">
@@ -1322,7 +1391,7 @@ input[type="range"]::-moz-range-thumb{
         <div class="photoPanelMeta"><span id="thumbCount">0</span></div>
         <div class="userLegend" id="userLegend" style="display:none"></div>
         <button class="btn pill small galleryToggle" id="galleryToggleBtn" type="button" aria-expanded="false">Show</button>
-        <button class="btn pill small" id="galleryFsBtn" type="button">⛶</button>
+        <button class="btn pill small" id="galleryFsBtn" type="button">Full</button>
       </div>
     </div>
     <div class="thumbGridWrap" aria-label="Photo gallery">
@@ -1353,7 +1422,7 @@ input[type="range"]::-moz-range-thumb{
   <!-- ════ DESKTOP SIDEBAR (≥768px only) ════ -->
   <div class="desktopSidebar" id="desktopSidebar">
     <div class="sidebarHeader">
-      <div><h1>THE MOTH ORCHESTRA</h1><span class="title-tag">Open Source Biodiversity Sonification</span></div>
+      <div><h1>The Moth Orchestra</h1><span class="title-tag">Biodiversity sonification</span></div>
     </div>
     <!-- Controls get moved here from sheet by JS -->
     <div id="desktopControlsTarget"></div>
@@ -1541,13 +1610,6 @@ function fmtHM(d){
 
 
 
-function seasonFromMonth(month1){
-  // Southern hemisphere seasons, month1 = 1..12
-  if(month1===12 || month1===1 || month1===2) return "summer";
-  if(month1>=3 && month1<=5) return "autumn";
-  if(month1>=6 && month1<=8) return "winter";
-  return "spring";
-}
 
 function populateYearSelect(years){
   const sel = $("yearSelect");
@@ -1579,13 +1641,6 @@ function populateYearSelect(years){
   }
 }
 
-function syncSeasonSelect(){
-  const sel = $("seasonSelect");
-  if(!sel) return;
-  const allowed = ["all","summer","autumn","winter","spring"];
-  if(!allowed.includes(state.filterSeason)) state.filterSeason = "all";
-  sel.value = state.filterSeason;
-}
 function toneByLabel(){
   const f = state.toneBy || "taxon_class_name";
   const map = {
@@ -4127,7 +4182,6 @@ const state = {
   nights: new Map(),
   nightKey: "",
   filterYear: "all",
-  filterSeason: "all",
   focus: false,
   voiceMode: "mixed",
   userAName: "",
@@ -4207,14 +4261,9 @@ function rebuildDerived(){
   // Filters
   const years = Array.from(new Set(keysAll.map(k=>k.slice(0,4)))).sort((a,b)=>(a<b?1:-1));
   populateYearSelect(years);
-  syncSeasonSelect();
 
   const keys = keysAll.filter(k=>{
     if(state.filterYear !== "all" && k.slice(0,4) !== state.filterYear) return false;
-    if(state.filterSeason !== "all"){
-      const month = parseInt(k.slice(5,7), 10);
-      if(seasonFromMonth(month) !== state.filterSeason) return false;
-    }
     return true;
   });
 
@@ -4225,21 +4274,6 @@ function rebuildDerived(){
 
   const baseAll = state.nightKey ? (state.nights.get(state.nightKey) || []) : [];
   const base = state.focus ? applyFocusFilter(baseAll) : baseAll;
-  // Player summary: show order-count per record-keeper (no names)
-  const ph = $("playerNamesHint");
-  if(ph && state.userAName && state.userBName){
-    const setA = new Set();
-    const setB = new Set();
-    for(const o of base){
-      if(o.userName === state.userAName) setA.add(o.order || "");
-      else if(o.userName === state.userBName) setB.add(o.order || "");
-    }
-    // Remove empty keys, if any
-    setA.delete(""); setB.delete("");
-    ph.textContent = `Orders — A: ${setA.size} • B: ${setB.size}`;
-  } else if(ph){
-    ph.textContent = "";
-  }
 
 
   // available orders for this night
@@ -5594,7 +5628,9 @@ function updateSharedMinuteDetails(){
   const matches = state.sequencer.meta.sharedMinutes || [];
   const summary = $("sharedMinuteSummary"), list = $("sharedMinuteList"), context = $("sharedMinuteContext");
   if(!summary || !list || !context) return;
-  summary.textContent = `Shared minutes: ${matches.length}`;
+  summary.textContent = matches.length ? "Shared minute evidence" : "No shared minutes";
+  const sharedCell = $("statShared");
+  if(sharedCell) sharedCell.textContent = `${matches.length}`;
   const pair = state.userAName && state.userBName ? `${state.userAName} + ${state.userBName}. ` : "Two named observers are needed for a shared minute. ";
   const scope = state.listenMode !== "both" ? "Solo: shared-minute gestures are off. " :
     state.spacingMode === "riff" ? "Within the selected Riff window. " : "Within the selected date. ";
@@ -5646,6 +5682,20 @@ function updateStats(totalInNight){
   if(lbl){
     const tl = toneByLabel();
     lbl.textContent = tl + " voices";
+  }
+  const dateHead = $("tallyDate");
+  if(dateHead){
+    // The group's own label names the night, so the figures under it are not a
+    // set of abstract counts floating free of the evening they came from.
+    const k = state.nightKey;
+    if(k && /^\d{4}-\d{2}-\d{2}$/.test(k)){
+      const [y,m,d] = k.split("-").map(Number);
+      dateHead.textContent = new Intl.DateTimeFormat("en-AU",
+        {day:"numeric", month:"long", year:"numeric", timeZone:"UTC"})
+        .format(new Date(Date.UTC(y, m-1, d)));
+    } else {
+      dateHead.textContent = "This night";
+    }
   }
   syncSpecRows();
   updateCornerStatus();
@@ -6861,14 +6911,6 @@ function initUI(){
       rebuildDerived();
     });
   }
-  if($("seasonSelect")){
-    $("seasonSelect").addEventListener("change", (e)=>{
-      state.filterSeason = e.target.value || "all";
-      clearSelection();
-      hardResetPlayback("filter");
-      rebuildDerived();
-    });
-  }
 
   // night select
   $("nightSelect").addEventListener("change", (e)=>{
@@ -6901,23 +6943,9 @@ function initUI(){
   // players: listen to both, or solo one record-keeper
   function setListenMode(mode){
     state.listenMode = mode; // "both" | "A" | "B"
-    updateListenButtons();
     // Refresh sound, visuals and evidence together in every mode.
     softRebuild();
   }
-  function updateListenButtons(){
-    const both = $("listenBothBtn"), a = $("listenABtn"), b = $("listenBBtn");
-    if(!both || !a || !b) return;
-    const mode = state.listenMode || "both";
-    both.classList.toggle("active", mode==="both");
-    a.classList.toggle("active", mode==="A");
-    b.classList.toggle("active", mode==="B");
-  }
-
-  if($("listenBothBtn")) $("listenBothBtn").addEventListener("click", ()=> setListenMode("both"));
-  if($("listenABtn")) $("listenABtn").addEventListener("click", ()=> setListenMode("A"));
-  if($("listenBBtn")) $("listenBBtn").addEventListener("click", ()=> setListenMode("B"));
-  updateListenButtons();
 
   // Sequencer mode (Timeline vs Riff)
   try{

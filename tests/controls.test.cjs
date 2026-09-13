@@ -12,12 +12,16 @@ for (const mode of ['timeline','riff','song']) {
   test(`${mode}: switching Both → A → rebuild → Both restores both observers and evidence`, () => {
     const c = loadApp();
     const html = fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+    // The Both/A/B control was removed from the interface; solo remains an
+    // engine capability and this still tests the seam between setting the mode
+    // and the sequencer rebuild. The slice now ends at setListenMode's own
+    // closing brace rather than at the button-state function that used to
+    // follow it.
     const start = html.indexOf('  function setListenMode(mode){');
-    const end = html.indexOf('  function updateListenButtons(){',start);
+    const end = html.indexOf('\n  }\n', start) + 4;
     assert.ok(start >= 0 && end > start);
     Object.assign(c.state, {seed:1, spacingMode:mode, listenMode:'both',
       userAName:'Chris Burwell', userBName:'Lily Kumpe'});
-    c.updateListenButtons = () => {};
     c.softRebuild = () => { c.state.sequencer = c.buildSequencer(c.state.obs); };
     vm.runInContext(html.slice(start,end),c);
     c.softRebuild();
