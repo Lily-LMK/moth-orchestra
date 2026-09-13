@@ -45,6 +45,12 @@ level is the palette opening, not the melody widening. A four-voice family
 cannot get richer at species rank no matter how specific the data is — it has
 already spent everything it has by family.
 
+On this night, the instruments that appear **only** at species rank are
+`bowl` (5 notes), `harp` (1 note) and `hat` (8 notes). Bowl and harp are the
+sweetness Lily is hearing; hat is percussive. Two sustaining resonant voices,
+arriving only when the data is specific enough to ask for them, are doing that
+work — which is a useful thing to know when choosing the new palette.
+
 **Design rule for the new family:** the palette must be large enough that
 species rank keeps revealing. Target fourteen to sixteen voices, and consider
 making the selected rank a parameter of the synthesis itself — deeper rank
@@ -71,18 +77,13 @@ resonant tube, bowed metal, rotated air — and named by its physics rather than
 by any culture. Nothing is lost. The awe comes from scale, register and
 patience, not from allusion.
 
-**Proposal:** build from physical models, name the voices for what they
-physically are, and drop "tribal" as the internal vocabulary. Lily to confirm
-or push back — this is her call and there may be a relationship or permission
-context I do not know about.
+**Settled, 13 September 2026:** Lily confirms "tribal" was thinking aloud and
+nothing in the system depends on it. Voices will be built from physical models
+and named for what they physically are.
 
 ## 3. The proposal — three strata
 
-A name for the family, to choose from: **Gondwana**, **Old Growth**, or
-**Stone Chorus**. Gondwana is the recommendation: it carries deep time, forest
-and Australian specificity honestly, it is a term Lily uses professionally, and
-the remnant Gondwanan rainforest is literally in the D'Aguilar Range where the
-moth sheet is.
+The family is **Gondwana** — Lily's choice, 13 September 2026.
 
 ### Floor — the room
 A continuous bed **generated from the night's own shape**: record density, how
@@ -107,13 +108,44 @@ composed accompaniment.
 
 ## 4. Technical constraints the design must respect
 
-**There is no limiter on the note path.** `masterGain` connects straight to
-`destination` plus a delay send. Only the ambience bus has a
-`DynamicsCompressor`. Adding sub-bass to an unlimited path will eat headroom
-and can clip on dense passages. Fixing this means touching the master chain,
-which changes the accepted sound of every existing family — so it must be
-measured, compared and decided, not slipped in. **Step 0 of the session is to
-measure current headroom before adding anything.**
+### Headroom — measured, and the answer is "no master limiter"
+
+Measured on the current build, 19 s offline renders, seed 1, Moth Orchestra:
+
+| Case | Peak | dBFS | Samples at or over full scale |
+|---|---|---|---|
+| Song, Class, note level .55 | 0.695 | −3.16 | 0 |
+| Song, Species, note level .55 | 0.308 | −10.23 | 0 |
+| Song, Species, note level 1.0 | 0.550 | −5.19 | 0 |
+| Timeline, Species, note level 1.0 | 0.603 | −4.39 | 0 |
+
+**Nothing clips today.** The worst case sits about 3 dB below full scale and
+no sample reaches it. So the missing limiter is not a defect to repair; it is
+a fact to design around.
+
+Why it still matters for this family: low frequencies carry far more energy
+than high ones for the same perceived loudness, and the proposed sub is a long
+slow swell rather than a short ping — it sits underneath everything else for a
+second or more, and peaks add. The risk is not "the sub is loud". The risk is
+the sub plus a dense passage plus a shared-minute flourish arriving together
+at gallery level, against three decibels of margin.
+
+**Recommendation: do not fit a master limiter.** One across the whole mix would
+compress the dynamic range that makes the quiet arrivals quiet, and would
+change the accepted sound of all five existing families, requiring Lily to
+re-accept every one of them. That is a large musical cost to solve a problem
+that only the new family creates.
+
+Instead: **give the sub its own bus with its own limiter**, exactly as the
+ambience bus already does. The new risk is contained to the new thing, every
+existing family stays bit-for-bit unchanged, nothing needs re-accepting, and
+gain staging can be tuned on the sub alone. Step 0 becomes "measure again with
+the sub in, on its own bus" rather than a decision about the master chain.
+
+**Measurement gap to close:** the offline render returned identical figures
+with ambience off and ambience at full, so the renderer appears not to include
+the ambience bus. Nothing above accounts for ambience, and that must be
+established before any claim about combined headroom.
 
 **The low end is empty and clean.** Existing voices are high-passed at 55 Hz.
 The sub is additive rather than competing, and there is nothing to unmask.
@@ -163,13 +195,41 @@ Bounded steps, each ending in something Lily can hear.
    usual, offline renders finite and below full scale, receipt written, release
    decision put to Lily.
 
-## 7. What I need from Lily before starting
+## 7. Settled with Lily, 13 September 2026
 
-- The name: Gondwana, Old Growth, Stone Chorus, or hers.
-- Whether "tribal" as a design vocabulary should stand, be replaced with the
-  physical-models framing, or something else she has in mind.
-- Which night to build against — 3 September 2026 is the densest and shows the
-  shared-minute sub best.
-- Whether she can get time on the actual gallery system, or whether the
-  large-speaker case has to be designed blind and verified later. This changes
-  how much we commit to before hearing it in the room.
+- **Name:** Gondwana.
+- **Vocabulary:** physical models, named for their physics. "Tribal" dropped.
+- **Night:** 3 September 2026 — densest, 22 shared minutes.
+- **The gallery system is months away.** Lily will get time on it, but not
+  soon. This is the constraint that shapes everything below.
+
+## 8. Building for a room we cannot hear yet
+
+The large-speaker case has to be designed blind and verified later, so the work
+must be arranged so that hearing the room *tunes* the family rather than
+rebuilds it.
+
+**Make every room-dependent quantity a named, adjustable parameter, not a baked
+constant.** Sub centre frequency, sub level relative to the canopy, the swell's
+attack and decay, the floor's level and its low-frequency corner, the crossover
+between the sub and its audible mid-register companion. A day in the gallery
+should be an afternoon of turning those numbers, saved as a preset, not a
+session of re-synthesis.
+
+**Ship two mixes from the start.** Personal (headphones and laptop: sub rolled
+off, the shared-minute moment carried by its mid-register component) and
+Gallery (the sub at full extension). Personal is the default and the one Lily
+can actually judge now. Gallery is built, measured, and explicitly marked
+unheard until the room happens.
+
+**Verify by measurement in the meantime, and say what measurement cannot tell
+us.** Add a render analysis that reports peak, RMS, and the share of energy
+below 60 Hz, so we know what we are sending even when we cannot hear it. That
+establishes the signal is finite, bounded and carrying the intended low
+content. It cannot establish that the room feels like awe. Do not let the
+numbers stand in for that judgement.
+
+**Find the best speakers Lily can reach now** — anything with real low
+extension beats guessing, even if it is not the gallery. Worth establishing
+early what is available to her, because a monitor with a sub gets us most of
+the way and a laptop gets us nowhere.
