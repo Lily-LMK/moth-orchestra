@@ -16,21 +16,16 @@ an exhibition screen read at a distance and running unattended, Lily's laptop
 while she performs it in front of a room, and a phone held one-handed in the
 dark at the moth sheet. Lily chose all three, properly responsive.
 
-## Start here — the fault already found
+## Start here — Lily's eyes on the interface pass
 
-Shared-minute markers are drawn at a fixed 0.93 of the base radius while
-ordinary notes sit between 0.55 and 0.93 by voice index. At Class rank on the
-demo night there is a single voice group, so every arrival collapses onto one
-inner ring and the shared markers float far outside it, reading as unrelated
-debris rather than as the point of the piece. Tie the marker radius to the
-outermost occupied voice ring, bring a comparison to Lily, and do not change
-the ring convention silently. This is Milestone 3 work arriving early because
-it is also the thing that most makes the screen look accidental.
+The interface pass is built and measured but nobody has looked at it. Two ring
+conventions changed deliberately (single-group arrivals moved to the outer
+ring; shared-minute halos moved from a fixed 0.93 to just outside the
+arrivals at 1.04) and a legend was added. SESSION-2026-09-13-RELEASE.md has
+the reasoning. Show her the circle before building anything on top of it.
 
-Then the rest of the shell: the control column is a stack of unrelated boxes
-with the title repeated top and bottom, the loop-length slider carries no
-value where the volume slider does, "Class voices: 1" tells the viewer
-nothing, and the circle occupies about a third of the canvas it is given.
+Then: the gallery and Present mode were not re-examined under the new design
+layer, and "Class voices: 1" still tells a viewer nothing.
 
 ## Standing obligations
 

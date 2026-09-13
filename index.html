@@ -100,6 +100,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none;}
   font-size:11px; color:rgba(255,255,255,.7); z-index:6;
 }
 .riffCtl .riffRow{display:flex;gap:4px;align-items:center;}
+.riffTz{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.38);}
 .riffCtl span{color:rgba(255,255,255,.45);font-size:10px;}
 .riffCtl input[type="time"]{
   border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);
@@ -577,6 +578,194 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
   /* Fallback: also show via JS-toggled class */
   .photoPanel.galleryVisible{display:block!important;}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INTERFACE PASS — 13 September 2026
+   A design layer over the primitives above. The instrument is the circle; the
+   controls are a quiet column beside it. Grouped by what you are deciding,
+   not by what kind of widget it is. No inline styles in the markup.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sheetInner{display:flex;flex-direction:column;gap:2px;}
+
+/* ── Groups ── */
+.grp{padding:14px 0 4px;border-top:1px solid rgba(255,255,255,.055);}
+.grp:first-child{border-top:none;padding-top:16px;}
+.grpTitle{
+  font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(255,255,255,.34);margin:0 0 10px;
+}
+
+/* ── Fields ── */
+.fld{margin-bottom:10px;}
+.fld:last-child{margin-bottom:2px;}
+.fld > label{margin:0 0 5px;font-size:10.5px;letter-spacing:.04em;color:rgba(255,255,255,.42);}
+.labelRow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px;}
+.labelRow > label{margin:0;}
+.fldRow{display:grid;gap:7px;margin-bottom:10px;}
+.fldRow.three{grid-template-columns:repeat(3,minmax(0,1fr));}
+.fldRow .fld{margin-bottom:0;}
+select,.txt{
+  width:100%;min-height:40px;border-radius:11px;font-size:13px;
+  border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);
+  color:rgba(255,255,255,.88);padding:9px 11px;outline:none;
+  transition:border-color .12s ease,background .12s ease;
+}
+select:hover,.txt:hover{border-color:rgba(255,255,255,.18);}
+select:focus-visible,.txt:focus-visible,.btn:focus-visible,input:focus-visible,summary:focus-visible{
+  outline:2px solid var(--qm-green);outline-offset:2px;
+}
+.fldRow.three select{padding:9px 6px;font-size:12px;}
+input[type="range"]{
+  width:100%;height:26px;accent-color:var(--qm-green);cursor:pointer;background:transparent;
+}
+
+/* ── Buttons ── */
+.btnRow{display:flex;gap:7px;align-items:stretch;}
+.btnRow > .btn{flex:1 1 auto;}
+.btnRow.spaced{margin-top:8px;}
+.btn{min-height:40px;border-radius:11px;font-size:12.5px;letter-spacing:.01em;}
+.btn:hover{background:rgba(255,255,255,.10);}
+.iconBtn{flex:0 0 40px;width:40px;padding:0;font-size:14px;}
+.asLabel{cursor:pointer;}
+.btn.primary.playPrimary{
+  width:100%;min-height:46px;font-size:14px;font-weight:600;letter-spacing:.03em;
+  background:var(--qm-green);color:#04120b;border-color:transparent;margin-bottom:10px;
+  box-shadow:0 4px 18px rgba(0,165,97,.22);
+}
+.btn.primary.playPrimary:hover{background:#00b96e;}
+.btn.primary.playPrimary:disabled{background:rgba(255,255,255,.10);color:rgba(255,255,255,.35);box-shadow:none;}
+
+/* ── Segmented control (Both / A / B) ── */
+.segmented{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;
+  border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);}
+.segmented .btn.seg{min-height:32px;border:none;background:transparent;border-radius:9px;
+  font-size:12px;color:rgba(255,255,255,.55);}
+.segmented .btn.seg:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);}
+.segmented .btn.seg.active{background:rgba(255,255,255,.13);color:rgba(255,255,255,.95);}
+#listenABtn.active{box-shadow:inset 0 -2px 0 var(--userA);}
+#listenBBtn.active{box-shadow:inset 0 -2px 0 var(--userB);}
+.playerStats{margin-top:7px;font-size:10.5px;line-height:1.5;color:rgba(255,255,255,.40);}
+
+/* ── Stats ── */
+.statgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:10px;}
+.stat{border-radius:11px;padding:9px 6px;border-color:rgba(255,255,255,.055);
+  background:rgba(255,255,255,.028);}
+.stat .k{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.33);
+  line-height:1.25;}
+.stat .v{font-size:17px;font-weight:600;margin-top:3px;color:rgba(255,255,255,.9);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+
+/* ── Disclosures ── */
+.disclose{border:1px solid rgba(255,255,255,.07);border-radius:11px;
+  background:rgba(255,255,255,.022);margin-bottom:7px;overflow:hidden;}
+.disclose > summary{
+  list-style:none;cursor:pointer;padding:11px 12px;font-size:12px;
+  color:rgba(255,255,255,.62);display:flex;align-items:center;gap:8px;
+}
+.disclose > summary::-webkit-details-marker{display:none;}
+.disclose > summary::before{
+  content:"";width:5px;height:5px;border-right:1.5px solid rgba(255,255,255,.4);
+  border-bottom:1.5px solid rgba(255,255,255,.4);transform:rotate(-45deg);
+  transition:transform .15s ease;flex:0 0 auto;margin-left:2px;
+}
+.disclose[open] > summary::before{transform:rotate(45deg);}
+.disclose > summary:hover{background:rgba(255,255,255,.03);color:rgba(255,255,255,.85);}
+.discloseBody{padding:2px 12px 12px;font-size:11.5px;line-height:1.55;color:rgba(255,255,255,.55);}
+.discloseBody p{margin:0 0 8px;}
+.minuteList{padding-left:18px;max-height:220px;overflow:auto;margin-top:6px;
+  font-variant-numeric:tabular-nums;}
+.note{font-size:10px;color:rgba(255,255,255,.34);margin-top:5px;min-height:12px;line-height:1.4;}
+.capField{flex:0 0 auto;display:flex;align-items:center;gap:5px;}
+.capField label{margin:0;font-size:10px;white-space:nowrap;color:rgba(255,255,255,.34);}
+.capField input{width:60px;min-height:40px;text-align:center;font-size:12px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);color:#fff;outline:none;}
+
+/* ── Sidebar shell ── */
+@media(min-width:768px){
+  .desktopSidebar{padding:18px 18px 24px;background:rgba(6,9,16,.99);}
+  .desktopSidebar .sidebarHeader{margin-bottom:0;padding-bottom:0;}
+  .desktopSidebar .sidebarHeader h1{
+    font-size:12px;letter-spacing:.19em;font-weight:700;color:var(--qm-green);line-height:1.3;
+  }
+  .desktopSidebar .sidebarHeader .title-tag{
+    display:block;margin-top:3px;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:rgba(255,255,255,.28);
+  }
+  .desktopSidebar .photoPanel{margin-top:16px;border-top:1px solid rgba(255,255,255,.055);padding-top:12px;}
+}
+.qm-footer-inner{justify-content:flex-start;}
+.qm-footer-site{font-size:9.5px;line-height:1.5;color:rgba(255,255,255,.26);}
+.photoPanelTitle{font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(255,255,255,.34);}
+
+/* ── Legend: what the circle is saying ─────────────────────────────────────
+   Always present, never in the way. Collapsible so a performance can hide it
+   and an exhibition can leave it open. */
+.legend{
+  position:absolute;left:12px;bottom:calc(16px + var(--safe-b));z-index:7;
+  max-width:min(300px,calc(100% - 24px));
+  border:1px solid rgba(255,255,255,.075);border-radius:13px;
+  background:rgba(4,7,14,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  padding:9px 11px;font-size:10.5px;line-height:1.45;color:rgba(255,255,255,.62);
+}
+.legendToggle{
+  all:unset;cursor:pointer;display:block;
+  font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(255,255,255,.34);margin-bottom:7px;
+}
+.legendToggle:hover{color:rgba(255,255,255,.6);}
+.legendToggle:focus-visible{outline:2px solid var(--qm-green);outline-offset:3px;border-radius:3px;}
+.legend.collapsed .legendBody{display:none;}
+.legend.collapsed .legendToggle{margin-bottom:0;}
+.legendRow{display:flex;align-items:flex-start;gap:9px;margin-top:5px;}
+.lgMark{flex:0 0 14px;height:14px;margin-top:1px;position:relative;}
+.lgMark::before{
+  content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  border-radius:50%;
+}
+.lgA::before{width:7px;height:7px;background:rgba(255,255,255,.82);}
+.lgB::before{width:7px;height:7px;background:rgba(255,255,255,.82);
+  box-shadow:0 0 0 3px rgba(4,7,14,.95),0 0 0 4.4px rgba(70,194,210,.95);}
+.lgShared::before{width:13px;height:13px;border:1.8px solid rgba(255,255,255,.5);}
+.lgShared::after{content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;
+  border-radius:50%;background:rgba(255,255,255,.75);transform:translate(-50%,-50%);}
+.lgRing::before{width:13px;height:13px;border:1px dashed rgba(255,255,255,.38);}
+.lgText{flex:1 1 auto;min-width:0;}
+body.demoMode .legend{background:rgba(0,0,0,.62);}
+
+/* ── Small screens ── */
+@media(max-width:767px){
+  .riffCtl{
+    left:10px;right:10px;max-width:none;
+    display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;
+    padding:7px 10px;
+  }
+  .riffTz{
+    grid-column:1 / -1;font-size:9px;letter-spacing:.09em;text-transform:uppercase;
+    color:rgba(255,255,255,.35);
+  }
+  .riffCtl .riffRow{justify-content:space-between;}
+  .riffCtl input[type="time"]{flex:1 1 auto;min-width:0;}
+  .grp{padding:16px 0 6px;}
+  .fldRow.three{grid-template-columns:1fr 1fr;}
+  .fldRow.three .fld:last-child{grid-column:1 / -1;}
+  select,.txt,.btn{min-height:44px;}
+  .iconBtn{flex:0 0 44px;width:44px;}
+  .btn.primary.playPrimary{min-height:50px;}
+  .statgrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .legend.collapsed{right:auto;width:auto;}
+  .legend{
+    left:10px;right:10px;max-width:none;
+    bottom:calc(84px + var(--safe-b));
+    font-size:10px;padding:8px 10px;
+  }
+}
+
+/* Someone who prefers less motion should not be made to watch transitions. */
+@media(prefers-reduced-motion:reduce){
+  .btn,select,.txt,.legendToggle,.disclose > summary::before{transition:none!important;}
+}
 </style>
 </head>
 <body>
@@ -602,7 +791,7 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
       <button class="btn pill small" id="modeRiffBtn" type="button">Riff</button>
     </div>
     <div class="riffCtl" id="riffCtl" hidden>
-      <div style="font-size:11px;color:#d7dce3">Brisbane time (UTC+10)</div>
+      <div class="riffTz">Brisbane time (UTC+10)</div>
       <div class="riffRow"><label for="riffStart">In</label><input id="riffStart" type="time" step="60"></div>
       <div class="riffRow"><label for="riffEnd">Out</label><input id="riffEnd" type="time" step="60"></div>
     </div>
@@ -637,6 +826,17 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
       </div>
     </div>
 
+    <!-- Legend: what the circle is saying -->
+    <div class="legend" id="legend">
+      <button class="legendToggle" id="legendToggle" type="button" aria-expanded="true" aria-controls="legendBody">Key</button>
+      <div class="legendBody" id="legendBody">
+        <div class="legendRow"><span class="lgMark lgA"></span><span class="lgText" id="legendA">Observer A</span></div>
+        <div class="legendRow"><span class="lgMark lgB"></span><span class="lgText" id="legendB">Observer B</span></div>
+        <div class="legendRow"><span class="lgMark lgShared"></span><span class="lgText">Halo — both recorded in the same clock minute</span></div>
+        <div class="legendRow"><span class="lgMark lgRing"></span><span class="lgText" id="legendRank">Colour and distance from centre — taxonomic group</span></div>
+      </div>
+    </div>
+
     <!-- Floating transport (mobile only) -->
     <div class="transportBar" id="transportBar">
       <button class="tBtn tPlay" id="tbPlay" title="Play / Pause">
@@ -659,96 +859,109 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
   <div class="sheet" id="sheet">
     <div class="sheetHandle"></div>
     <div class="sheetInner">
-      <!-- Primary: date + play controls -->
-      <div style="margin-bottom:10px;">
-        <label for="nightSelect" style="margin:0 0 4px">Date</label>
-        <select id="nightSelect" style="font-size:15px;min-height:42px;"></select>
-      </div>
-      <div class="row" style="gap:6px;margin-bottom:12px;">
-        <button class="btn pill" id="playBtn" style="flex:1;min-height:42px;font-size:13px;">Play</button>
-        <select id="voiceModeSel" style="flex:1;min-height:42px;" title="Voice family" aria-label="Voice family"></select>
-        <button class="btn" id="restartBtn" title="Restart" style="flex:0 0 auto;min-height:42px;">↺</button>
-      </div>
 
-      <!-- Ambience -->
-      <div style="margin-bottom:6px;"><label for="ambienceSelect" style="margin:0 0 4px">Ambience</label><select id="ambienceSelect"><option value="none">None</option><option value="spore_cloud">Spore Cloud</option><option value="quiet_beat">Lumen strings</option><option value="silk_thread">Silk thread</option><option value="firefly_field">Firefly field</option><option value="pollen_drift">Pollen drift</option></select></div>
-      <div class="row" style="margin-bottom:2px;"><label for="ambienceVol" style="margin:0">Volume</label><div class="pct" id="ambVolPct">45%</div></div>
-      <input id="ambienceVol" type="range" min="0" max="1" step="0.01" value="0.45"/>
-
-      <!-- Tuning -->
-      <div class="row" style="margin-top:10px;gap:6px;">
-        <div><label for="keySelect">Key</label><select id="keySelect"></select></div>
-        <div><label for="scaleSelect">Scale</label><select id="scaleSelect"></select></div>
-        <div><label for="toneSelect">Tone by</label><select id="toneSelect"></select></div>
-      </div>
-      <div style="margin-top:6px;"><label for="loopLen" style="margin:0 0 4px">Loop length</label><input id="loopLen" type="range" min="2" max="60" step="1" value="19"/></div>
-
-      <!-- Hidden on mobile, visible on desktop -->
-      <div class="row mobileHide" style="gap:6px;margin-top:10px;">
-        <div style="flex:1"><label for="seasonSelect">Season</label><select id="seasonSelect"><option value="all">All</option><option value="summer">Summer (Dec–Feb)</option><option value="autumn">Autumn (Mar–May)</option><option value="winter">Winter (Jun–Aug)</option><option value="spring">Spring (Sep–Nov)</option></select></div>
-      </div>
-      <select id="yearSelect" style="display:none"></select>
-      <div class="section mobileHide" style="margin-top:8px">
-        <h3>Players</h3>
-        <div class="row" style="margin-top:6px;gap:5px">
-          <button class="btn pill small" id="listenBothBtn" style="flex:1">Both</button>
-          <button class="btn pill small" id="listenABtn" style="flex:1">A</button>
-          <button class="btn pill small" id="listenBBtn" style="flex:1">B</button>
-        </div>
-        <div class="playerStats" id="playerNamesHint"></div>
-      </div>
-
-      <!-- Stats (secondary info) -->
-      <div class="statgrid" style="margin-top:12px;">
-        <div class="stat"><div class="k">Obs</div><div class="v" id="statObs">–</div></div>
-        <div class="stat"><div class="k" id="statVoicesLabel">Voices</div><div class="v" id="statOrders">–</div></div>
-        <div class="stat"><div class="k">Taxa</div><div class="v" id="statTaxa">–</div></div>
-        <div class="stat"><div class="k">Loop</div><div class="v" id="statLoop">19s</div></div>
-      </div>
-
-      <details id="sharedMinuteDetails" style="margin-top:10px;font-size:12px;color:#d7dce3">
-        <summary id="sharedMinuteSummary" style="color:#d7dce3;cursor:pointer">Shared minutes: 0</summary>
-        <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
-        <p id="sharedMinuteContext"></p>
-        <ol id="sharedMinuteList" style="padding-left:20px;max-height:220px;overflow:auto"></ol>
-      </details>
-
-      <!-- Remix + Help -->
-      <div class="row" style="gap:6px;margin-top:4px;">
-        <button class="btn pill small" id="remixBtn" title="Remix" style="flex:1">Remix</button>
-        <button class="tBtn" id="helpBtn" type="button" title="Shortcuts" style="width:32px;height:32px;font-size:13px;min-height:0;flex:0 0 auto;">?</button>
-      </div>
-
-      <!-- Import / Export -->
-      <details style="margin-top:10px">
-        <summary>Import records</summary>
-        <div style="margin-top:6px">
-          <div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:5px">iNaturalist username(s)</div>
-          <input id="inatUsers" type="text" placeholder="e.g. lily_kumpe" style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.10);border-radius:8px;background:rgba(255,255,255,.05);color:#fff;font-size:12px;font-family:inherit;box-sizing:border-box"/>
-          <div id="inatTotals" style="font-size:10px;color:rgba(255,255,255,.35);margin-top:3px;min-height:12px"></div>
-          <div class="row" style="margin-top:5px;gap:5px;align-items:center">
-            <button class="btn small" id="inatFetchBtn" style="flex:1">Fetch</button>
-            <div style="display:flex;align-items:center;gap:3px"><label for="inatCap" style="font-size:10px;color:rgba(255,255,255,.30);white-space:nowrap;margin:0">Cap</label><input id="inatCap" type="number" value="5000" min="1" max="5000" step="10" style="width:52px;padding:3px 4px;border:1px solid rgba(255,255,255,.10);border-radius:6px;background:rgba(255,255,255,.05);color:#fff;font-size:11px;text-align:center"/></div>
-            <button class="btn small" id="inatEnrichBtn" style="flex:0 0 auto" disabled>GBIF</button>
+      <!-- ── THE NIGHT ── -->
+      <section class="grp">
+        <h2 class="grpTitle">The night</h2>
+        <div class="fld"><label for="nightSelect">Date</label><select id="nightSelect"></select></div>
+        <div class="fld mobileHide"><label for="seasonSelect">Season</label>
+          <select id="seasonSelect"><option value="all">All</option><option value="summer">Summer (Dec–Feb)</option><option value="autumn">Autumn (Mar–May)</option><option value="winter">Winter (Jun–Aug)</option><option value="spring">Spring (Sep–Nov)</option></select></div>
+        <select id="yearSelect" style="display:none"></select>
+        <div class="fld mobileHide"><label id="listenLabel">Listening to</label>
+          <div class="segmented" role="group" aria-labelledby="listenLabel">
+            <button class="btn seg" id="listenBothBtn" type="button">Both</button>
+            <button class="btn seg" id="listenABtn" type="button">A</button>
+            <button class="btn seg" id="listenBBtn" type="button">B</button>
           </div>
-          <div id="inatStatus" style="font-size:10px;color:rgba(255,255,255,.35);margin-top:3px;min-height:12px"></div>
+          <div class="playerStats" id="playerNamesHint"></div>
         </div>
-        <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.04)">
-          <div class="row" style="gap:5px">
-            <label class="btn small" style="flex:1;text-align:center;cursor:pointer">Import CSV<input id="csvFile" type="file" accept=".csv,text/csv" style="display:none"/></label>
-            <button class="btn small" id="loadDemoBtn" style="flex:1">Load demo</button>
+      </section>
+
+      <!-- ── TRANSPORT ── -->
+      <section class="grp">
+        <h2 class="grpTitle">Play</h2>
+        <button class="btn primary playPrimary" id="playBtn">Play</button>
+        <div class="fld"><label for="voiceModeSel">Voice family</label>
+          <select id="voiceModeSel" title="Voice family" aria-label="Voice family"></select></div>
+        <div class="btnRow">
+          <button class="btn" id="remixBtn" type="button" title="Remix (R)">Remix</button>
+          <button class="btn iconBtn" id="restartBtn" type="button" title="Restart" aria-label="Restart">↺</button>
+          <button class="btn iconBtn" id="helpBtn" type="button" title="Shortcuts" aria-label="Keyboard and touch shortcuts">?</button>
+        </div>
+      </section>
+
+      <!-- ── TUNING ── -->
+      <section class="grp">
+        <h2 class="grpTitle">Tuning</h2>
+        <div class="fldRow three">
+          <div class="fld"><label for="keySelect">Key</label><select id="keySelect"></select></div>
+          <div class="fld"><label for="scaleSelect">Scale</label><select id="scaleSelect"></select></div>
+          <div class="fld"><label for="toneSelect">Tone by</label><select id="toneSelect"></select></div>
+        </div>
+        <div class="fld"><div class="labelRow"><label for="loopLen">Loop length</label><span class="pct" id="loopLenPct">19s</span></div>
+          <input id="loopLen" type="range" min="2" max="60" step="1" value="19"/></div>
+      </section>
+
+      <!-- ── ATMOSPHERE ── -->
+      <section class="grp">
+        <h2 class="grpTitle">Atmosphere</h2>
+        <div class="fld"><label for="ambienceSelect">Ambience</label>
+          <select id="ambienceSelect"><option value="none">None</option><option value="spore_cloud">Spore Cloud</option><option value="quiet_beat">Lumen strings</option><option value="silk_thread">Silk thread</option><option value="firefly_field">Firefly field</option><option value="pollen_drift">Pollen drift</option></select></div>
+        <div class="fld"><div class="labelRow"><label for="ambienceVol">Volume</label><span class="pct" id="ambVolPct">45%</span></div>
+          <input id="ambienceVol" type="range" min="0" max="1" step="0.01" value="0.45"/></div>
+      </section>
+
+      <!-- ── WHAT YOU ARE HEARING ── -->
+      <section class="grp">
+        <h2 class="grpTitle">What you are hearing</h2>
+        <div class="statgrid">
+          <div class="stat"><div class="k">Records</div><div class="v" id="statObs">–</div></div>
+          <div class="stat"><div class="k" id="statVoicesLabel">Voices</div><div class="v" id="statOrders">–</div></div>
+          <div class="stat"><div class="k">Taxa</div><div class="v" id="statTaxa">–</div></div>
+          <div class="stat"><div class="k">Loop</div><div class="v" id="statLoop">19s</div></div>
+        </div>
+        <details id="sharedMinuteDetails" class="disclose">
+          <summary id="sharedMinuteSummary">Shared minutes: 0</summary>
+          <div class="discloseBody">
+            <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
+            <p id="sharedMinuteContext"></p>
+            <ol id="sharedMinuteList" class="minuteList"></ol>
           </div>
-        </div>
-        <div id="csvImportStatus" role="status" style="font-size:12px;color:#d7dce3;margin-top:6px"></div>
-      </details>
-      <details style="margin-top:8px">
-        <summary>Export</summary>
-        <div class="row" style="margin-top:6px;gap:5px">
-          <button class="btn small" id="exportZipBtn" style="flex:1" disabled>Export ZIP</button>
-          <button class="btn small" id="exportRingtoneBtn" style="flex:1" disabled>Ringtone</button>
-        </div>
-        <div id="exportStatus" style="font-size:10px;color:rgba(255,255,255,.38);margin-top:3px;display:none"></div>
-      </details>
+        </details>
+      </section>
+
+      <!-- ── DATA ── -->
+      <section class="grp">
+        <h2 class="grpTitle">Records</h2>
+        <details class="disclose">
+          <summary>Import</summary>
+          <div class="discloseBody">
+            <div class="fld"><label for="inatUsers">iNaturalist username(s)</label>
+              <input id="inatUsers" type="text" class="txt" placeholder="e.g. lily_kumpe"/>
+              <div class="note" id="inatTotals"></div></div>
+            <div class="btnRow">
+              <button class="btn" id="inatFetchBtn" type="button">Fetch</button>
+              <div class="capField"><label for="inatCap">Cap</label><input id="inatCap" type="number" value="5000" min="1" max="5000" step="10"/></div>
+              <button class="btn" id="inatEnrichBtn" type="button" disabled>GBIF</button>
+            </div>
+            <div class="note" id="inatStatus"></div>
+            <div class="btnRow spaced">
+              <label class="btn asLabel">Import CSV<input id="csvFile" type="file" accept=".csv,text/csv" hidden/></label>
+              <button class="btn" id="loadDemoBtn" type="button">Load demo</button>
+            </div>
+          </div>
+        </details>
+        <details class="disclose">
+          <summary>Export</summary>
+          <div class="discloseBody">
+            <div class="btnRow">
+              <button class="btn" id="exportZipBtn" type="button" disabled>Export ZIP</button>
+              <button class="btn" id="exportRingtoneBtn" type="button" disabled>Ringtone</button>
+            </div>
+            <div class="note" id="exportStatus" style="display:none"></div>
+          </div>
+        </details>
+      </section>
     </div>
   </div>
 
@@ -785,7 +998,7 @@ body.galleryFsActive .galleryGestureIndicator{display:block;}
       <a class="thumbInfoLink" id="thumbInfoLink" href="#" target="_blank" rel="noopener" style="display:none">Open</a>
     </div>
     <div class="galleryGestureIndicator" id="galleryGestureIndicator"></div>
-    <div class="qm-footer"><div class="qm-footer-inner"><div class="qm-footer-brand"><span class="qm-footer-logo">THE MOTH ORCHESTRA</span><span class="qm-footer-site">Biodiversity Sonification</span></div><div class="qm-footer-links">Data from <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a></div></div></div>
+    <div class="qm-footer"><div class="qm-footer-inner"><span class="qm-footer-site">Observations from <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a>, licensed by their observers.</span></div></div>
   </div>
 
   <!-- ════ DESKTOP SIDEBAR (≥768px only) ════ -->
@@ -4960,7 +5173,17 @@ function updateStats(totalInNight){
     const tl = toneByLabel();
     lbl.textContent = tl.charAt(0).toUpperCase() + tl.slice(1) + " voices";
   }
+  updateLegend();
   updateCornerStatus();
+}
+
+// The legend names the two people and the rank actually selected, so what the
+// circle means is readable without anyone explaining it.
+function updateLegend(){
+  const a = $("legendA"), b = $("legendB"), rank = $("legendRank");
+  if(a) a.textContent = state.userAName ? `${state.userAName} \u2014 plain dot` : "Observer A \u2014 plain dot";
+  if(b) b.textContent = state.userBName ? `${state.userBName} \u2014 outlined dot` : "Observer B \u2014 outlined dot";
+  if(rank) rank.textContent = `Colour and distance from centre \u2014 ${toneByLabel()} group`;
 }
 function updateExportButtons(){
   const has = state.sequencer.events.length>0;
@@ -5318,6 +5541,26 @@ function fitCanvasFast(cvs){
 }
 
 // Vertical offset to lift the ring above the transport bar on touch devices
+/* ── Ring geometry ──────────────────────────────────────────────────────────
+   One place that decides where a note sits, so drawing and hit-testing cannot
+   drift apart. Voice groups are spread between RING_INNER and RING_OUTER; a
+   single group sits on the OUTER ring rather than collapsing to the middle,
+   which is what used to make the circle look small and leave the shared-minute
+   markers floating unattached in empty space. Shared minutes ride just outside
+   the arrivals so the halo reads as enclosing the night. */
+/* The circle is the instrument, so it should take the room it is given. On a
+   wide screen height is the constraint and this is the previous 0.35 of the
+   short side exactly; on a tall narrow phone the width becomes the constraint
+   and the ring grows instead of staying pinned to the old short-side rule. */
+function baseRadius(w, h){ return Math.min(w * 0.42, h * 0.35); }
+
+const RING_INNER = 0.58, RING_OUTER = 0.95, RING_SPECIAL = 1.04, RING_SWEEP = 1.09;
+function ringRadius(baseR, idx, groupCount){
+  const groups = Math.max(1, groupCount);
+  const spread = groups === 1 ? 1 : (idx / (groups - 1));
+  return baseR * (RING_INNER + (RING_OUTER - RING_INNER) * spread);
+}
+
 function ringOffsetY(){
   return (window.innerWidth < 1024) ? Math.round(28 * canvasPixelRatio()) : 0;
 }
@@ -5347,7 +5590,7 @@ function drawFrame(){
   }
   const {w,h,dpr} = fitCanvasFast(canvas);
   const cx = w/2, cy = h/2 - ringOffsetY();
-  const baseR = Math.min(w,h)*0.35;
+  const baseR = baseRadius(w, h);
 
   // background (cached to offscreen canvas)
   ctx.globalAlpha = 1;
@@ -5372,7 +5615,7 @@ function drawFrame(){
   ctx.globalAlpha = 0.9;
   ctx.lineWidth = (state.demoMode ? 1.8 : 1.2)*dpr;
   for(let i=0;i<voices.length;i++){
-    const rr = baseR*(0.55 + 0.38*(i/Math.max(1,voices.length-1)));
+    const rr = ringRadius(baseR, i, voices.length);
     ctx.strokeStyle = _ringColor;
     ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2); ctx.stroke();
   }
@@ -5400,9 +5643,9 @@ function drawFrame(){
   const events = state.sequencer.events;
   for(const e of events){
     const idx = voiceIndex.get(e.voiceKey || e.order) ?? 0;
-    let rr = baseR*(0.55 + 0.38*(idx/Math.max(1,voices.length-1)));
+    let rr = ringRadius(baseR, idx, voices.length);
     if(e.isSpecial){
-      rr = baseR*0.93;
+      rr = baseR*RING_SPECIAL;
     } else if(e.user === "B"){
       rr += 10*dpr;
     }
@@ -5469,9 +5712,9 @@ function drawFrame(){
     state.visAbsoluteSec = absoluteSec;
     for(const {event:e} of crossed){
         const idx = voiceIndex.get(e.voiceKey || e.order) ?? 0;
-        let rr = baseR*(0.55 + 0.38*(idx/Math.max(1,voices.length-1)));
+        let rr = ringRadius(baseR, idx, voices.length);
     if(e.isSpecial){
-      rr = baseR*0.93;
+      rr = baseR*RING_SPECIAL;
     } else if(e.user === "B"){
       rr += 10*dpr;
     }
@@ -5646,11 +5889,11 @@ function drawFrame(){
   ctx.lineWidth = (state.demoMode ? 2.4 : 1.6)*dpr;
   ctx.beginPath();
   ctx.moveTo(cx,cy);
-  ctx.lineTo(cx+Math.cos(thetaHead)*(baseR*0.98), cy+Math.sin(thetaHead)*(baseR*0.98));
+  ctx.lineTo(cx+Math.cos(thetaHead)*(baseR*RING_SWEEP), cy+Math.sin(thetaHead)*(baseR*RING_SWEEP));
   ctx.stroke();
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   ctx.beginPath();
-  ctx.arc(cx+Math.cos(thetaHead)*(baseR*0.98), cy+Math.sin(thetaHead)*(baseR*0.98), (state.demoMode ? 4.5 : 3.2)*dpr, 0, Math.PI*2);
+  ctx.arc(cx+Math.cos(thetaHead)*(baseR*RING_SWEEP), cy+Math.sin(thetaHead)*(baseR*RING_SWEEP), (state.demoMode ? 4.5 : 3.2)*dpr, 0, Math.PI*2);
   ctx.fill();
   ctx.restore();
   // title overlay removed
@@ -5754,7 +5997,7 @@ canvas.addEventListener("mousedown", (ev) => {
     for(const e of state.sequencer.events){
       if(e.isEcho || e.isSpecial) continue;
       const idx = voiceIndex.get(e.voiceKey || e.order) ?? 0;
-      let rr = radius * (0.55 + 0.38 * (idx / Math.max(1, voices.length - 1)));
+      let rr = ringRadius(radius, idx, voices.length);
       if(e.user === "B") rr += 10 * dpr;
       const a = (e.atSec / state.loopLen) * Math.PI * 2 - Math.PI / 2;
       const ex = cx + Math.cos(a) * rr;
@@ -5822,7 +6065,7 @@ canvas.addEventListener("touchstart", (ev) => {
     for(const e of state.sequencer.events){
       if(e.isEcho || e.isSpecial) continue;
       const idx = voiceIndex.get(e.voiceKey || e.order) ?? 0;
-      let rr = radius * (0.55 + 0.38 * (idx / Math.max(1, voices.length - 1)));
+      let rr = ringRadius(radius, idx, voices.length);
       if(e.user === "B") rr += 10 * dpr;
       const a = (e.atSec / state.loopLen) * Math.PI * 2 - Math.PI / 2;
       const ex = cx + Math.cos(a) * rr;
@@ -5877,7 +6120,7 @@ canvas.addEventListener("touchend", (ev) => {
     const candidates = state.sequencer.events.filter(e=>!e.isEcho && !e.isSpecial);
     for(const e of candidates){
       const idx = voiceIndex.get(e.voiceKey || e.order) ?? 0;
-      let rr = radius*(0.55 + 0.38*(idx/Math.max(1,voices.length-1)));
+      let rr = ringRadius(radius, idx, voices.length);
       if(e.user === "B") rr += 10*dpr;
       const a = (e.atSec/state.loopLen)*Math.PI*2 - Math.PI/2;
       const ex = cx + Math.cos(a)*rr;
@@ -5907,7 +6150,7 @@ canvas.addEventListener("click", (ev)=>{
 
   const {w,h} = fitCanvasToDisplay(canvas);
   const cx = w/2, cy = h/2 - ringOffsetY();
-  const radius = Math.min(w,h)*0.35;
+  const radius = baseRadius(w, h);
 
   const voices = (state.sequencer.meta.voiceList && state.sequencer.meta.voiceList.length) ? state.sequencer.meta.voiceList : (state.availableVoices || state.availableOrders);
   const voiceIndex = new Map(voices.map((v,i)=>[v,i]));
@@ -5916,7 +6159,7 @@ let best = null, bestDist = Infinity;
 
   for(const e of candidates){
     const idx = voiceIndex.get(e.voiceKey || e.order) ?? 0;
-    let rr = radius*(0.55 + 0.38*(idx/Math.max(1,voices.length-1)));
+    let rr = ringRadius(radius, idx, voices.length);
     if(e.user === "B"){
       rr += 10*dpr;
     }
@@ -6289,13 +6532,29 @@ function initUI(){
   // loop length
   $("loopLen").value = state.loopLen;
   $("statLoop").textContent = `${state.loopLen}s`;
+  if($("loopLenPct")) $("loopLenPct").textContent = `${state.loopLen}s`;
   updateCornerStatus();
 
   $("loopLen").addEventListener("input", (e)=>{
     state.loopLen = parseInt(e.target.value,10);
     $("statLoop").textContent = `${state.loopLen}s`;
+    if($("loopLenPct")) $("loopLenPct").textContent = `${state.loopLen}s`;
     updateCornerStatus();
   });
+  const legendEl = $("legend"), legendBtn = $("legendToggle");
+  if(legendEl && legendBtn){
+    // A phone at the moth sheet needs the canvas; a screen an audience reads
+    // needs the key. Either way it is one tap away.
+    if(window.innerWidth < 768){
+      legendEl.classList.add("collapsed");
+      legendBtn.setAttribute("aria-expanded", "false");
+    }
+    legendBtn.addEventListener("click", ()=>{
+      const collapsed = legendEl.classList.toggle("collapsed");
+      legendBtn.setAttribute("aria-expanded", String(!collapsed));
+    });
+  }
+
   $("loopLen").addEventListener("change", ()=>{
     hardResetPlayback("loopLen");
     rebuildDerived();

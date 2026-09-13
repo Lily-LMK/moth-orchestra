@@ -65,3 +65,77 @@ interface pass with Lily's eyes on it.
 
 Precision policy, the coarse date diamond, observer sound identity, composition
 save/reopen and gap shortening all remain as the roadmap has them.
+
+---
+
+# Interface pass — same day
+
+Lily's brief: one interface that resolves at three sizes rather than shrinking
+— an exhibition screen read at a distance, her laptop while she performs it,
+and a phone held one-handed in the dark at the moth sheet. Sound and score
+untouched; 155 pass, zero fail, throughout.
+
+## The circle
+
+`ringRadius()` and `baseRadius()` are now the single source of ring geometry.
+The formula was previously written out in six places across drawing and
+hit-testing, which is how they were free to disagree.
+
+Two deliberate visual changes, both departures from the previous convention
+and both recorded here rather than made quietly:
+
+- Voice groups now spread between 0.58 and 0.95 of the base radius, and a
+  **single** group sits on the outer ring instead of collapsing to 0.55. At
+  Class rank on the demo night there is one group, so every arrival used to
+  land on a small inner ring while the shared-minute markers sat at a fixed
+  0.93 far outside it — reading as unrelated debris rather than as the moment
+  two people saw something in the same minute.
+- Shared minutes now ride at 1.04, just outside the arrivals, so the halo
+  reads as enclosing the night. The sweep line was extended to 1.09 to pass
+  beyond them.
+
+The base radius is `min(w*0.42, h*0.35)`. On a wide screen height is the
+constraint and this is exactly the previous rule; on a portrait phone the
+width becomes the constraint and the ring grows by about a sixth instead of
+staying pinned to the short-side rule.
+
+## The legend
+
+A new, always-available key names the two observers, the plain and outlined
+dot, the shared-minute halo, and the colour-and-distance rule, using the rank
+actually selected. Its swatches are neutral because the app colours dots by
+taxonomic group — an earlier draft of this legend showed fixed colours and was
+simply lying about what was on screen. Open by default at 768px and above
+where an audience reads it; collapsed to a one-word tab on a phone, one tap
+from open.
+
+This is part of Milestone 3, arriving early because it is also what most made
+the screen look accidental.
+
+## The control column
+
+Rebuilt as six named groups — the night, play, tuning, atmosphere, what you
+are hearing, records — in the order the decisions are actually made. Every
+inline style in that markup is gone; a design layer at the end of the
+stylesheet carries it. Play is a primary action in the QM green rather than
+another grey rectangle among nine. Both/A/B is a real segmented control with
+the observer accent under the active side. Loop length gained the value
+readout the volume slider already had. Stats are tabular and legible. The
+wordmark is no longer printed twice in one column.
+
+Riff's window controls and the Full screen button no longer occupy the same
+corner, and on a phone the window is a compact two-up block instead of a
+130px stack sitting over the mode pills.
+
+Focus rings, 44px touch targets on small screens, and a reduced-motion rule
+were added along the way.
+
+## Verified, and not
+
+Rendered and measured in a real browser at 1920x1080, 1440x900 and 390x844:
+no element overlap, no horizontal scroll, legend and readouts populating from
+live state, no console or page errors. That is layout evidence.
+
+Not verified: any of this on physical hardware, on the actual exhibition
+display, or by anyone's ear. No listening review was performed. The gallery
+and Present mode were not re-examined under the new layer.
