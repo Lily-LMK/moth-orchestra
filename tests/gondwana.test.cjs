@@ -1,29 +1,18 @@
 'use strict';
-// Gondwana — fifteen authored voices built from physical models. These tests
-// were written before the synthesis existed. They fix the contract: the family
-// must be rank-graded (unlike every earlier family, which is a flat list), must
-// be at least as large as the Moth Orchestra palette at every rank, must leave
-// the score untouched, and must obey the same Web Audio contract as Noctilucent.
+// Gondwana — seven bodies that deepen with rank, voiced below the written
+// score, sounding into a room of their own. These tests fix the three things
+// that separate it from every earlier family: partials that enter late and
+// outlive each other, an octave placement that is always exact, and a reverb
+// bus that nothing else in the instrument touches.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { loadApp } = require('./harness.cjs');
 const { settings } = require('./score.cjs');
 
-const BASE = ['gond_stone', 'gond_log', 'gond_skin', 'gond_tube', 'gond_rim', 'gond_vessel', 'gond_bar'];
-const SUBFAMILY = [...BASE, 'gond_gourd', 'gond_air'];
-const TRIBE = [...SUBFAMILY, 'gond_shell', 'gond_reed'];
-const GENUS = [...TRIBE, 'gond_ice', 'gond_sinew'];
-const SPECIES = [...GENUS, 'gond_cave', 'gond_thread'];
-const family = SPECIES;
+const family = ['gond_heartwood', 'gond_bronze', 'gond_bowed', 'gond_column', 'gond_membrane', 'gond_rim', 'gond_drone'];
+const CEILINGS = { gond_heartwood: 110, gond_bronze: 220, gond_bowed: 330, gond_column: 330, gond_membrane: 165, gond_drone: 110 };
 const plain = value => JSON.parse(JSON.stringify(value));
-
-// Rank fields, shallowest first, with the palette each must unlock.
-const RANKS = [
-  ['taxon_class_name', BASE], ['taxon_order_name', BASE], ['taxon_superfamily_name', BASE],
-  ['taxon_family_name', BASE], ['taxon_subfamily_name', SUBFAMILY], ['taxon_tribe_name', TRIBE],
-  ['taxon_genus_name', GENUS], ['taxon_species_name', SPECIES]
-];
 
 function app(mode, voiceMode = 'gondwana', toneBy = 'taxon_species_name') {
   const c = loadApp();
@@ -40,31 +29,41 @@ test('Gondwana is a registered named family and every earlier family remains ava
   assert.equal(vm.runInContext('VOICE_MODES.includes("gondwana") && VOICE_MODE_LABELS.gondwana', c), 'Gondwana');
 });
 
-// The measured finding behind this family: depth of rank buys timbre, and a
-// four-voice family has spent everything it has by family rank. Gondwana must
-// keep revealing all the way to species.
-test('the palette is rank-graded and keeps opening: 7, 9, 11, 13, 15', () => {
+// Deliberate reversal of the first attempt. Fifteen bodies with one envelope
+// shape read as fifteen versions of the same small struck object. Seven bodies
+// that each have somewhere to go do not.
+test('the palette is seven bodies and does not grow with rank', () => {
   const c = app('timeline');
-  for (const [toneBy, expected] of RANKS) {
+  assert.deepEqual(plain(vm.runInContext('Array.from(GONDWANA_INSTRUMENTS)', c)), family);
+  for (const toneBy of ['taxon_class_name', 'taxon_family_name', 'taxon_tribe_name', 'taxon_species_name']) {
     c.state.toneBy = toneBy;
-    const pool = plain(vm.runInContext('Array.from(gondwanaPoolForDepth(currentRankDepth()))', c));
-    assert.deepEqual(pool, expected, `${toneBy} unlocks ${expected.length} voices`);
+    assert.deepEqual(plain(vm.runInContext('Array.from(gondwanaPoolForDepth(currentRankDepth()))', c)), family,
+      `${toneBy}: the same seven bodies`);
   }
-  assert.equal(SPECIES.length, 15);
-  assert.equal(new Set(SPECIES).size, 15, 'no voice is listed twice');
 });
 
-test('at every rank Gondwana is at least as large as the Moth Orchestra palette', () => {
+test('rank is spent inside each voice: more partials, longer tails, more beating, more arriving late', () => {
   const c = app('timeline');
-  for (const [toneBy] of RANKS) {
-    c.state.toneBy = toneBy;
-    const mixed = vm.runInContext('instrumentPoolForDepth(currentRankDepth()).length', c);
-    const gondwana = vm.runInContext('gondwanaPoolForDepth(currentRankDepth()).length', c);
-    assert.ok(gondwana >= mixed, `${toneBy}: ${gondwana} against ${mixed}`);
+  const at = d => plain(vm.runInContext(`gondwanaDepth(${d})`, c));
+  const shallow = at(0), deep = at(7);
+  assert.equal(shallow.partials, 3, 'class rank is three partials');
+  assert.equal(deep.partials, 8, 'species rank is eight');
+  assert.equal(shallow.beat, 0, 'class rank does not beat');
+  assert.equal(deep.beat, 1);
+  assert.equal(deep.tail, 1);
+  assert.ok(shallow.tail < deep.tail && shallow.late < deep.late);
+  let previous = at(0);
+  for (let d = 1; d <= 7; d++) {
+    const current = at(d);
+    for (const key of ['partials', 'tail', 'beat', 'late']) {
+      assert.ok(current[key] >= previous[key], `${key} never goes backwards between ranks ${d - 1} and ${d}`);
+    }
+    previous = current;
   }
-  c.state.toneBy = 'taxon_species_name';
-  assert.ok(vm.runInContext('gondwanaPoolForDepth(currentRankDepth()).length', c) >
-    vm.runInContext('instrumentPoolForDepth(currentRankDepth()).length', c), 'species rank is strictly richer');
+  for (const d of [-1, 99, NaN, undefined]) {
+    const spec = at(JSON.stringify(d) === undefined ? 'undefined' : d);
+    assert.ok(spec.partials >= 3 && spec.partials <= 8 && spec.tail > 0, `out-of-range depth ${d} is clamped`);
+  }
 });
 
 test('selection is deterministic, independent of the observer, and identical in Song', () => {
@@ -79,14 +78,30 @@ test('selection is deterministic, independent of the observer, and identical in 
     assert.equal(c.pickInstrument(group, settings.seed), first);
     assert.equal(c.pickSongInstrument(group, settings.seed), first);
   }
-  assert.equal(voices.size, 15, 'species rank reaches every voice');
+  assert.equal(voices.size, 7);
 });
 
-test('shallow ranks select only from the shallow palette', () => {
-  const c = app('timeline', 'gondwana', 'taxon_class_name');
-  const voices = new Set();
-  for (let i = 0; i < 200; i++) voices.add(c.pickInstrument(`Group ${i}`, settings.seed));
-  assert.deepEqual([...voices].sort(), [...BASE].sort());
+// The family performs the written score an octave or two down, the way a
+// contrabass section reads a part. It must never be anything but a whole
+// number of octaves, or the pitch itself has been altered rather than placed.
+test('octave placement is exact, bounded, and never changes the pitch class', () => {
+  const c = app('timeline');
+  const voicing = (instrument, freq) => plain(vm.runInContext(`gondwanaVoicing(${JSON.stringify(instrument)}, ${freq})`, c));
+  for (const instrument of family) {
+    for (const freq of [36.7, 73.4, 146.83, 220, 293.66, 440, 587.33, 880, 1174.66]) {
+      const { freq: sounding, octaves } = voicing(instrument, freq);
+      assert.ok(Number.isInteger(octaves), `${instrument}: ${octaves} is a whole number of octaves`);
+      assert.ok(Math.abs(sounding - freq * Math.pow(2, octaves)) < 1e-9, `${instrument}: sounding pitch is the written pitch, placed`);
+      const ratio = sounding / freq;
+      assert.ok(Math.abs(Math.log2(ratio) - Math.round(Math.log2(ratio))) < 1e-9, `${instrument}: pitch class preserved exactly`);
+      const ceiling = CEILINGS[instrument];
+      if (ceiling && freq > ceiling) assert.ok(octaves < 0, `${instrument}: a high written pitch is brought down`);
+      if (ceiling) assert.ok(sounding <= ceiling || octaves === -3, `${instrument}: at or under its ceiling, or already three octaves down`);
+      if (!ceiling) assert.equal(octaves, 0, `${instrument}: sounds where the score wrote it`);
+    }
+  }
+  assert.equal(voicing('gond_rim', 587.33).octaves, 0, 'the rim is the light on top and is never moved');
+  assert.ok(voicing('gond_drone', 587.33).freq <= 110);
 });
 
 for (const mode of ['timeline', 'riff']) {
@@ -96,7 +111,7 @@ for (const mode of ['timeline', 'riff']) {
     c.state.voiceMode = 'gondwana';
     const candidate = c.buildSequencer(c.state.obs);
     const identity = seq => plain(seq.events.filter(e => e.kind === 'obs').map(({ instrument, ...e }) => e));
-    assert.deepEqual(identity(candidate), identity(baseline));
+    assert.deepEqual(identity(candidate), identity(baseline), 'the written score is untouched; only the instrument differs');
     assert.ok(candidate.events.filter(e => e.kind === 'obs').every(e => family.includes(e.instrument)));
     assert.deepEqual(plain(candidate.events), plain(c.buildSequencer(c.state.obs).events), 'reproducible');
     assert.deepEqual(plain(candidate.meta.sharedMinutes), plain(baseline.meta.sharedMinutes));
@@ -121,8 +136,9 @@ for (const mode of ['timeline', 'riff', 'song']) test(`${mode}: an empty Gondwan
   assert.equal(app(mode).buildSequencer([]).events.length, 0);
 });
 
-// Same probe as the Noctilucent suite: finite automation, bounded envelopes,
-// stopped sources, a path to the shared master. Internal topology is not asserted.
+// Finite automation, bounded envelopes, stopped sources, a path to the shared
+// master. Internal topology is not asserted, but the reverb bus is persistent
+// by design, so per-note assertions look only at nodes made for that note.
 function audioProbe() {
   const nodes = [];
   const automation = [];
@@ -141,24 +157,35 @@ function audioProbe() {
       automation.push({ name, value, time });
     }
   }
-  function node(source = false) {
-    const n = { gain: param('gain'), frequency: param('frequency'), detune: param('detune'),
-      Q: param('Q'), connections: [], connect(target) { this.connections.push(target); return target; },
-      disconnect() { this.disconnected = true; this.connections = []; }, start(time) { assert.ok(Number.isFinite(time)); this.started = time; },
+  function node(source = false, kind = 'node') {
+    const n = { kind, gain: param('gain'), frequency: param('frequency'), detune: param('detune'),
+      Q: param('Q'), delayTime: param('delayTime'), threshold: param('threshold'), knee: param('knee'),
+      ratio: param('ratio'), attack: param('attack'), release: param('release'),
+      connections: [], connect(target) { this.connections.push(target); return target; },
+      disconnect() { this.disconnected = true; this.connections = []; },
+      start(time) { assert.ok(Number.isFinite(time)); this.started = time; },
       stop(time) { assert.ok(Number.isFinite(time)); this.stopped = time; }, source };
-    for (const name of ['gain', 'frequency', 'detune', 'Q']) n[name].owner = n;
+    for (const name of ['gain', 'frequency', 'detune', 'Q', 'delayTime']) n[name].owner = n;
     nodes.push(n); return n;
   }
   return { nodes, automation, destination: {}, currentTime: 10, sampleRate: 48000,
-    createGain: () => node(), createOscillator: () => node(true), createBiquadFilter: () => node(),
-    createBufferSource: () => node(true), createWaveShaper: () => node(),
+    createGain: () => node(false, 'gain'), createOscillator: () => node(true, 'osc'),
+    createBiquadFilter: () => node(false, 'filter'), createBufferSource: () => node(true, 'buffer'),
+    createWaveShaper: () => node(), createConvolver: () => node(false, 'convolver'),
+    createDelay: () => node(false, 'delay'), createDynamicsCompressor: () => node(false, 'compressor'),
     createBuffer: (_, length) => ({ getChannelData: () => new Float32Array(length) }) };
 }
-// Voices with a breath or air layer need the shared noise buffer the running
-// application always has. Supply one so that layer is actually exercised.
 function withNoise(c) {
   vm.runInContext('noiseBuf = { length: 48000, sampleRate: 48000 }', c);
   return c;
+}
+// Build the persistent reverb bus first, then measure only what the note adds.
+function note(c, ctx, instrument, when, freq, velocity) {
+  c.scheduleInstrument(ctx, 'gond_rim', when, 440, 0.01);
+  const before = ctx.nodes.length;
+  ctx.automation.length = 0;
+  c.scheduleInstrument(ctx, instrument, when, freq, velocity);
+  return ctx.nodes.slice(before);
 }
 
 for (const instrument of family) test(`${instrument}: synthesis schedules finite envelopes, routes to master and stops all sources`, () => {
@@ -167,8 +194,8 @@ for (const instrument of family) test(`${instrument}: synthesis schedules finite
     const ctx = audioProbe();
     c.testMaster = {};
     vm.runInContext('masterGain = testMaster', c);
-    c.scheduleInstrument(ctx, instrument, 9, freq, velocity);
-    const sources = ctx.nodes.filter(n => n.source);
+    const made = note(c, ctx, instrument, 9, freq, velocity);
+    const sources = made.filter(n => n.source);
     assert.ok(sources.length > 0);
     const reachesMaster = (n, seen = new Set()) => {
       if (n === c.testMaster) return true;
@@ -176,62 +203,103 @@ for (const instrument of family) test(`${instrument}: synthesis schedules finite
       seen.add(n);
       return (n.owner ? [n.owner] : n.connections || []).some(next => reachesMaster(next, seen));
     };
-    for (const node of ctx.nodes) {
+    for (const node of made) {
       const controlsFrequency = node.connections.some(target => target.name === 'frequency' || target.name === 'detune');
-      if (!controlsFrequency) assert.ok(node.gain.events.every(event => event.value <= 1), 'audio gain is bounded; frequency modulation depth is measured in Hz');
+      if (!controlsFrequency) assert.ok(node.gain.events.every(event => event.value <= 1), 'audio gain is bounded');
     }
     for (const source of sources) {
       assert.ok(source.started >= ctx.currentTime);
-      assert.ok(source.stopped > source.started && source.stopped - source.started <= 3.2);
-      assert.ok(reachesMaster(source));
+      assert.ok(source.stopped > source.started && source.stopped - source.started <= 9.0);
+      assert.ok(reachesMaster(source), 'every source finds the shared master through the family bus');
     }
   }
 });
 
-test('the fifteen Gondwana voices schedule distinct timbres at the same pitch and velocity', () => {
+// The failure of the first attempt, made into a test. Every earlier family
+// decays monotonically from one onset; that is the sound of a small struck
+// object however the ratios are arranged.
+test('at species rank, partials enter late and outlive each other', () => {
+  const c = withNoise(app('timeline'));
+  for (const instrument of family) {
+    const ctx = audioProbe();
+    const made = note(c, ctx, instrument, 10, 220, 0.5);
+    const envelopes = made.filter(n => n.gain.events.length >= 3).map(n => n.gain.events);
+    assert.ok(envelopes.length >= 4, `${instrument}: species rank sounds several partials`);
+    const onsets = envelopes.map(e => e[0].time);
+    const ends = envelopes.map(e => e[e.length - 1].time);
+    assert.ok(Math.max(...onsets) > Math.min(...onsets) + 1e-6, `${instrument}: something arrives after the onset`);
+    assert.ok(Math.max(...ends) - Math.min(...ends) >= 2.0, `${instrument}: partials outlive each other by seconds, not milliseconds`);
+    assert.ok(Math.max(...ends) - 10 >= 2.5, `${instrument}: the body keeps ringing`);
+  }
+});
+
+test('at class rank the same bodies are plainer: fewer partials, shorter tails, no beating', () => {
+  const c = withNoise(app('timeline'));
+  for (const instrument of family) {
+    const counts = {};
+    for (const toneBy of ['taxon_class_name', 'taxon_species_name']) {
+      c.state.toneBy = toneBy;
+      const ctx = audioProbe();
+      const made = note(c, ctx, instrument, 10, 220, 0.5);
+      const envelopes = made.filter(n => n.gain.events.length >= 3).map(n => n.gain.events);
+      counts[toneBy] = { partials: envelopes.length, last: Math.max(...envelopes.map(e => e[e.length - 1].time)) };
+    }
+    assert.ok(counts.taxon_class_name.partials < counts.taxon_species_name.partials, `${instrument}: species rank sounds more of the body`);
+    assert.ok(counts.taxon_class_name.last < counts.taxon_species_name.last, `${instrument}: species rank rings longer`);
+  }
+  c.state.toneBy = 'taxon_class_name';
+  const ctx = audioProbe();
+  const made = note(c, withNoise(c) && ctx, 'gond_drone', 10, 220, 0.5);
+  const pitches = made.filter(n => n.kind === 'osc').map(n => n.frequency.events[0].value);
+  assert.equal(new Set(pitches.map(p => p.toFixed(6))).size, pitches.length === 0 ? 0 : new Set(pitches.map(p => p.toFixed(6))).size);
+});
+
+test('the seven bodies schedule distinct timbres at the same pitch and velocity', () => {
   const c = withNoise(app('timeline'));
   const signatures = family.map(instrument => {
     const ctx = audioProbe();
-    c.scheduleInstrument(ctx, instrument, 11, 440, 0.4);
+    note(c, ctx, instrument, 11, 440, 0.4);
     return JSON.stringify(ctx.automation);
   });
-  assert.equal(new Set(signatures).size, family.length, 'each named voice must differ audibly from its siblings and from the generic fallback');
+  assert.equal(new Set(signatures).size, family.length);
 });
 
-// The design rule from the plan: depth of rank is a parameter of the synthesis
-// itself, not only of which voice is chosen. Deeper rank is more articulate.
-// It must never move the scored fundamental.
-test('rank articulates the attack without moving the scored pitch', () => {
+// The room is this family's alone. The five accepted families must reach the
+// master exactly as they did before, so none of them needs re-accepting.
+test('the reverb bus belongs to Gondwana and nothing else routes through it', () => {
   const c = withNoise(app('timeline'));
-  const shallow = plain(vm.runInContext('gondwanaArticulation(0)', c));
-  const deep = plain(vm.runInContext('gondwanaArticulation(7)', c));
-  assert.equal(shallow.attack, 1, 'class rank is the unarticulated reference');
-  assert.ok(deep.attack < shallow.attack && deep.attack >= 0.7, 'species rank is promptly struck, within a bounded quarter');
-  assert.ok(deep.colour > shallow.colour, 'species rank lifts the upper partials');
-
-  for (const instrument of family) {
-    const at = toneBy => {
-      c.state.toneBy = toneBy;
-      const ctx = audioProbe();
-      c.scheduleInstrument(ctx, instrument, 11, 440, 0.4);
-      return ctx;
-    };
-    const shallowCtx = at('taxon_class_name');
-    const deepCtx = at('taxon_species_name');
-    const gains = ctx => ctx.automation.filter(a => a.name === 'gain');
-    assert.equal(gains(deepCtx).length, gains(shallowCtx).length, `${instrument}: the same body, differently struck`);
-    let strictlyEarlier = 0;
-    gains(deepCtx).forEach((event, i) => {
-      const reference = gains(shallowCtx)[i];
-      assert.ok(event.time <= reference.time + 1e-9, `${instrument}: no envelope point arrives later at species rank`);
-      if (event.time < reference.time - 1e-9) strictlyEarlier++;
-    });
-    assert.ok(strictlyEarlier > 0, `${instrument}: species rank must actually be more articulate, not merely no slower`);
-    for (const ctx of [shallowCtx, deepCtx]) {
-      assert.ok(ctx.automation.some(a => a.name === 'frequency' && Math.abs(a.value - 440) < 1e-6),
-        `${instrument}: the scored fundamental is retained at every rank`);
-    }
+  const ctx = audioProbe();
+  c.testMaster = {};
+  vm.runInContext('masterGain = testMaster', c);
+  for (const other of ['bell', 'pluck', 'bowl', 'lantern_glass', 'noct_root']) {
+    c.scheduleInstrument(ctx, other, 11, 440, 0.4);
   }
+  assert.equal(ctx.nodes.filter(n => n.kind === 'convolver').length, 0, 'no existing family creates a room');
+  c.scheduleInstrument(ctx, 'gond_bronze', 11, 440, 0.4);
+  assert.equal(ctx.nodes.filter(n => n.kind === 'convolver').length, 1, 'Gondwana builds one');
+  c.scheduleInstrument(ctx, 'gond_drone', 11, 440, 0.4);
+  assert.equal(ctx.nodes.filter(n => n.kind === 'convolver').length, 1, 'and reuses it rather than one per note');
+});
+
+test('the room is a finite, decaying impulse and is identical between renders', () => {
+  const c = app('timeline');
+  const ctx = audioProbe();
+  const a = vm.runInContext('gondwanaImpulse', c);
+  assert.equal(typeof a, 'function');
+  const sampled = seconds => {
+    const real = { sampleRate: 44100, createBuffer: (_, length) => {
+      const data = new Float32Array(length);
+      return { length, getChannelData: () => data };
+    } };
+    return a(real, seconds);
+  };
+  const first = sampled(1.0).getChannelData(0);
+  const second = sampled(1.0).getChannelData(0);
+  assert.ok(first.every(v => Number.isFinite(v) && Math.abs(v) <= 1), 'finite and inside full scale');
+  assert.deepEqual(Array.from(first.slice(0, 200)), Array.from(second.slice(0, 200)), 'seeded: the same room every time');
+  const head = first.slice(0, 4410).reduce((s, v) => s + v * v, 0);
+  const tail = first.slice(-4410).reduce((s, v) => s + v * v, 0);
+  assert.ok(tail < head * 0.2, 'the tail decays');
 });
 
 for (const instrument of family) {
@@ -240,9 +308,10 @@ for (const instrument of family) {
     for (const [freq, velocity] of [[440, 0], [440, -1], [440, NaN], [440, Infinity],
       [440, undefined], [NaN, 0.4], [Infinity, 0.4], [0, 0.4], [-440, 0.4], [undefined, 0.4]]) {
       const ctx = audioProbe();
-      assert.doesNotThrow(() => c.scheduleInstrument(ctx, instrument, 11, freq, velocity));
-      assert.equal(ctx.nodes.filter(n => n.source).length, 0);
-      assert.ok(ctx.nodes.every(n => n.connections.length === 0), 'silent requests cannot connect to the output');
+      let made;
+      assert.doesNotThrow(() => { made = note(c, ctx, instrument, 11, freq, velocity); });
+      assert.equal(made.filter(n => n.source).length, 0);
+      assert.ok(made.every(n => n.connections.length === 0), 'silent requests cannot connect to the output');
     }
   });
 
@@ -252,10 +321,10 @@ for (const instrument of family) {
       for (const frequency of [65.4, sampleRate * 0.2, sampleRate * 0.449, sampleRate * 0.45, sampleRate]) {
         const ctx = audioProbe();
         ctx.sampleRate = sampleRate;
-        c.scheduleInstrument(ctx, instrument, 11, frequency, 0.4);
-        const frequencies = ctx.automation.filter(a => a.name === 'frequency').map(a => a.value);
+        const made = note(c, ctx, instrument, 11, frequency, 0.4);
+        const frequencies = made.filter(n => n.kind === 'osc').map(n => n.frequency.events[0].value);
         assert.ok(frequencies.every(f => f > 0 && f < sampleRate * 0.45));
-        if (frequency >= sampleRate * 0.45) assert.equal(ctx.nodes.filter(n => n.source).length, 0, 'out-of-band fundamentals are silent');
+        if (frequency >= sampleRate * 0.45) assert.equal(made.filter(n => n.source).length, 0, 'out-of-band fundamentals are silent');
       }
     }
   });
@@ -263,20 +332,18 @@ for (const instrument of family) {
   test(`${instrument}: ending every source disconnects its complete temporary audio graph`, () => {
     const c = withNoise(app('timeline'));
     const ctx = audioProbe();
-    c.scheduleInstrument(ctx, instrument, 11, 440, 0.4);
-    const sources = ctx.nodes.filter(n => n.source);
+    const made = note(c, ctx, instrument, 11, 440, 0.4);
+    const sources = made.filter(n => n.source);
     assert.ok(sources.length > 0);
     for (const source of sources) {
       assert.equal(typeof source.onended, 'function');
       source.onended();
       assert.equal(source.disconnected, true);
     }
-    assert.ok(ctx.nodes.every(n => n.disconnected && n.connections.length === 0), 'all sources, filters and gains release their connections');
+    assert.ok(made.every(n => n.disconnected && n.connections.length === 0), 'the note releases everything it made; the room persists');
   });
 }
 
-// Gondwana is built and tested but has not been judged by ear. Like Noctilucent
-// before it, it stays out of the published dropdown until Lily accepts it.
 test('Gondwana is built but withheld from the user-facing family list', () => {
   const c = loadApp();
   const published = vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c);

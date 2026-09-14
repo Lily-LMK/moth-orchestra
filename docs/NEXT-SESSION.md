@@ -8,34 +8,38 @@ start.
 
 ---
 
-## Start here — Gondwana has a palette, and nobody has heard it
+## Start here — Gondwana, second attempt, unheard
 
-Step 1 of PLAN-NEXT-FAMILY.md is built: fifteen physical-model voices,
-rank-graded 7/9/11/13/15, the first family whose palette grows with the
-selected rank. Read [SESSION-2026-09-13-GONDWANA.md](SESSION-2026-09-13-GONDWANA.md).
+The first palette (fifteen physical-model bodies, rank-graded) was built and
+rejected by ear the same day: *"a child's xylophone or panhand"*. The diagnosis
+and the rebuild are both in
+[SESSION-2026-09-13-GONDWANA.md](SESSION-2026-09-13-GONDWANA.md) — read it
+before touching this family, because the failure is more instructive than the
+fix.
 
-The audition is at `../../sessions/2026-09-13/gondwana/listen.html` — run
-`python3 serve.py` in that folder first; the WAVs will not load over `file://`.
-It carries the fifteen bodies one at a time, the whole 3 September 2026 night in
-both palettes gain-matched, and the excerpt where the species-only voices are
-densest.
+What stands now: seven bodies, not fifteen. Rank is spent *inside* each voice
+rather than on more voices. The family performs the written score an octave or
+two below where it was written, always by whole octaves. And it sounds into a
+synthesised room on its own bus — the first reverb this instrument has ever had.
 
-**Nothing has been judged by ear.** The pass condition Lily set is hers to
-apply: at least as rich at species rank as Moth Orchestra, and clearly its own
-thing. Until she says so, Gondwana stays in `WITHHELD_VOICE_MODES` alongside
-Noctilucent and no visitor can reach it.
+Audition: `../../sessions/2026-09-13/gondwana-2/listen.html` — run
+`python3 serve.py` in that folder first. The first attempt is kept at
+`../../sessions/2026-09-13/gondwana/` for comparison.
 
-Steps 2 to 5 — the ground (the body-felt sub on its own bus), the floor
-(generated from the night's own shape), the gallery/personal mix, and the
-release decision — are unstarted. Lily's playback is headphones only, so the
-sub cannot be judged yet and the Gallery mix will be built unheard.
+**Nothing has been judged by ear.** Gondwana stays in `WITHHELD_VOICE_MODES`
+alongside Noctilucent; no visitor can reach it. Two questions the measurements
+raise but cannot answer: whether this is a wise voice or merely a slower one,
+and whether `gond_rim` — the only light left on top, and among the quietest —
+survives the mass underneath.
 
+Steps 2 to 5 — the ground, the floor, the gallery/personal mix, the release
+decision — are unstarted. Playback is headphones only.
 
 ## Standing state — the interface
 
 Lantern Glass is published. `main` carries it; GitHub Pages serves the root of
 `main`. Noctilucent is built, tested and deliberately withheld from the
-listener. Suite: 229 pass, zero fail, one documented skip, eight gap TODOs.
+listener. Suite: 200 pass, zero fail, one documented skip, eight gap TODOs.
 
 Read SESSION-ROADMAP.md and SESSION-2026-09-13-RELEASE.md first. This session
 is stage two of the interface work Lily asked for: the shell around the

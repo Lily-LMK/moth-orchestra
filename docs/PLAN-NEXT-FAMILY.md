@@ -186,11 +186,19 @@ Bounded steps, each ending in something Lily can hear.
 1. **The palette.** ~~Fourteen to sixteen voices. Audition at species rank
    against Moth Orchestra, same night, same seed, gain-matched. Pass: the new
    family is at least as rich at species and clearly its own thing.~~
-   **Built 13 September 2026.** Fifteen voices, rank-graded 7/9/11/13/15.
-   Measured richer than Moth Orchestra at every rank from subfamily down, and
-   strictly richer at species (15 against 11). Audition rendered and
-   gain-matched. See [SESSION-2026-09-13-GONDWANA.md](SESSION-2026-09-13-GONDWANA.md).
-   **The pass condition is Lily's ear, and she has not heard it yet.**
+   **Attempted twice, 13 September 2026.** The first build followed this step
+   literally — fifteen voices, rank-graded, measured richer at every rank — and
+   Lily rejected it by ear as a child's xylophone. The design rule in §1 was
+   read as "more instruments"; what it should have bought was depth *inside*
+   each voice. The second build is seven bodies that deepen with rank, voiced
+   an octave or two below the written score, sounding into a room of their own.
+   See [SESSION-2026-09-13-GONDWANA.md](SESSION-2026-09-13-GONDWANA.md).
+   **Still unheard. The pass condition is Lily's ear.**
+
+   Correction to §1 worth carrying forward: palette *size* is the least audible
+   axis available. Fifteen bodies sharing one envelope shape read as one body.
+   Evolution in time — late entries, partials that outlive each other, beating —
+   is what distinguishes bodies, and it is also what rank should buy.
 2. **The ground.** Two sub candidates for shared minutes, gain-matched, judged
    on headphones and on speakers. Pass: felt, not heard as a thud; audible as
    *something* on a laptop.

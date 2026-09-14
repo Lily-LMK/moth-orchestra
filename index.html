@@ -3043,81 +3043,204 @@ function scheduleNoctilucent(ctx, instrument, when, freq, velocity, out){
   return true;
 }
 
-// Gondwana: fifteen authored voices, built from physical models and named for
-// their physics rather than for any culture, instrument maker or species. They
-// are synthesis, not recordings, and they make no claim about the animals in
-// the data. A partial is [frequency ratio, weight, attack seconds, decay
-// seconds]. The first partial is always ratio 1: the scored fundamental is
-// never moved.
+// ── Gondwana ─────────────────────────────────────────────────────────────────
+// Seven authored bodies, not fifteen. The first palette in this instrument that
+// does not grow with rank: depth of rank is spent *inside* each voice instead of
+// on more voices. A species-rank night is the same seven bodies made older —
+// more partials, longer tails, slower beating, more that arrives late.
 //
-// Where a body has real, measurable mode ratios, those ratios are used:
-//   circular membrane   1, 1.593, 2.135, 2.295, 2.653   (struck skin)
-//   free-free bending   1, 2.756, 5.404, 8.933          (struck metal bar)
-//   stopped pipe        1, 3, 5, 7, 9                   (blown closed tube)
-//   stiff string        n * sqrt(1 + B n^2), B = 8e-4    (struck sinew)
-// The rest are authored stretches in the spirit of those bodies.
+// Three things separate these from every earlier family:
+//
+//   1. Partials enter at different times and outlive each other. A struck bronze
+//      body gives its transient up in milliseconds and leaves a hum that is
+//      still swelling four seconds later. Every earlier family decays
+//      monotonically from a single onset, which is the sound of a small struck
+//      object however the ratios are arranged.
+//   2. The family performs the written score in its own register, an octave or
+//      two below, the way a contrabass section reads a part. The written pitch
+//      is never altered — only which octave of it sounds. gondwanaVoicing()
+//      reports the shift, and it is always a whole number of octaves, so the
+//      pitch class is exact.
+//   3. It sounds into a room. A synthesised hall on this family's own bus, so
+//      the five accepted families are untouched and need no re-accepting.
+//
+// A partial is [frequency ratio, weight, attack seconds, decay seconds, delay
+// seconds]. Ratios below 1 are real: the hum partial of a bell sounds an octave
+// under the note it is called, and a large membrane drives the cavity beneath
+// it. That is where the weight comes from.
 const GONDWANA_VOICES = {
-  // ── Floor of the palette: large, slow, few. Class through family. ──
-  gond_stone:  { level:0.60, partials:[[1,1,.004,.90],[2.31,.42,.004,.52],[3.87,.20,.003,.30],[5.62,.07,.003,.16]] },
-  gond_log:    { level:0.66, partials:[[1,1,.003,.62],[2.14,.30,.003,.34],[3.42,.11,.002,.18],[5.10,.03,.002,.09]] },
-  gond_skin:   { level:0.62, partials:[[1,1,.002,.55],[1.593,.34,.002,.32],[2.135,.17,.002,.22],[2.295,.11,.002,.19],[2.653,.05,.002,.13]] },
-  gond_tube:   { level:0.58, partials:[[1,1,.085,1.30],[3,.30,.11,.92],[5,.11,.13,.58],[7,.035,.15,.34],[9,.012,.16,.20]],
-                 noise:{ level:.16, centre:2.6, q:1.4, attack:.09, decay:.55 } },
-  gond_rim:    { level:0.60, partials:[[1,1,.34,2.10],[2,.16,.44,1.70],[3,.05,.52,1.15],[4,.015,.58,.70]] },
-  gond_vessel: { level:0.68, partials:[[1,1,.006,.72],[2.70,.14,.005,.20],[4.40,.045,.004,.11]],
-                 bend:{ cents:-140, time:.09 } },
-  gond_bar:    { level:0.52, partials:[[1,1,.002,1.55],[2.756,.30,.002,1.05],[5.404,.10,.002,.60],[8.933,.028,.002,.30]] },
+  // Struck heartwood, large. A hard transient over a body that keeps ringing.
+  gond_heartwood: { level:.52, ceiling:110, beat:1.4, partials:[
+    [1,    1.00, .010, 5.2, 0   ],
+    [0.5,   .55, .35,  7.0, .05 ],
+    [2,     .34, .006, 2.1, 0   ],
+    [3.1,   .16, .004, 1.1, 0   ],
+    [1.002, .48, .90,  6.4, .30 ],
+    [4.7,   .07, .003, .60, 0   ],
+    [6.3,  .028, .003, .35, 0   ],
+    [8.1,  .012, .003, .22, 0   ]] },
 
-  // ── Subfamily opens two more bodies. ──
-  gond_gourd:  { level:0.60, partials:[[1,1,.003,1.05],[2,.52,.003,.70],[3,.26,.003,.46],[4,.12,.003,.30],[5,.05,.003,.19],[6,.02,.003,.12]],
-                 cavity:{ hz:320, width:210, gain:1.15 } },
-  gond_air:    { level:0.50, partials:[[1,1,.16,1.10],[2,.12,.20,.70]],
-                 noise:{ level:.30, centre:1.0, q:7.0, attack:.20, decay:.95 },
-                 rotation:{ rate:4.2, depth:.34 } },
+  // Struck bronze. The true bell partials — hum at half the named pitch, then
+  // prime, tierce a minor third above, quint, nominal. The minor third is why
+  // bells sound old and a little sorrowful; it is physics, not a choice.
+  gond_bronze: { level:.48, ceiling:220, beat:.9, partials:[
+    [1,     1.00, .004, 3.0, 0   ],
+    [0.5,    .72, .25,  8.0, .02 ],
+    [1.183,  .40, .004, 2.4, 0   ],
+    [1.506,  .26, .004, 1.8, 0   ],
+    [2,      .34, .003, 2.2, 0   ],
+    [2.5,    .14, .003, 1.1, 0   ],
+    [3,      .08, .003, .70, 0   ],
+    [4,      .03, .002, .40, 0   ]] },
 
-  // ── Tribe opens two more. ──
-  gond_shell:  { level:0.60, partials:[[1,1,.075,1.25],[2,.20,.09,.80],[3,.06,.11,.45]],
-                 noise:{ level:.13, centre:3.4, q:2.2, attack:.06, decay:.42 } },
-  gond_reed:   { level:0.48, partials:[[1,1,.006,.80],[2,.60,.007,.60],[3,.40,.007,.45],[4,.26,.007,.33],[5,.16,.008,.23],[6,.09,.008,.16],[7,.045,.008,.11]] },
+  // A bowed body. Friction builds, and the brightness builds with it: the upper
+  // partials arrive later and later, so the voice opens as it is sustained.
+  gond_bowed: { level:.50, ceiling:330, beat:.5, partials:[
+    [1,     1.00, .55, 6.8, 0   ],
+    [1.0015, .50, .70, 6.4, .10 ],
+    [2,      .46, .85, 4.6, .18 ],
+    [3,      .27, 1.15, 3.0, .38],
+    [4,      .15, 1.45, 2.0, .60],
+    [5,      .08, 1.70, 1.4, .85],
+    [6,      .04, 1.90, .90, 1.10],
+    [8,     .015, 2.10, .55, 1.40]] },
 
-  // ── Genus opens two more. ──
-  gond_ice:    { level:0.44, partials:[[1,1,.0015,.42],[1.004,.85,.0015,.40],[2.62,.22,.0015,.20],[4.90,.06,.001,.10]] },
-  gond_sinew:  { level:0.58, partials:[[1,1,.0025,1.35],[2.0024,.46,.003,.88],[3.0096,.22,.003,.58],[4.0239,.10,.003,.36],[5.0477,.04,.003,.22],[6.0836,.015,.003,.13]] },
+  // A blown column, stopped: odd harmonics only. It begins as air, resolves into
+  // pitch, and returns to air. The most ephemeral of the seven.
+  gond_column: { level:.50, ceiling:330, beat:.7, partials:[
+    [1,     1.00, .75, 5.6, .12 ],
+    [1.002,  .42, .85, 5.2, .20 ],
+    [3,      .30, .95, 2.6, .28 ],
+    [5,      .12, 1.15, 1.8, .45],
+    [7,     .045, 1.30, 1.2, .60],
+    [9,     .018, 1.40, .80, .75],
+    [11,    .008, 1.45, .55, .85],
+    [13,    .004, 1.50, .40, .95]],
+    noise:[ { level:.20, centre:1.0, q:1.1, attack:.06, decay:.85, delay:0   },
+            { level:.10, centre:3.2, q:2.0, attack:.90, decay:1.8, delay:1.2 } ] },
 
-  // ── Species opens the last two: the sustaining, resonant pair. These are the
-  // voices that arrive only when the data is specific enough to ask for them —
-  // the same role bowl and harp play in the Moth Orchestra palette. ──
-  gond_cave:   { level:0.66, partials:[[1,1,.42,2.30],[1.002,.62,.46,2.20],[2,.24,.55,1.70],[3.005,.09,.62,1.10],[4,.03,.66,.70]] },
-  gond_thread: { level:0.46, partials:[[1,1,.22,2.00],[2,.20,.30,1.55],[3,.07,.36,1.05],[5,.02,.40,.60]] }
+  // A large struck skin, with the cavity beneath it. Real circular membrane
+  // modes — 1, 1.593, 2.135, 2.295, 2.653 — over a sub-octave body.
+  gond_membrane: { level:.54, ceiling:165, beat:1.1, partials:[
+    [1,     1.00, .008, 2.6, 0   ],
+    [0.5,    .40, .30,  5.2, .04 ],
+    [1.593,  .30, .006, 1.5, 0   ],
+    [1.0025, .44, .55,  4.4, .22 ],
+    [2.135,  .16, .005, 1.0, 0   ],
+    [2.295,  .11, .005, .90, 0   ],
+    [2.653,  .06, .004, .60, 0   ],
+    [3.156, .025, .004, .35, 0   ]] },
+
+  // A rubbed rim. High, pure, slow, quiet — the only voice left where the score
+  // wrote it. Not depth: the light on top of it.
+  gond_rim: { level:.40, beat:.6, partials:[
+    [1,     1.00, 1.30, 7.0, 0   ],
+    [1.0008, .80, 1.50, 6.7, .12 ],
+    [2,      .22, 1.80, 4.0, .35 ],
+    [3,      .08, 2.20, 2.6, .70 ],
+    [4,     .028, 2.50, 1.8, 1.00],
+    [5,     .010, 2.70, 1.2, 1.30],
+    [6,     .004, 2.80, .80, 1.55],
+    [7,     .002, 2.90, .55, 1.75]] },
+
+  // A sustained tube, beating slowly against itself. The pedal the rest stand on.
+  gond_drone: { level:.46, ceiling:110, beat:1.8, partials:[
+    [1,     1.00, 1.10, 6.5, 0   ],
+    [1.003,  .78, 1.35, 6.2, .15 ],
+    [0.5,    .30, .90,  7.5, .05 ],
+    [2,      .30, 1.60, 4.8, .30 ],
+    [3,      .13, 1.95, 3.4, .55 ],
+    [4,      .05, 2.20, 2.2, .80 ],
+    [5,      .02, 2.40, 1.5, 1.00],
+    [6,     .008, 2.50, 1.1, 1.15]] },
 };
 
-const GONDWANA_BASE = ["gond_stone","gond_log","gond_skin","gond_tube","gond_rim","gond_vessel","gond_bar"];
-const GONDWANA_SUBFAMILY = [...GONDWANA_BASE, "gond_gourd", "gond_air"];
-const GONDWANA_TRIBE = [...GONDWANA_SUBFAMILY, "gond_shell", "gond_reed"];
-const GONDWANA_GENUS = [...GONDWANA_TRIBE, "gond_ice", "gond_sinew"];
-const GONDWANA_SPECIES = [...GONDWANA_GENUS, "gond_cave", "gond_thread"];
-const GONDWANA_INSTRUMENTS = GONDWANA_SPECIES;
+const GONDWANA_INSTRUMENTS = ["gond_heartwood","gond_bronze","gond_bowed","gond_column","gond_membrane","gond_rim","gond_drone"];
+// Kept for the two selection sites. The palette deliberately no longer grows
+// with rank — gondwanaDepth() spends the rank inside each voice instead.
+function gondwanaPoolForDepth(){ return GONDWANA_INSTRUMENTS; }
 
-// Unlike every earlier family, which is a flat list, Gondwana is rank-graded:
-// 7 voices at class through family, then 9, 11, 13 and 15. Measurement on the
-// 28 January 2026 night showed depth of rank buys timbre rather than pitch, and
-// that a small palette has spent everything it has by family rank. This palette
-// keeps opening all the way to species.
-function gondwanaPoolForDepth(depth){
-  if(depth >= 7) return GONDWANA_SPECIES;    // species: 15
-  if(depth >= 6) return GONDWANA_GENUS;      // genus: 13
-  if(depth >= 5) return GONDWANA_TRIBE;      // tribe: 11
-  if(depth >= 4) return GONDWANA_SUBFAMILY;  // subfamily: 9
-  return GONDWANA_BASE;                      // class→family: 7
+// What specificity buys. At class rank: three partials, short tails, no beating,
+// nothing arriving late — seven plain sustained bodies. At species rank: eight
+// partials, full tails, full beating, the late bloom at full weight. The same
+// seven bodies, older.
+function gondwanaDepth(depth){
+  const d = Math.max(0, Math.min(7, Number.isFinite(depth) ? depth : 0))/7;
+  return { partials: 3 + Math.round(5*d), tail: .55 + .45*d, beat: d, late: .25 + .75*d };
 }
 
-// Rank is a parameter of the synthesis itself, not only of which voice is
-// chosen. Deeper rank shortens every attack by up to a quarter and lifts the
-// upper partials, so a species-rank night is more articulate and more clearly
-// struck than a class-rank one. It never moves the scored fundamental.
-function gondwanaArticulation(depth){
-  const d = Math.max(0, Math.min(7, Number.isFinite(depth) ? depth : 0));
-  return { attack: 1 - 0.036*d, colour: 1 + 0.055*d };
+// Which octave of the written pitch this body sounds in. Always a whole number
+// of octaves, so the pitch class is exact and the score is never altered.
+function gondwanaVoicing(instrument, freq){
+  const voice = Object.prototype.hasOwnProperty.call(GONDWANA_VOICES, instrument) ? GONDWANA_VOICES[instrument] : null;
+  let octaves = 0;
+  if(voice && voice.ceiling && Number.isFinite(freq) && freq > 0){
+    while(freq*Math.pow(2,octaves) > voice.ceiling && octaves > -3) octaves--;
+    while(freq*Math.pow(2,octaves) < 34 && octaves < 3) octaves++;
+  }
+  return { freq: freq*Math.pow(2,octaves), octaves };
+}
+
+// ── The room ────────────────────────────────────────────────────────────────
+// A synthesised hall, built once per audio context and used only by this family.
+// Nothing else in the instrument has ever had a reverb: the shared chain is a
+// 220 ms delay, which is an echo, not a space. Keeping this on its own bus means
+// the five accepted families stay bit-for-bit unchanged and need no re-judging,
+// the same containment the ambience bus already uses.
+const GONDWANA_SPACES = new WeakMap();
+function gondwanaImpulse(ctx, seconds=3.6){
+  const length = Math.max(1, Math.floor(seconds*ctx.sampleRate));
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+  for(let ch=0; ch<2; ch++){
+    const data = buffer.getChannelData(ch);
+    // Seeded, so two renders of the same night sound the same room.
+    const random = mulberry32(hash32(`gondwana::room::${ch}`));
+    let pole = 0;
+    for(let i=0; i<length; i++){
+      const t = i/ctx.sampleRate;
+      const fraction = t/seconds;
+      // Short build into the early reflections, then an exponential tail that
+      // darkens as it decays, the way a large room loses its highs first.
+      const envelope = Math.exp(-4.2*fraction) * (t < .012 ? t/.012 : 1);
+      const smoothing = 1 - (.18 + .72*fraction);
+      pole += ((random()*2-1) - pole)*smoothing;
+      data[i] = pole*envelope;
+    }
+    // Normalise. An impulse above full scale silently multiplies the gain of
+    // everything sent through it.
+    let peak = 0;
+    for(let i=0; i<length; i++) peak = Math.max(peak, Math.abs(data[i]));
+    if(peak > 0) for(let i=0; i<length; i++) data[i] = data[i]/peak*.85;
+  }
+  return buffer;
+}
+function gondwanaSpace(ctx){
+  const master = masterGain || ctx.destination;
+  const existing = GONDWANA_SPACES.get(ctx);
+  if(existing && existing.master === master) return existing;
+  const input = ctx.createGain();
+  input.gain.value = 1;
+  // Contained limiting. The new risk is the new family's alone.
+  const guard = ctx.createDynamicsCompressor ? ctx.createDynamicsCompressor() : null;
+  if(guard){
+    guard.threshold.value = -12; guard.knee.value = 12; guard.ratio.value = 6;
+    guard.attack.value = .008; guard.release.value = .18;
+  }
+  const tail = guard || ctx.createGain();
+  const dry = ctx.createGain(); dry.gain.value = .62;
+  input.connect(dry); dry.connect(tail);
+  if(ctx.createConvolver){
+    const convolver = ctx.createConvolver();
+    convolver.buffer = gondwanaImpulse(ctx);
+    const predelay = ctx.createDelay(1.0);
+    if(predelay.delayTime) predelay.delayTime.value = .035;
+    const wet = ctx.createGain(); wet.gain.value = .55;
+    input.connect(predelay); predelay.connect(convolver); convolver.connect(wet); wet.connect(tail);
+  }
+  tail.connect(master);
+  const space = { input, master };
+  GONDWANA_SPACES.set(ctx, space);
+  return space;
 }
 
 function scheduleGondwana(ctx, instrument, when, freq, velocity, out){
@@ -3126,98 +3249,82 @@ function scheduleGondwana(ctx, instrument, when, freq, velocity, out){
   // A handled but silent request must not allocate or connect an audio graph.
   if(!Number.isFinite(freq) || freq <= 0 || !Number.isFinite(velocity) || velocity <= 0 ||
      !Number.isFinite(when) || !Number.isFinite(ctx.sampleRate) || ctx.sampleRate <= 0) return true;
-  const limit = ctx.sampleRate * .45;
+  const limit = ctx.sampleRate*.45;
   if(freq >= limit) return true;
+  const sounding = gondwanaVoicing(instrument, freq).freq;
+  if(!Number.isFinite(sounding) || sounding <= 0 || sounding >= limit) return true;
   when = Math.max(when, ctx.currentTime + .002);
   const level = Math.min(1, velocity);
-  const art = gondwanaArticulation(currentRankDepth());
-  const partials = voice.partials.map((p, index) => ({
-    ratio:p[0], weight:p[1] * (index ? Math.min(2.2, art.colour) : 1),
-    attack:p[2] * art.attack, decay:p[3], index
-  })).filter(p => freq*p.ratio < limit);
+  const rank = gondwanaDepth(currentRankDepth());
+  const partials = voice.partials.slice(0, rank.partials).map((p, index) => ({
+      ratio:p[0], weight:p[1], attack:p[2], decay:p[3]*rank.tail, delay:p[4]||0, index }))
+    .filter(p => sounding*p.ratio < limit && sounding*p.ratio > 0)
+    // Late arrivals are what makes a body sound old. At shallow rank they are
+    // barely there; at species rank they carry their full weight.
+    .map(p => (p.delay > 0 ? { ...p, weight: p.weight*rank.late } : p));
   if(!partials.length) return true;
-  // One fixed cavity resonance, a synthesis choice with no claim about the data.
-  if(voice.cavity){
-    for(const p of partials){
-      const hz = freq*p.ratio;
-      p.weight *= 1 + voice.cavity.gain*Math.exp(-.5*Math.pow((hz-voice.cavity.hz)/voice.cavity.width, 2));
-    }
-  }
   const totalWeight = partials.reduce((sum, p) => sum + p.weight, 0);
+  const space = gondwanaSpace(ctx);
   const bus = ctx.createGain();
-  // Unity-bounded sum, slightly softer at the top of the scored register.
-  bus.gain.setValueAtTime(level*voice.level*Math.pow(440/Math.max(440, freq), .18), when);
-  bus.connect(out || ctx.destination);
+  bus.gain.setValueAtTime(level*voice.level*Math.pow(220/Math.max(220, sounding), .16), when);
+  bus.connect(space.input || out || ctx.destination);
   const temporary = [bus];
   let active = 0;
-  let last = when;
   const finish = source => {
     source.disconnect();
     if(--active === 0) for(const node of temporary) node.disconnect();
   };
-  const startSource = (source, end) => {
+  const startSource = (source, begin, end) => {
     active++;
-    last = Math.max(last, end);
     source.onended = () => finish(source);
-    source.start(when);
+    source.start(begin);
     source.stop(end);
   };
   for(const p of partials){
     const oscillator = ctx.createOscillator();
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(freq*p.ratio, when);
-    // A struck Helmholtz cavity drops in pitch as the excitation decays.
-    if(voice.bend && p.index === 0){
-      const settled = freq*p.ratio*Math.pow(2, voice.bend.cents/1200);
-      if(settled > 0) oscillator.frequency.exponentialRampToValueAtTime(settled, when + voice.bend.time*art.attack);
-    }
+    // Slow beating against a twin a fraction of a cent away. This is the whole
+    // difference between a held note and a living surface, and it is the first
+    // thing rank opens up.
+    const cents = (voice.beat||0)*rank.beat*(p.index%2 ? -.5 : .5);
+    oscillator.frequency.setValueAtTime(sounding*p.ratio*Math.pow(2, cents/1200), when + p.delay);
     const envelope = ctx.createGain();
     const peak = p.weight/totalWeight;
-    const end = when + p.attack + p.decay;
-    envelope.gain.setValueAtTime(0, when);
-    envelope.gain.linearRampToValueAtTime(peak, when + p.attack);
+    const begin = when + p.delay;
+    const end = begin + p.attack + p.decay;
+    envelope.gain.setValueAtTime(0, begin);
+    envelope.gain.linearRampToValueAtTime(peak, begin + p.attack);
     envelope.gain.exponentialRampToValueAtTime(.00001, end);
     envelope.gain.linearRampToValueAtTime(0, end + .026);
     oscillator.connect(envelope);
     envelope.connect(bus);
     temporary.push(envelope);
-    startSource(oscillator, end + .036);
+    startSource(oscillator, begin, end + .036);
   }
-  // Breath, or air moving past an edge. Filtered noise, never a recording.
+  // Air. Filtered noise, never a recording, and only where a body actually
+  // moves air past an edge.
   if(voice.noise && noiseBuf){
-    const centre = Math.min(freq*voice.noise.centre, limit*0.9);
-    if(centre > 0){
+    for(const band of voice.noise){
+      const centre = Math.min(sounding*band.centre, limit*.9);
+      if(!(centre > 0)) continue;
       const source = ctx.createBufferSource();
       source.buffer = noiseBuf;
       source.loop = true;
-      const band = ctx.createBiquadFilter();
-      band.type = 'bandpass';
-      band.frequency.setValueAtTime(centre, when);
-      band.Q.setValueAtTime(voice.noise.q, when);
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(centre, when + (band.delay||0));
+      filter.Q.setValueAtTime(band.q, when + (band.delay||0));
       const envelope = ctx.createGain();
-      const attack = voice.noise.attack*art.attack;
-      const end = when + attack + voice.noise.decay;
-      envelope.gain.setValueAtTime(0, when);
-      envelope.gain.linearRampToValueAtTime(Math.min(1, voice.noise.level), when + attack);
+      const begin = when + (band.delay||0);
+      const end = begin + band.attack + band.decay*rank.tail;
+      envelope.gain.setValueAtTime(0, begin);
+      envelope.gain.linearRampToValueAtTime(Math.min(1, band.level), begin + band.attack);
       envelope.gain.exponentialRampToValueAtTime(.00001, end);
       envelope.gain.linearRampToValueAtTime(0, end + .026);
-      source.connect(band); band.connect(envelope); envelope.connect(bus);
-      temporary.push(band, envelope);
-      startSource(source, end + .036);
+      source.connect(filter); filter.connect(envelope); envelope.connect(bus);
+      temporary.push(filter, envelope);
+      startSource(source, begin, end + .036);
     }
-  }
-  // Rotated air: a slow amplitude rotation, the way a swung or spun body fades
-  // in and out as it turns. Authored motion, not measured from anything.
-  if(voice.rotation){
-    const modulator = ctx.createOscillator();
-    modulator.type = 'sine';
-    modulator.frequency.setValueAtTime(voice.rotation.rate, when);
-    const depth = ctx.createGain();
-    depth.gain.setValueAtTime(Math.min(1, voice.rotation.depth)*level*voice.level, when);
-    modulator.connect(depth);
-    depth.connect(bus.gain);
-    temporary.push(depth);
-    startSource(modulator, last);
   }
   return true;
 }
@@ -5419,15 +5526,9 @@ function buildSongEvents(nightObs, countsByTaxon){
 
   // ═══ VOICE MODE INSTRUMENTS ═══
   function getPool(){
-    if(state.voiceMode==="gondwana"){
-      const d = currentRankDepth();
-      const bass = ["gond_log"]; if(d>=7) bass.push("gond_cave");
-      const lead = ["gond_stone","gond_rim"]; if(d>=5) lead.push("gond_shell");
-      const mid = ["gond_skin","gond_vessel","gond_tube"];
-      if(d>=4) mid.push("gond_gourd"); if(d>=5) mid.push("gond_reed"); if(d>=6) mid.push("gond_sinew");
-      const hi = ["gond_bar"]; if(d>=4) hi.push("gond_air"); if(d>=6) hi.push("gond_ice"); if(d>=7) hi.push("gond_thread");
-      return { bass, lead, mid, hi, sync:["creek"] };
-    }
+    if(state.voiceMode==="gondwana") return { bass:["gond_drone","gond_heartwood"],
+      lead:["gond_bronze","gond_bowed"], mid:["gond_membrane","gond_column","gond_heartwood"],
+      hi:["gond_rim","gond_bowed"], sync:["creek"] };
     if(state.voiceMode==="noctilucent") return { bass:["noct_root"], lead:["noct_halo","noct_wire","noct_prism"], mid:["noct_bow","noct_choir","noct_tide"], hi:["noct_spark","noct_prism"], sync:["creek"] };
     if(state.voiceMode==="lantern") return { bass:["lantern_felt"], lead:["lantern_glass","lantern_reed"], mid:["lantern_felt","lantern_reed"], hi:["lantern_glass","lantern_bloom"], sync:["creek"] };
     if(state.voiceMode==="night") return { bass:["weta"], lead:["boobook","banjo_frog"], mid:["gecko","katydid"], hi:["bat_click","gecko"], sync:["boobook"] };
