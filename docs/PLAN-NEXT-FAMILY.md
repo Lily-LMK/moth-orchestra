@@ -199,6 +199,25 @@ Bounded steps, each ending in something Lily can hear.
    axis available. Fifteen bodies sharing one envelope shape read as one body.
    Evolution in time — late entries, partials that outlive each other, beating —
    is what distinguishes bodies, and it is also what rank should buy.
+
+   **Third pass, 14 September 2026.** Lily heard it: *"it all sounds like
+   background."* Diagnosis and build in
+   [SESSION-2026-09-14-GONDWANA-FIGURES.md](SESSION-2026-09-14-GONDWANA-FIGURES.md).
+
+   Second correction, and the larger one: **this step was never only a palette
+   step.** Every family in the instrument is a timbre substitution over a rhythm
+   the data happened to produce — one record, one note, no phrase. No palette
+   can escape that, however deep its bodies are, because background music is
+   music without agency and the architecture could not produce agency. Eight of
+   the eleven things in Lily's brief for this family are score, not synthesis.
+
+   Gondwana is now the first family that also decides *how much a record says*.
+   A voice's phrase length is the number of times it has arrived so far that
+   night, capped by rank; the pitches are transpositions of the record's own
+   pitch; the two observers subdivide the pulse differently and drift against
+   each other. Plus a felted piano that leads at about two arrivals in five, an
+   electronic pulse voice, per-voice distance in the room, and an authored
+   pedal. **Still unheard. The pass condition is still Lily's ear.**
 2. **The ground.** Two sub candidates for shared minutes, gain-matched, judged
    on headphones and on speakers. Pass: felt, not heard as a thud; audible as
    *something* on a laptop.
