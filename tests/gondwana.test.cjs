@@ -368,12 +368,14 @@ for (const instrument of family) {
   });
 }
 
-test('Gondwana is built but withheld from the user-facing family list', () => {
+// Accepted by ear, 14 September 2026, and published the same day.
+test('Gondwana is the published sixth family, and Noctilucent is still withheld', () => {
   const c = loadApp();
-  const published = vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c);
-  assert.ok(!published.includes('gondwana'), 'not offered to the listener');
-  assert.ok(vm.runInContext('VOICE_MODES.includes("gondwana")', c), 'still registered');
-  assert.deepEqual(plain(published), ['mixed', 'night', 'choir', 'steelpan', 'lantern']);
+  const published = plain(vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c));
+  assert.deepEqual(published, ['mixed', 'night', 'choir', 'steelpan', 'lantern', 'gondwana']);
+  assert.ok(vm.runInContext('VOICE_MODES.includes("noctilucent")', c), 'Noctilucent stays registered');
+  assert.ok(!published.includes('noctilucent'), 'but unheard, so unpublished');
+  assert.equal(vm.runInContext('VOICE_MODE_LABELS.gondwana', c), 'Gondwana');
 });
 
 // ── Behaviour ───────────────────────────────────────────────────────────────
@@ -787,15 +789,19 @@ test('?family= unlocks a withheld family for auditioning, and nothing else', () 
              list: plain(vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c)) };
   };
   const published = offered('').list;
-  assert.ok(!published.includes('gondwana') && !published.includes('noctilucent'),
-    'with no flag, the withheld families are not offered to anyone');
+  assert.ok(!published.includes('noctilucent'), 'with no flag, a withheld family is offered to nobody');
+  assert.ok(published.includes('gondwana'), 'and a released one needs no flag at all');
   assert.equal(offered('').unlocked, null);
-  for (const withheld of ['gondwana', 'noctilucent']) {
+  for (const withheld of ['noctilucent']) {
     const { unlocked, list } = offered(`?family=${withheld}`);
     assert.equal(unlocked, withheld);
-    assert.deepEqual(list, [...published, withheld], `${withheld} is appended, nothing else moves`);
+    // It takes its place in the registry order, and nothing else moves.
+    assert.deepEqual(list.filter(m => m !== withheld), published, `${withheld} is added, nothing else moves`);
+    assert.ok(list.includes(withheld));
   }
-  for (const junk of ['mixed', 'lantern', '../evil', 'GONDWANA', '', 'gondwana,noctilucent', '__proto__']) {
+  // A family that is already published gains nothing from the flag, and is not
+  // appended twice.
+  for (const junk of ['mixed', 'lantern', 'gondwana', '../evil', 'NOCTILUCENT', '', 'gondwana,noctilucent', '__proto__']) {
     const { unlocked, list } = offered(`?family=${junk}`);
     assert.equal(unlocked, null, `rejects ${JSON.stringify(junk)}`);
     assert.deepEqual(list, published);

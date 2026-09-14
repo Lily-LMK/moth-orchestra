@@ -2039,11 +2039,11 @@ function pickInstrument(order, seed){
 const NOCTILUCENT_INSTRUMENTS = ["noct_root","noct_bow","noct_halo","noct_prism","noct_choir","noct_spark","noct_tide","noct_wire"];
 const LANTERN_INSTRUMENTS = ["lantern_felt","lantern_glass","lantern_reed","lantern_bloom"];
 const VOICE_MODES = ["mixed","night","choir","steelpan","lantern","noctilucent","gondwana"];
-// Families offered in the dropdown, keyboard cycling and swipes. Noctilucent
-// is implemented and tested but has not been accepted by ear, so it is kept
-// out of the published instrument until it has been.
-// Families implemented and tested but not yet accepted by ear.
-const WITHHELD_VOICE_MODES = new Set(["noctilucent","gondwana"]);
+// Families offered in the dropdown, keyboard cycling and swipes.
+// Families implemented and tested but not yet accepted by ear. A family leaves
+// this set only when Lily has heard it and said so — measurement never stands
+// in for that. Gondwana left it on 14 September 2026.
+const WITHHELD_VOICE_MODES = new Set(["noctilucent"]);
 // A withheld family can be auditioned with ?family=gondwana. It stays out of
 // the published list, the dropdown and the swipe cycle for everyone else until
 // it has been accepted by ear.

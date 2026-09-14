@@ -1,7 +1,11 @@
 # Gondwana — the room you pass through
 
-14 September 2026, second pass. Still step 1. **Not accepted.**
-Follows [SESSION-2026-09-14-GONDWANA-FIGURES.md](SESSION-2026-09-14-GONDWANA-FIGURES.md).
+14 September 2026, second pass. Follows
+[SESSION-2026-09-14-GONDWANA-FIGURES.md](SESSION-2026-09-14-GONDWANA-FIGURES.md).
+
+**Accepted by ear and published, 14 September 2026.** Lily: *"it sounds good,
+I'd love to make it live."* Gondwana is the sixth family in the dropdown. See
+[SESSION-2026-09-14-RELEASE.md](SESSION-2026-09-14-RELEASE.md).
 
 Audition: **START HERE.html** at the top of the Moth Orchestra folder now indexes
 every audition, sampler and session note in one page. Regenerate it with

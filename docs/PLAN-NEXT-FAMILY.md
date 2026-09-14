@@ -217,7 +217,16 @@ Bounded steps, each ending in something Lily can hear.
    pitch; the two observers subdivide the pulse differently and drift against
    each other. Plus a felted piano that leads at about two arrivals in five, an
    electronic pulse voice, per-voice distance in the room, and an authored
-   pedal. **Still unheard. The pass condition is still Lily's ear.**
+   pedal. Corrected the same evening in
+   [SESSION-2026-09-14-GONDWANA-ROOM.md](SESSION-2026-09-14-GONDWANA-ROOM.md):
+   phrase length keyed on repetition made species rank the thinnest, the
+   inverse of §1, so it now keys on how completely each record was identified.
+   Plus a direct-path strike so arrivals read as events in a reverberant room,
+   and a shared-minute gesture of the family's own.
+
+   **Step 1 complete. Accepted by ear, 14 September 2026, and published.**
+   Steps 2 through 5 — the ground, the floor, gallery versus personal, and the
+   Song-mode opening — remain.
 2. **The ground.** Two sub candidates for shared minutes, gain-matched, judged
    on headphones and on speakers. Pass: felt, not heard as a thud; audible as
    *something* on a laptop.

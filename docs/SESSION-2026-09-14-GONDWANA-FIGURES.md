@@ -1,7 +1,9 @@
 # Gondwana — the behaviour
 
-14 September 2026. Still step 1 of the five in [PLAN-NEXT-FAMILY.md](PLAN-NEXT-FAMILY.md).
-**Not accepted.** Still withheld from the published family list.
+14 September 2026, first pass. Step 1 of the five in
+[PLAN-NEXT-FAMILY.md](PLAN-NEXT-FAMILY.md). Superseded the same day by
+[SESSION-2026-09-14-GONDWANA-ROOM.md](SESSION-2026-09-14-GONDWANA-ROOM.md),
+which corrected the phrase-length rule below and was the build Lily accepted.
 
 Audition: open `index.html?family=gondwana` — the flag unlocks a withheld family
 for that browser session only and selects it on load. Nothing else changes; for

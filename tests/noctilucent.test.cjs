@@ -191,6 +191,8 @@ test('Noctilucent is built but withheld from the user-facing family list', () =>
   const published = vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c);
   assert.ok(!published.includes('noctilucent'), 'not offered to the listener');
   assert.ok(vm.runInContext('VOICE_MODES.includes("noctilucent")', c), 'still registered');
-  assert.deepEqual(plain(published), ['mixed', 'night', 'choir', 'steelpan', 'lantern']);
-  assert.equal(vm.runInContext('VOICE_MODE_LABELS[PUBLIC_VOICE_MODES.at(-1)]', c), 'Lantern Glass');
+  assert.deepEqual(plain(published), ['mixed', 'night', 'choir', 'steelpan', 'lantern', 'gondwana']);
+  // Gondwana was accepted by ear and published on 14 September 2026; this
+  // family has still not been heard, so it stays out regardless.
+  assert.equal(vm.runInContext('VOICE_MODE_LABELS[PUBLIC_VOICE_MODES.at(-1)]', c), 'Gondwana');
 });
