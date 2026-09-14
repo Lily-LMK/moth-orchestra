@@ -3089,7 +3089,7 @@ const GONDWANA_VOICES = {
   // top of the spectrum at the source, so the upper partials are simply faint
   // and short. The fundamental decays twice, fast then slow, because the two
   // or three strings of a unison fall out of phase; that is the aftersound.
-  gond_felt: { level:.58, ceiling:523, beat:.35, dry:1.15, wet:.28, partials:[
+  gond_felt: { level:.58, ceiling:523, beat:.35, dry:1.15, wet:.28, strike:.45, partials:[
     [1,      1.00, .004, 1.40, 0   ],
     [1.0006,  .44, .050, 6.80, .02 ],
     [2.002,   .30, .004, 1.10, 0   ],
@@ -3105,7 +3105,7 @@ const GONDWANA_VOICES = {
             { level:.14, hz:150,  q:1.4, attack:.002, decay:.095, delay:.004 } ] },
 
   // Struck heartwood, large. A hard transient over a body that keeps ringing.
-  gond_heartwood: { level:.52, ceiling:110, beat:1.4, partials:[
+  gond_heartwood: { level:.52, ceiling:110, beat:1.4, strike:.85, partials:[
     [1,    1.00, .010, 5.2, 0   ],
     [0.5,   .55, .35,  7.0, .05 ],
     [2,     .34, .006, 2.1, 0   ],
@@ -3118,7 +3118,7 @@ const GONDWANA_VOICES = {
   // Struck bronze. The true bell partials — hum at half the named pitch, then
   // prime, tierce a minor third above, quint, nominal. The minor third is why
   // bells sound old and a little sorrowful; it is physics, not a choice.
-  gond_bronze: { level:.48, ceiling:220, beat:.9, partials:[
+  gond_bronze: { level:.48, ceiling:220, beat:.9, strike:.70, partials:[
     [1,     1.00, .004, 3.0, 0   ],
     [0.5,    .72, .25,  8.0, .02 ],
     [1.183,  .40, .004, 2.4, 0   ],
@@ -3144,7 +3144,7 @@ const GONDWANA_VOICES = {
 
   // A blown column, stopped: odd harmonics only. It begins as air, resolves into
   // pitch, and returns to air. The most ephemeral of the nine.
-  gond_column: { level:.50, ceiling:330, beat:.7, partials:[
+  gond_column: { level:.50, ceiling:330, beat:.7, strike:.10, partials:[
     [1,     1.00, .75, 5.6, .12 ],
     [1.002,  .42, .85, 5.2, .20 ],
     [3,      .30, .95, 2.6, .28 ],
@@ -3158,7 +3158,7 @@ const GONDWANA_VOICES = {
 
   // A large struck skin, with the cavity beneath it. Real circular membrane
   // modes — 1, 1.593, 2.135, 2.295, 2.653 — over a sub-octave body.
-  gond_membrane: { level:.54, ceiling:165, beat:1.1, partials:[
+  gond_membrane: { level:.54, ceiling:165, beat:1.1, strike:.78, partials:[
     [1,     1.00, .008, 2.6, 0   ],
     [0.5,    .40, .30,  5.2, .04 ],
     [1.593,  .30, .006, 1.5, 0   ],
@@ -3197,7 +3197,7 @@ const GONDWANA_VOICES = {
   // resolves downward into pressure and stays there. The one voice in the nine
   // that is honestly synthetic, and the one that puts low-frequency texture
   // underneath the acoustic bodies rather than beside them.
-  gond_pulse: { level:.42, ceiling:220, beat:.25, wet:.45, partials:[
+  gond_pulse: { level:.42, ceiling:220, beat:.25, wet:.45, strike:.40, partials:[
     [0.5,    .78, .55,  3.6, .02 ],
     [1,      .55, .002, .16, 0   ],
     [3,      .22, .002, .11, 0   ],
@@ -3209,15 +3209,17 @@ const GONDWANA_VOICES = {
     noise:[ { level:.05, hz:5200, q:1.6, attack:.001, decay:.007, delay:0 } ] },
 };
 
-// The felted piano is the principal voice: it takes roughly two arrivals in
-// five and the eight bodies share the rest. A close, dry, mechanical point
-// source against reverberant mass is the fastest cure for "it all sounds like
-// background", and it is why this is a weighted pool rather than a flat list.
+// The felted piano leads at a little over a quarter of arrivals. It was two in
+// five on 14 September and that buried the bodies Lily had already accepted — a
+// close dry source beats a reverberant one at equal share, so the piano wins
+// twice unless its count comes down. This is why the pool is weighted rather
+// than flat, and it is the first dial to turn.
 const GONDWANA_INSTRUMENTS = ["gond_felt","gond_heartwood","gond_bronze","gond_bowed","gond_column","gond_membrane","gond_rim","gond_drone","gond_pulse"];
 const GONDWANA_POOL = [
-  "gond_felt","gond_felt","gond_felt","gond_felt","gond_felt","gond_felt","gond_felt","gond_felt",
-  "gond_bronze","gond_bronze","gond_heartwood","gond_heartwood","gond_membrane","gond_membrane",
-  "gond_bowed","gond_bowed","gond_column","gond_rim","gond_drone","gond_pulse"];
+  "gond_felt","gond_felt","gond_felt","gond_felt","gond_felt","gond_felt","gond_felt",
+  "gond_bronze","gond_bronze","gond_bronze","gond_heartwood","gond_heartwood","gond_heartwood",
+  "gond_membrane","gond_membrane","gond_membrane","gond_bowed","gond_bowed","gond_bowed",
+  "gond_column","gond_column","gond_rim","gond_rim","gond_drone","gond_pulse"];
 // The palette deliberately does not grow with rank — gondwanaDepth() spends the
 // rank inside each voice instead.
 function gondwanaPoolForDepth(){ return GONDWANA_POOL; }
@@ -3300,16 +3302,39 @@ function gondwanaFigureShape(voiceKey, seed, span){
   return out;
 }
 
-// How long a phrase this rank permits at all. At class rank there is a single
-// voice group for the whole night, so there is nothing to individuate and no
-// figures: nine plain bodies, exactly as before. The phrase opens as the rank
-// deepens, which is the same bargain the family already makes with its partials
-// and its tails — specificity buys depth, now inside the phrase as well as
-// inside the voice. It is also what keeps a shallow rank from turning a dense
-// night into a wall.
-function gondwanaFigureCap(depth){
-  const d = Math.max(0, Math.min(7, Number.isFinite(depth) ? depth : 0))/7;
-  return 1 + Math.round(6*d);
+// Eleven ranks, kingdom to species. How many of them a record actually fills is
+// how well the thing was known, and *that* is what the phrase length says. A
+// moth identified to species gets to speak its whole name; one logged only as
+// "Lepidoptera" gets a single syllable.
+//
+// This replaces a repetition rule that was reading the wrong axis. At species
+// rank most moths are recorded once in a night, so counting repeats made the
+// most specific listening the poorest — the exact inverse of the finding this
+// family was built on. Resolution belongs to the record, not to the night's
+// tallies, so it behaves identically at every listening rank and species rank
+// can never be the thin one.
+//
+// Measured across 6,794 records: 67% reach species, 19% genus, and the rest
+// thin out through family, subfamily, superfamily, tribe and order. A real
+// gradient, and it exists inside a single night.
+const GONDWANA_RANKS = ["kingdom","phylum","class","order","superfamily","family","subfamily","tribe","subtribe","genus","species"];
+function gondwanaResolution(obs){
+  if(!obs || !obs.ranks) return 0;
+  let filled = 0;
+  for(const rank of GONDWANA_RANKS){
+    const value = obs.ranks[`taxon_${rank}_name`];
+    if(typeof value === "string" && value.trim()) filled++;
+  }
+  return filled;
+}
+
+// Not every record says its whole name every time round. Whether it speaks is
+// seeded by the record and the cycle, so the night keeps real silence in it, no
+// two passes are alike, and the densest night stays a place rather than a wall.
+// The first pass never elaborates: the night states itself plainly, once.
+function gondwanaSpeaks(event, cycle){
+  if(!event || !(cycle > 0)) return false;
+  return mulberry32(hash32(`${event.voiceKey}::${Math.round((event.atSec||0)*100)}::${cycle}::gond_speak`))() < .45;
 }
 
 // How many notes this arrival has earned, and how many of them it has grown
@@ -3324,12 +3349,11 @@ function gondwanaFigureCap(depth){
 // The growth across cycles is the other accumulation: the first pass through
 // the loop states the night plainly and each pass elaborates a little further,
 // so the loop repays attention instead of just recurring.
-function gondwanaFigureLength(ordinal, cycle, cap){
-  const n = Math.max(1, Number.isFinite(ordinal) ? Math.floor(ordinal) : 1);
-  const earned = n <= 1 ? 1 : Math.min(7, 1 + Math.floor(Math.log2(n)*1.5));
+function gondwanaFigureLength(resolution, cycle){
+  const filled = Math.max(0, Math.min(11, Number.isFinite(resolution) ? Math.floor(resolution) : 0));
+  const earned = filled >= 11 ? 5 : filled >= 10 ? 3 : filled >= 9 ? 2 : 1;
   const grown = 1 + Math.round(Math.max(0, Number.isFinite(cycle) ? cycle : 0)*.55);
-  const ceiling = Number.isFinite(cap) ? Math.max(1, Math.min(7, Math.round(cap))) : 7;
-  return Math.max(1, Math.min(earned, grown, ceiling));
+  return Math.max(1, Math.min(earned, grown));
 }
 
 // The figure itself, resolved at schedule time so it can differ every cycle.
@@ -3339,7 +3363,8 @@ function gondwanaFigure(event, cycle){
   if(!event) return null;
   const midis = event.gondMidis, shape = event.gondShape;
   if(!Array.isArray(midis) || !Array.isArray(shape) || midis.length < 2 || !shape.length) return null;
-  const n = gondwanaFigureLength(event.gondOrdinal, cycle, gondwanaFigureCap(currentRankDepth()));
+  if(!gondwanaSpeaks(event, cycle)) return null;
+  const n = gondwanaFigureLength(event.gondResolution, cycle);
   if(n <= 1) return null;
   const sustained = GONDWANA_SUSTAINED.has(event.instrument);
   const random = mulberry32(hash32(`${event.voiceKey}::${Math.round((event.atSec||0)*100)}::${cycle}::gond_play`));
@@ -3409,7 +3434,7 @@ function gondwanaPedal(loopLen, key, scaleName, seed){
 // ── The room ────────────────────────────────────────────────────────────────
 // One room per audio context, rebuilt only if the master it feeds is replaced.
 const GONDWANA_SPACES = new WeakMap();
-function gondwanaImpulse(ctx, seconds=4.6){
+function gondwanaImpulse(ctx, seconds=3.9){
   const length = Math.max(1, Math.floor(seconds*ctx.sampleRate));
   const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
   const build = Math.max(1, Math.floor(.012*ctx.sampleRate));
@@ -3461,6 +3486,13 @@ function gondwanaSpace(ctx){
   const dry = ctx.createGain(); dry.gain.value = .62;
   dry.connect(tail);
   input.connect(dry);
+  // The direct path. In a large room the strike reaches you milliseconds before
+  // the room answers, and that gap is the entire cue that something happened
+  // *here*, at this instant, rather than somewhere in the wash. Without it a
+  // reverberant family has size but no location, and the playhead sweeps past
+  // arrivals you cannot feel yourself passing through.
+  const near = ctx.createGain(); near.gain.value = 1;
+  near.connect(tail);
   let wet = null;
   if(ctx.createConvolver){
     const convolver = ctx.createConvolver();
@@ -3473,12 +3505,32 @@ function gondwanaSpace(ctx){
     input.connect(wet);
   }
   tail.connect(master);
-  const space = { input, dry, wet, master };
+  const space = { input, dry, wet, near, master };
   GONDWANA_SPACES.set(ctx, space);
   return space;
 }
 
+// The shared minute — the one gesture this family had been borrowing from
+// everybody else. All night the two observers subdivide the pulse differently
+// and drift apart; here, for the only time in the piece, both hands land on the
+// same note. The drift resolving *is* the sound of the coincidence, so the
+// moment is made of the thing it means rather than of a bell laid on top to
+// announce it. Piano in two octaves struck together, heartwood two octaves
+// below for the weight you feel rather than hear, and the room answering a
+// tenth of a second later in bronze.
+function gondwanaSync(ctx, when, freq, velocity, out){
+  if(!Number.isFinite(freq) || freq <= 0 || !Number.isFinite(velocity) || velocity <= 0 ||
+     !Number.isFinite(when)) return true;
+  const level = Math.min(1, velocity);
+  scheduleGondwana(ctx, "gond_felt",      when,        freq,   level*.95, out);
+  scheduleGondwana(ctx, "gond_felt",      when + .006, freq*2, level*.60, out);
+  scheduleGondwana(ctx, "gond_heartwood", when + .002, freq,   level*.88, out);
+  scheduleGondwana(ctx, "gond_bronze",    when + .11,  freq,   level*.34, out);
+  return true;
+}
+
 function scheduleGondwana(ctx, instrument, when, freq, velocity, out){
+  if(instrument === "gond_sync") return gondwanaSync(ctx, when, freq, velocity, out);
   const voice = Object.prototype.hasOwnProperty.call(GONDWANA_VOICES, instrument) ? GONDWANA_VOICES[instrument] : null;
   if(!voice) return false;
   // A handled but silent request must not allocate or connect an audio graph.
@@ -3547,6 +3599,28 @@ function scheduleGondwana(ctx, instrument, when, freq, velocity, out){
     envelope.connect(bus);
     temporary.push(envelope);
     startSource(oscillator, begin, end + .036);
+  }
+  // The strike. Brief, bright, and sent down the direct path so it arrives
+  // ahead of the room. Struck bodies get a hard one, a blown column barely any,
+  // and a bow none at all — a bowed string has no transient, which is exactly
+  // why it reads as atmosphere and a struck body reads as an event.
+  if(voice.strike && noiseBuf && space.near){
+    const source = ctx.createBufferSource();
+    source.buffer = noiseBuf;
+    source.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(Math.min(2200 + sounding*1.8, limit*.9), when);
+    filter.Q.setValueAtTime(.85, when);
+    const envelope = ctx.createGain();
+    const end = when + .004 + .030;
+    envelope.gain.setValueAtTime(0, when);
+    envelope.gain.linearRampToValueAtTime(Math.min(.9, level*voice.strike*.42), when + .004);
+    envelope.gain.exponentialRampToValueAtTime(.00001, end);
+    envelope.gain.linearRampToValueAtTime(0, end + .012);
+    source.connect(filter); filter.connect(envelope); envelope.connect(space.near);
+    temporary.push(filter, envelope);
+    startSource(source, when, end + .022);
   }
   // Air, and mechanism. Filtered noise, never a recording. A band with `hz` is
   // fixed in the spectrum — hammer felt and key bed do not transpose with the
@@ -5792,7 +5866,7 @@ function buildSongEvents(nightObs, countsByTaxon){
     if(state.voiceMode==="gondwana") return { bass:["gond_drone","gond_heartwood","gond_pulse"],
       lead:["gond_felt","gond_felt","gond_bronze","gond_bowed"],
       mid:["gond_felt","gond_membrane","gond_column","gond_heartwood"],
-      hi:["gond_rim","gond_felt","gond_bowed"], sync:["creek"] };
+      hi:["gond_rim","gond_felt","gond_bowed"], sync:["gond_sync"] };
     if(state.voiceMode==="noctilucent") return { bass:["noct_root"], lead:["noct_halo","noct_wire","noct_prism"], mid:["noct_bow","noct_choir","noct_tide"], hi:["noct_spark","noct_prism"], sync:["creek"] };
     if(state.voiceMode==="lantern") return { bass:["lantern_felt"], lead:["lantern_glass","lantern_reed"], mid:["lantern_felt","lantern_reed"], hi:["lantern_glass","lantern_bloom"], sync:["creek"] };
     if(state.voiceMode==="night") return { bass:["weta"], lead:["boobook","banjo_frog"], mid:["gecko","katydid"], hi:["bat_click","gecko"], sync:["boobook"] };
@@ -6073,6 +6147,7 @@ const user = observerRole(o);
     if(state.voiceMode === "gondwana"){
       baseEv.gondMidis = gondwanaFigureMidis(pitch.midi, voiceKey, state.seed, state.scaleName, state.keyName);
       baseEv.gondShape = gondwanaFigureShape(voiceKey, state.seed, baseEv.gondMidis.length);
+      baseEv.gondResolution = gondwanaResolution(o);
     }
     events.push(baseEv);
     eventByObsId.set(o.id, baseEv);
@@ -6099,7 +6174,7 @@ const user = observerRole(o);
           family:"",
           voiceKey:"__DUET__",
           voiceLabel:"Synchrony",
-          instrument: state.voiceMode === "choir" ? "choir_unison" : "creek",
+          instrument: state.voiceMode === "gondwana" ? "gond_sync" : state.voiceMode === "choir" ? "choir_unison" : "creek",
           midi:pitch.midi - 12,
           freq:midiToFreq(pitch.midi - 12),
           density: 1,
@@ -6144,7 +6219,7 @@ const user = observerRole(o);
           family:"",
           voiceKey:"__DUET__",
           voiceLabel:"Synchrony",
-          instrument: state.voiceMode === "choir" ? "choir_chord" : "pad",
+          instrument: state.voiceMode === "gondwana" ? "gond_sync" : state.voiceMode === "choir" ? "choir_chord" : "pad",
           midi:pitch.midi,
           freq:midiToFreq(pitch.midi - 12),
           density: 1,
@@ -6152,19 +6227,6 @@ const user = observerRole(o);
           isEcho:false
         });
       }
-    }
-  }
-
-  // How many times this voice has already arrived tonight. Counted in clock
-  // order and attached to the arrival, so the phrase length is a tally the
-  // listener could in principle verify against the night.
-  if(state.voiceMode === "gondwana"){
-    const tally = new Map();
-    for(const arrival of events.slice().sort((a,b)=>a.atSec-b.atSec)){
-      if(arrival.kind !== "obs") continue;
-      const seen = (tally.get(arrival.voiceKey)||0) + 1;
-      tally.set(arrival.voiceKey, seen);
-      arrival.gondOrdinal = seen;
     }
   }
 
@@ -6469,7 +6531,7 @@ if(state.listenMode !== "both" && e.isSpecial){
       const velBase = e.isSpecial
         ? (e.velocity ?? (e.kind==="duet_sync" || e.kind==="accompaniment" ? 0.26 : 0.20))
         : (state.voiceMode === "gondwana"
-            ? clamp(0.07 + 0.19*Math.log2(e.density), 0.06, 0.88)
+            ? clamp(0.11 + 0.19*Math.log2(e.density), 0.10, 0.88)
             : clamp(0.15 + 0.12*Math.log2(e.density), 0.12, 0.65));
       const vel = velBase * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
       if(state.voiceMode === "gondwana" && !e.isSpecial){
@@ -8859,7 +8921,7 @@ async function renderOfflineBuffer(minDuration, statusEl){
         const velBase = e.isSpecial
           ? (e.velocity ?? (e.kind === "duet_sync" || e.kind === "accompaniment" ? 0.26 : 0.20))
           : (state.voiceMode === "gondwana"
-              ? clamp(0.07 + 0.19 * Math.log2(e.density), 0.06, 0.88)
+              ? clamp(0.11 + 0.19 * Math.log2(e.density), 0.10, 0.88)
               : clamp(0.15 + 0.12 * Math.log2(e.density), 0.12, 0.65));
         const vel = velBase * clamp(state.volume, 0, 1) * (e.isEcho ? 0.65 : 1);
         if(state.voiceMode === "gondwana" && !e.isSpecial){

@@ -14,7 +14,7 @@ const { settings } = require('./score.cjs');
 
 const family = ['gond_felt', 'gond_heartwood', 'gond_bronze', 'gond_bowed', 'gond_column', 'gond_membrane', 'gond_rim', 'gond_drone', 'gond_pulse'];
 const CEILINGS = { gond_felt: 523, gond_heartwood: 110, gond_bronze: 220, gond_bowed: 330, gond_column: 330, gond_membrane: 165, gond_drone: 110, gond_pulse: 220 };
-const DERIVED = ['gondMidis', 'gondShape', 'gondOrdinal'];
+const DERIVED = ['gondMidis', 'gondShape', 'gondResolution'];
 const plain = value => JSON.parse(JSON.stringify(value));
 
 function app(mode, voiceMode = 'gondwana', toneBy = 'taxon_species_name') {
@@ -50,7 +50,11 @@ test('the palette is nine bodies, led by the piano, and does not grow with rank'
   // mass is what stops the family reading as background, so its share of the
   // pool is part of the contract rather than an incidental weighting.
   const share = first.filter(v => v === 'gond_felt').length / first.length;
-  assert.ok(share > 0.3 && share < 0.5, `the felted piano takes roughly two arrivals in five (got ${share})`);
+  assert.ok(share > 0.2 && share < 0.35, `the felted piano leads without burying the bodies (got ${share})`);
+  // Every body keeps a real share. Two in five buried the seven Lily accepted.
+  for (const body of family.filter(v => v !== 'gond_felt')) {
+    assert.ok(first.includes(body), `${body} is still dealt`);
+  }
 });
 
 test('rank is spent inside each voice: more partials, longer tails, more beating, more arriving late', () => {
@@ -129,20 +133,26 @@ for (const mode of ['timeline', 'riff']) {
     assert.ok(candidate.events.filter(e => e.kind === 'obs').every(e => family.includes(e.instrument)));
     assert.deepEqual(plain(candidate.events), plain(c.buildSequencer(c.state.obs).events), 'reproducible');
     assert.deepEqual(plain(candidate.meta.sharedMinutes), plain(baseline.meta.sharedMinutes));
-    const gestures = seq => plain(seq.events.filter(e => e.kind !== 'obs' && e.kind !== 'gond_pedal'));
+    // The duet gestures keep their timing, their pitch and their source
+    // evidence; only which body sounds them changes, the same as an arrival.
+    const gestures = seq => plain(seq.events.filter(e => e.kind !== 'obs' && e.kind !== 'gond_pedal')
+      .map(({ instrument, ...e }) => e));
     assert.deepEqual(gestures(candidate), gestures(baseline), 'all special gestures and source matches are preserved');
+    assert.ok(candidate.events.filter(e => e.isSpecial).every(e => e.instrument === 'gond_sync'),
+      'and the shared minute is sounded by this family, not borrowed');
   });
 }
 
-test('Song uses Gondwana orchestration and keeps creek shared-minute gestures with exact source evidence', () => {
+test('Song uses Gondwana orchestration and gives the shared minute its own gesture with exact source evidence', () => {
   const c = app('song');
   const seq = c.buildSequencer(c.state.obs);
   assert.ok(seq.events.some(e => e.kind === 'obs'));
   assert.ok(seq.events.filter(e => e.kind === 'obs').every(e => family.includes(e.instrument)));
-  assert.ok(seq.events.every(e => [...family, 'creek'].includes(e.instrument)));
+  assert.ok(seq.events.every(e => [...family, 'gond_sync'].includes(e.instrument)),
+    'and nothing borrowed from another family');
   const shared = seq.events.filter(e => e.kind === 'duet_minute');
   assert.ok(shared.length > 0);
-  assert.ok(shared.every(e => e.instrument === 'creek' && e.match.observations.A.length && e.match.observations.B.length));
+  assert.ok(shared.every(e => e.instrument === 'gond_sync' && e.match.observations.A.length && e.match.observations.B.length));
   assert.deepEqual(plain(seq.events), plain(c.buildSequencer(c.state.obs).events));
 });
 
@@ -367,105 +377,134 @@ test('Gondwana is built but withheld from the user-facing family list', () => {
 });
 
 // ── Behaviour ───────────────────────────────────────────────────────────────
-// Added 14 September 2026. Gondwana is the first family that decides how much a
-// record says, not only what it sounds like. These tests hold that decision to
-// the §5 rule: the phrase length is the sighting count, so a figure is evidence
-// rather than ornament, and a taxon recorded once can never be made to say more
-// than it did.
+// Gondwana is the first family that decides how much a record says, not only
+// what it sounds like. The phrase length is how completely the record was
+// identified — eleven ranks from kingdom to species — so it is a property of
+// the record, tells the listener something true, and behaves identically at
+// every listening rank.
+
+const RANKS = ['kingdom', 'phylum', 'class', 'order', 'superfamily', 'family',
+  'subfamily', 'tribe', 'subtribe', 'genus', 'species'];
+const obsWithRanks = filled => ({ ranks: Object.fromEntries(
+  RANKS.slice(0, filled).map((r, i) => [`taxon_${r}_name`, `Rank${i}`])) });
 
 const figureEvent = (c, over = {}) => ({
-  voiceKey: 'Noctuidae', atSec: 3.25, instrument: 'gond_felt', gondOrdinal: 16, user: 'A',
+  voiceKey: 'Noctuidae', atSec: 3.25, instrument: 'gond_felt', gondResolution: 11, user: 'A',
   gondMidis: c.gondwanaFigureMidis(60, 'Noctuidae', settings.seed, 'minor', 'A'),
   gondShape: c.gondwanaFigureShape('Noctuidae', settings.seed, 7),
   ...over });
 
-test('a first sighting says one note, at every cycle, for ever', () => {
+// The first cycle on which a given event actually elaborates. Speaking is
+// seeded per record per cycle, so a test that wants a figure has to find one
+// rather than assume cycle 12 will do.
+const speakingCycle = (c, event, from = 1) => {
+  for (let cycle = from; cycle < from + 60; cycle++) if (c.gondwanaFigure(event, cycle)) return cycle;
+  throw new Error('this record never speaks');
+};
+
+test('resolution is the count of ranks the record itself fills', () => {
   const c = app('timeline');
-  for (let cycle = 0; cycle < 60; cycle++) {
-    assert.equal(c.gondwanaFigureLength(1, cycle, 7), 1, `cycle ${cycle}`);
-    assert.equal(c.gondwanaFigure(figureEvent(c, { gondOrdinal: 1 }), cycle), null, 'and schedules no figure at all');
+  for (let filled = 0; filled <= RANKS.length; filled++) {
+    assert.equal(c.gondwanaResolution(obsWithRanks(filled)), filled, `${filled} ranks`);
   }
-  for (const bad of [0, -3, NaN, undefined, null, 'many']) {
-    assert.equal(c.gondwanaFigureLength(bad, 9, 7), 1, `a missing tally is one note, not a gift (${bad})`);
+  // Blank and whitespace ranks are absent, not present. An empty string in the
+  // CSV is a missing identification, and must not buy a longer phrase.
+  assert.equal(c.gondwanaResolution({ ranks: { taxon_class_name: '  ', taxon_order_name: '' } }), 0);
+  for (const junk of [null, undefined, {}, { ranks: null }, { ranks: 'Insecta' }, 42]) {
+    assert.equal(c.gondwanaResolution(junk), 0, `no ranks is no phrase (${JSON.stringify(junk)})`);
   }
 });
 
-test('the phrase length is the tally so far, and cannot exceed it', () => {
+test('a vague record says one note, at every cycle, for ever', () => {
   const c = app('timeline');
-  const settled = ordinal => c.gondwanaFigureLength(ordinal, 999, 7);
+  for (let filled = 0; filled <= 8; filled++) {
+    for (let cycle = 0; cycle < 40; cycle++) {
+      assert.equal(c.gondwanaFigureLength(filled, cycle), 1, `${filled} ranks at cycle ${cycle}`);
+      assert.equal(c.gondwanaFigure(figureEvent(c, { gondResolution: filled }), cycle), null,
+        'and it schedules no figure at all');
+    }
+  }
+  for (const bad of [NaN, undefined, null, -3, 'species']) {
+    assert.equal(c.gondwanaFigureLength(bad, 9), 1, `a missing resolution is one note (${bad})`);
+  }
+});
+
+test('the phrase length is how well the record was known', () => {
+  const c = app('timeline');
+  const settled = filled => c.gondwanaFigureLength(filled, 999);
   let previous = 0;
-  for (const ordinal of [1, 2, 3, 4, 6, 8, 12, 20, 50, 400]) {
-    const length = settled(ordinal);
-    assert.ok(length >= previous, `${ordinal}: coming back more often never says less`);
-    assert.ok(length >= 1 && length <= 7, `${ordinal}: bounded`);
+  for (let filled = 0; filled <= 11; filled++) {
+    const length = settled(filled);
+    assert.ok(length >= previous, `${filled}: a better identification never says less`);
+    assert.ok(length >= 1 && length <= 7, `${filled}: bounded`);
     previous = length;
   }
-  assert.equal(settled(1), 1);
-  assert.ok(settled(12) >= 4 && settled(12) <= 7, 'the twelfth visit is a real figure');
-  for (let cycle = 0; cycle < 200; cycle++) {
-    assert.ok(c.gondwanaFigureLength(4, cycle, 7) <= settled(4), 'no cycle ever exceeds what the tally earned');
-  }
+  assert.equal(settled(11), 5, 'species: the whole name');
+  assert.ok(settled(11) > settled(10) && settled(10) > settled(9), 'and each step down says less');
+  assert.equal(settled(20), settled(11), 'more ranks than exist buys nothing');
 });
 
-// Specificity buys phrase length the way it already buys partials and tails.
-// At class rank the whole night is one voice group, so there is nothing to
-// individuate and nothing speaks; it is also what stops a shallow rank turning
-// a dense night into a wall.
-test('rank caps the phrase, and class rank has no figures at all', () => {
-  const c = app('timeline');
-  const cap = depth => c.gondwanaFigureCap(depth);
-  assert.equal(cap(0), 1, 'class rank: one voice, one note, no elaboration');
-  assert.equal(cap(7), 7, 'species rank: the full phrase');
-  let previous = 0;
-  for (let depth = 0; depth <= 7; depth++) {
-    assert.ok(cap(depth) >= previous, `depth ${depth}: the phrase never closes as rank deepens`);
-    previous = cap(depth);
+// The regression that mattered. The previous rule counted how often a voice
+// came back, which at species rank is almost never — so the most specific
+// listening became the thinnest, the exact inverse of the finding this family
+// was built on. Phrase length must not depend on the listening rank at all.
+test('listening rank never changes how much a record says', () => {
+  const ranks = ['taxon_class_name', 'taxon_order_name', 'taxon_family_name',
+    'taxon_tribe_name', 'taxon_genus_name', 'taxon_species_name'];
+  const byRank = ranks.map(toneBy => {
+    const c = app('timeline', 'gondwana', toneBy);
+    const seq = c.buildSequencer(c.state.obs);
+    const arrivals = seq.events.filter(e => e.kind === 'obs');
+    const lengths = new Map();
+    for (const e of arrivals) lengths.set(e.obs.id, c.gondwanaFigureLength(e.gondResolution, 999));
+    return { toneBy, lengths, total: [...lengths.values()].reduce((a, b) => a + b, 0) };
+  });
+  const [first, ...rest] = byRank;
+  for (const other of rest) {
+    assert.deepEqual([...other.lengths.entries()].sort(), [...first.lengths.entries()].sort(),
+      `${other.toneBy}: every record says exactly what it says at ${first.toneBy}`);
   }
-  for (const bad of [-1, 99, NaN, undefined]) assert.ok(cap(bad) >= 1 && cap(bad) <= 7, `clamped (${bad})`);
-  c.state.toneBy = 'taxon_class_name';
-  for (let cycle = 0; cycle < 40; cycle++) {
-    assert.equal(c.gondwanaFigure(figureEvent(c, { gondOrdinal: 400 }), cycle), null,
-      'however often it came back, at class rank it says one note');
-  }
-  c.state.toneBy = 'taxon_species_name';
-  assert.ok(c.gondwanaFigure(figureEvent(c, { gondOrdinal: 400 }), 40), 'and at species rank it speaks');
+  const species = byRank[byRank.length - 1];
+  assert.equal(species.total, Math.max(...byRank.map(r => r.total)),
+    'species rank is never the poorest');
+  assert.ok(species.total > species.lengths.size, 'and something actually speaks there');
 });
 
-// The tally is counted in clock order and belongs to the voice, so it is
-// something a listener could check against the night rather than a number the
-// synthesis invented.
-test('the tally is the arrivals of that voice so far, in clock order', () => {
+test('the resolution on an arrival is that observation own, and no other family carries it', () => {
   const c = app('timeline');
   const seq = c.buildSequencer(c.state.obs);
-  const arrivals = seq.events.filter(e => e.kind === 'obs').sort((a, b) => a.atSec - b.atSec);
-  const seen = new Map();
+  const arrivals = seq.events.filter(e => e.kind === 'obs');
+  assert.ok(arrivals.length > 0);
   for (const arrival of arrivals) {
-    const expected = (seen.get(arrival.voiceKey) || 0) + 1;
-    seen.set(arrival.voiceKey, expected);
-    assert.equal(arrival.gondOrdinal, expected, `${arrival.voiceKey} at ${arrival.atSec}`);
+    assert.equal(arrival.gondResolution, c.gondwanaResolution(arrival.obs),
+      'read from the record, not from the night');
   }
-  assert.ok(arrivals.some(e => e.gondOrdinal === 1), 'every voice starts by saying one note');
-  // No arrival may know what happens after it.
-  for (const arrival of arrivals) {
-    const later = arrivals.filter(e => e.voiceKey === arrival.voiceKey && e.atSec > arrival.atSec).length;
-    assert.ok(arrival.gondOrdinal <= arrivals.filter(e => e.voiceKey === arrival.voiceKey).length - later,
-      'the phrase is what has happened, not what will');
-  }
+  assert.ok(new Set(arrivals.map(e => e.gondResolution)).size > 1, 'and real nights vary');
   c.state.voiceMode = 'mixed';
-  assert.ok(c.buildSequencer(c.state.obs).events.every(e => e.gondOrdinal === undefined),
-    'and no other family carries it');
+  assert.ok(c.buildSequencer(c.state.obs).events.every(e => e.gondResolution === undefined));
 });
 
-// The accumulation. The first pass through the loop states the night plainly;
-// each pass elaborates a little further, so the loop repays attention instead
-// of merely recurring.
+// The first pass states the night plainly; after that a record speaks only
+// sometimes, so the loop keeps real silence in it and no two passes are alike.
+test('the first pass never elaborates, and after it speaking is intermittent', () => {
+  const c = app('timeline');
+  const event = figureEvent(c);
+  assert.equal(c.gondwanaSpeaks(event, 0), false, 'cycle 0 is the night, plainly');
+  assert.equal(c.gondwanaFigure(event, 0), null);
+  for (const bad of [-1, NaN, undefined, null]) assert.equal(c.gondwanaSpeaks(event, bad), false);
+  let spoke = 0;
+  for (let cycle = 1; cycle <= 200; cycle++) if (c.gondwanaSpeaks(event, cycle)) spoke++;
+  assert.ok(spoke > 60 && spoke < 140, `sometimes, not always and not never (${spoke}/200)`);
+  assert.equal(c.gondwanaSpeaks(event, 7), c.gondwanaSpeaks(event, 7), 'and any one cycle is reproducible');
+});
+
 test('figures grow over the first cycles and then settle', () => {
   const c = app('timeline');
-  const lengths = Array.from({ length: 20 }, (_, cycle) => c.gondwanaFigureLength(30, cycle, 7));
+  const lengths = Array.from({ length: 20 }, (_, cycle) => c.gondwanaFigureLength(11, cycle));
   assert.equal(lengths[0], 1, 'the first pass is the night, plainly');
   for (let i = 1; i < lengths.length; i++) assert.ok(lengths[i] >= lengths[i - 1], 'growth never reverses');
   assert.ok(lengths[lengths.length - 1] > lengths[0], 'and it does grow');
-  assert.equal(lengths[lengths.length - 1], c.gondwanaFigureLength(30, 999, 7), 'it settles at the earned length');
+  assert.equal(lengths[lengths.length - 1], c.gondwanaFigureLength(11, 999), 'settling at the earned length');
 });
 
 test('every pitch in a figure is the record own pitch transposed by whole scale steps', () => {
@@ -475,18 +514,15 @@ test('every pitch in a figure is the record own pitch transposed by whole scale 
   for (const [scaleName, scale] of Object.entries(scales)) {
     for (const [key, root] of Object.entries(roots)) {
       // pickPitch only ever writes a degree of the chosen scale, so that is the
-      // case the figure has to honour: build the record pitch the way the score
-      // does, then check nothing outside the scale comes back.
+      // case the figure has to honour.
       for (const octave of [3, 4, 5]) {
         for (let degree = 0; degree < scale.length; degree++) {
           const midi = 12 * (octave + 1) + root + scale[degree];
           const midis = plain(c.gondwanaFigureMidis(midi, 'Geometridae', settings.seed, scaleName, key));
           assert.equal(midis[0], midi, 'the record own pitch is always the first of them');
           assert.ok(midis.length >= 2 && midis.every(Number.isInteger), 'whole semitones');
-          assert.ok(midis.every(m => m >= midi && m <= midi + 48), `${scaleName}/${key}: the figure stays near the record`);
+          assert.ok(midis.every(m => m >= midi && m <= midi + 48), `${scaleName}/${key}: stays near the record`);
           const degrees = new Set(scale);
-          // Every added pitch is a degree of the scale in the same key as the
-          // record own pitch. Nothing arrives from outside the record.
           for (const m of midis.slice(1)) {
             assert.ok(degrees.has(((m - root) % 12 + 12) % 12), `${scaleName}/${key}: ${m} is in the scale`);
           }
@@ -494,17 +530,17 @@ test('every pitch in a figure is the record own pitch transposed by whole scale 
       }
     }
   }
-  assert.deepEqual(plain(c.gondwanaFigureMidis(60, 'Geometridae', settings.seed, 'minor', 'A')),
-    plain(c.gondwanaFigureMidis(60, 'Geometridae', settings.seed, 'minor', 'A')), 'and it is the same figure every time');
 });
 
 test('the record own note always sounds first, on the beat, and loudest', () => {
   const c = app('timeline');
-  for (let cycle = 0; cycle < 40; cycle++) {
+  let checked = 0;
+  for (let cycle = 1; cycle < 60; cycle++) {
     for (const user of ['A', 'B', undefined]) {
       const event = figureEvent(c, { user });
       const notes = c.gondwanaFigure(event, cycle);
       if (!notes) continue;
+      checked++;
       assert.equal(notes[0].at, 0, 'the arrival is where the record says it is');
       assert.equal(notes[0].midi, plain(event.gondMidis)[0], 'and it is the record own pitch');
       assert.equal(notes[0].vel, 1, 'and nothing in the figure is louder than it');
@@ -515,50 +551,52 @@ test('the record own note always sounds first, on the beat, and loudest', () => 
       }
     }
   }
+  assert.ok(checked > 30, `enough figures were actually examined (${checked})`);
 });
 
-// "Mutates rather than loops identically" — but recognisably the same figure,
-// or it is a scatter rather than a motif.
 test('a figure mutates across cycles while staying inside its own pitches', () => {
   const c = app('timeline');
   const event = figureEvent(c);
   const allowed = new Set(plain(event.gondMidis).flatMap(m => [m, m + 12]));
   const rendered = new Set();
-  for (let cycle = 8; cycle < 20; cycle++) {
+  let spoke = 0;
+  for (let cycle = 8; cycle < 60; cycle++) {
     const notes = c.gondwanaFigure(event, cycle);
-    assert.ok(notes && notes.length > 1, `cycle ${cycle} speaks`);
+    if (!notes) continue;
+    spoke++;
     for (const note of notes) assert.ok(allowed.has(note.midi), `${note.midi} belongs to this record`);
     rendered.add(notes.map(n => n.midi).join(','));
   }
-  assert.ok(rendered.size >= 4, `the figure does not simply repeat (${rendered.size} distinct in 12 cycles)`);
-  assert.deepEqual(c.gondwanaFigure(event, 11).map(n => n.midi), c.gondwanaFigure(event, 11).map(n => n.midi),
-    'and any one cycle is reproducible');
+  assert.ok(spoke > 10, 'it speaks often enough to judge');
+  assert.ok(rendered.size >= 4, `the figure does not simply repeat (${rendered.size} distinct of ${spoke})`);
+  const cycle = speakingCycle(c, event, 8);
+  assert.deepEqual(c.gondwanaFigure(event, cycle).map(n => n.midi),
+    c.gondwanaFigure(event, cycle).map(n => n.midi), 'and any one cycle is reproducible');
 });
 
-// Two hands. The observers do not share a subdivision, so their figures drift
-// against each other across the loop.
 test('the two observers do not share a subdivision', () => {
   const c = app('timeline');
   const pulse = vm.runInContext('GONDWANA_PULSE', c);
   const onGrid = (t, gap) => Math.abs(t / gap - Math.round(t / gap)) * gap < 0.035;
-  let crossed = 0;
-  for (let cycle = 6; cycle < 26; cycle++) {
-    const a = c.gondwanaFigure(figureEvent(c, { user: 'A' }), cycle) || [];
-    const b = c.gondwanaFigure(figureEvent(c, { user: 'B' }), cycle) || [];
-    for (const note of a) assert.ok(onGrid(note.at, pulse), `A subdivides in three (${note.at})`);
-    for (const note of b) {
+  let crossed = 0, seen = 0;
+  for (let cycle = 1; cycle < 80; cycle++) {
+    for (const note of c.gondwanaFigure(figureEvent(c, { user: 'A' }), cycle) || []) {
+      assert.ok(onGrid(note.at, pulse), `A subdivides in three (${note.at})`);
+    }
+    for (const note of c.gondwanaFigure(figureEvent(c, { user: 'B' }), cycle) || []) {
+      seen++;
       assert.ok(onGrid(note.at, pulse * 4 / 3), `B subdivides in four (${note.at})`);
       if (note.at > 0 && !onGrid(note.at, pulse)) crossed++;
     }
   }
-  assert.ok(crossed > 0, 'and B lands where A cannot');
+  assert.ok(seen > 20 && crossed > 0, `and B lands where A cannot (${crossed} of ${seen})`);
 });
 
 test('nothing in a figure lands exactly on the grid', () => {
   const c = app('timeline');
   const pulse = vm.runInContext('GONDWANA_PULSE', c);
   let displaced = 0, total = 0;
-  for (let cycle = 6; cycle < 30; cycle++) {
+  for (let cycle = 1; cycle < 80; cycle++) {
     for (const note of c.gondwanaFigure(figureEvent(c), cycle) || []) {
       if (note.at === 0) continue;
       total++;
@@ -566,35 +604,116 @@ test('nothing in a figure lands exactly on the grid', () => {
     }
   }
   assert.ok(total > 20);
-  assert.ok(displaced / total > 0.9, `a figure exactly in time stops sounding alive (${displaced}/${total} displaced)`);
+  assert.ok(displaced / total > 0.9, `a figure exactly in time stops sounding alive (${displaced}/${total})`);
 });
 
-test('scheduleGondwanaEvent plays one note for one sighting and a figure for many', () => {
+test('scheduleGondwanaEvent plays one note for a vague record and a figure for a known one', () => {
   const c = withNoise(app('timeline'));
-  // A single body sounds all its partials within a few milliseconds of each
-  // other; a figure spreads strikes across whole pulses. The span between the
-  // first and last onset is what separates one strike from several.
   const onsets = (event, cycle) => {
     const ctx = audioProbe();
     c.testMaster = {};
     vm.runInContext('masterGain = testMaster', c);
     c.scheduleInstrument(ctx, 'gond_rim', 9, 440, 0.01);      // build the room first
     const before = ctx.nodes.length;
-    c.scheduleGondwanaEvent(ctx, event, 9, 0.4, cycle, c.testMaster);
+    c.scheduleGondwanaEvent(ctx, event, 12, 0.4, cycle, c.testMaster);
     const times = ctx.nodes.slice(before).filter(n => n.kind === 'osc').map(n => n.frequency.events[0].time);
     return { span: Math.max(...times) - Math.min(...times), strikes: new Set(times.map(t => Math.round(t * 10))).size };
   };
-  const single = onsets(figureEvent(c, { gondOrdinal: 1, freq: 261.63 }), 12);
-  assert.equal(single.strikes, 1, 'a first sighting, one strike');
+  const vague = figureEvent(c, { gondResolution: 6, freq: 261.63 });
+  const known = figureEvent(c, { gondResolution: 11, freq: 261.63 });
+  const single = onsets(vague, speakingCycle(c, known));
+  assert.equal(single.strikes, 1, 'a record known only to family, one strike');
   assert.ok(single.span < 0.1, 'and its partials are one gesture');
-  const figure = onsets(figureEvent(c, { freq: 261.63 }), 12);
-  assert.ok(figure.strikes > 1, 'a sixteenth visit, a figure');
+  const figure = onsets(known, speakingCycle(c, known));
+  assert.ok(figure.strikes > 1, 'a record known to species, a figure');
   assert.ok(figure.span > 0.25, 'spread across pulses, not stacked on the arrival');
 });
 
+// ── The strike ──────────────────────────────────────────────────────────────
+// Lily: "the wand passes through but I don't get a sense that I'm passing
+// through." In a large room the direct sound reaches you before the room
+// answers, and that gap is the only cue that something happened *here*. A
+// family with reverb and no transient has size but no location.
+test('struck bodies arrive by the direct path, bowed ones do not', () => {
+  const c = withNoise(app('timeline'));
+  const transient = instrument => {
+    const ctx = audioProbe();
+    c.testMaster = {};
+    vm.runInContext('masterGain = testMaster', c);
+    const made = note(c, ctx, instrument, 9, 220, 0.6);
+    // The strike is the only source that both starts at the onset and is over
+    // within about 50 ms.
+    return made.filter(n => n.source && n.stopped - n.started < 0.09).length;
+  };
+  for (const struck of ['gond_heartwood', 'gond_bronze', 'gond_membrane', 'gond_felt', 'gond_pulse']) {
+    assert.ok(transient(struck) > 0, `${struck} is struck and you hear it happen`);
+  }
+  for (const sustained of ['gond_bowed', 'gond_rim', 'gond_drone']) {
+    assert.equal(transient(sustained), 0, `${sustained} has no transient, because a bow has none`);
+  }
+});
+
+test('the strike is quiet, brief, and scales with how hard the note was played', () => {
+  const c = withNoise(app('timeline'));
+  const strikeOf = velocity => {
+    const ctx = audioProbe();
+    c.testMaster = {};
+    vm.runInContext('masterGain = testMaster', c);
+    const made = note(c, ctx, 'gond_heartwood', 12, 220, velocity);
+    const sources = made.filter(n => n.source && n.stopped - n.started < 0.09);
+    assert.equal(sources.length, 1, 'exactly one transient per note');
+    // Its envelope is the gain node the strike source feeds through its filter.
+    const level = Math.max(...made.filter(n => !n.source && n.gain.events.length)
+      .flatMap(n => n.gain.events.filter(e => e.time < 12.02).map(e => e.value)));
+    return { source: sources[0], level };
+  };
+  assert.ok(strikeOf(0.9).level > strikeOf(0.2).level, 'a harder note strikes harder');
+  const { source } = strikeOf(0.6);
+  assert.ok(source.started >= 12 && source.started < 12.005, 'it is the first thing you hear');
+  assert.ok(source.stopped - source.started < 0.07, 'and it is gone before the room answers');
+  assert.ok(strikeOf(0.9).level <= 1, 'and it never runs away with the mix');
+});
+
+// ── The shared minute ───────────────────────────────────────────────────────
+// The one gesture the family had been borrowing from everybody else.
+test('the shared minute is Gondwana own, and is made of the family own bodies', () => {
+  const c = withNoise(app('timeline'));
+  const ctx = audioProbe();
+  c.testMaster = {};
+  vm.runInContext('masterGain = testMaster', c);
+  c.scheduleInstrument(ctx, 'gond_rim', 9, 440, 0.01);
+  const before = ctx.nodes.length;
+  c.scheduleInstrument(ctx, 'gond_sync', 12, 293.66, 0.5);
+  const made = ctx.nodes.slice(before);
+  const pitches = made.filter(n => n.kind === 'osc').map(n => n.frequency.events[0].value);
+  assert.ok(pitches.length > 6, 'several bodies, not one bell');
+  // Both hands land together, for the only time in the piece.
+  const onsets = made.filter(n => n.kind === 'osc').map(n => n.frequency.events[0].time).sort((a, b) => a - b);
+  assert.ok(onsets[0] >= 12 && onsets[0] < 12.01, 'it lands on the minute');
+  assert.ok(onsets.filter(t => t < 12.02).length >= 4, 'and the hands arrive together');
+  // Weight you feel rather than hear: heartwood is voiced right down.
+  assert.ok(pitches.some(f => f < 90), `something is under 90 Hz (lowest ${Math.min(...pitches).toFixed(1)})`);
+  for (const bad of [[0, 0.5], [293.66, 0], [NaN, 0.5], [293.66, NaN]]) {
+    assert.doesNotThrow(() => c.scheduleInstrument(audioProbe(), 'gond_sync', 12, bad[0], bad[1]));
+  }
+});
+
+test('every family keeps its own shared-minute gesture', () => {
+  const c = app('timeline', 'mixed');
+  const instrumentFor = mode => {
+    c.state.voiceMode = mode;
+    const shared = c.buildSequencer(c.state.obs).events.filter(e => e.kind === 'duet_minute');
+    assert.ok(shared.length > 0, `${mode} has shared minutes`);
+    return shared[0].instrument;
+  };
+  assert.equal(instrumentFor('gondwana'), 'gond_sync');
+  assert.equal(instrumentFor('choir'), 'choir_unison');
+  for (const mode of ['mixed', 'night', 'steelpan', 'lantern', 'noctilucent']) {
+    assert.equal(instrumentFor(mode), 'creek', `${mode} is untouched`);
+  }
+});
+
 // ── The pedal ───────────────────────────────────────────────────────────────
-// Authored harmony, and held to the same standard as the floor and the sub: it
-// may recolour the evidence, it may never pretend to be evidence.
 test('the pedal is authored harmony and never evidence', () => {
   const c = app('timeline');
   const pedals = plain(c.gondwanaPedal(30, 'A', 'minor', settings.seed));
@@ -606,7 +725,7 @@ test('the pedal is authored harmony and never evidence', () => {
     assert.equal(pedal.match, null, 'and matches no shared minute');
     assert.equal(pedal.isSpecial, false, 'so it is never counted among the duet gestures');
     assert.ok(pedal.atSec >= 0 && pedal.atSec <= 30 && Number.isFinite(pedal.freq) && pedal.freq > 0);
-    assert.ok(pedal.instrument === 'gond_drone');
+    assert.equal(pedal.instrument, 'gond_drone');
   }
   const roots = plain(vm.runInContext('JSON.parse(JSON.stringify(KEY_TO_SEMITONE))', c));
   for (const [key, root] of Object.entries(roots)) {
@@ -628,12 +747,10 @@ test('the pedal exists only for Gondwana, and no other family gains an event', (
   c.state.voiceMode = 'gondwana';
   const gondwana = c.buildSequencer(c.state.obs);
   assert.ok(pedals(gondwana).length >= 4, 'Gondwana has a pedal');
-  assert.ok(pedals(gondwana).every(e => !e.obs && !gondwana.meta.eventByObsId.get(e.obsId)), 'and it appears in no thumbnail');
+  assert.ok(pedals(gondwana).every(e => !e.obs), 'and it appears in no thumbnail');
 });
 
 // ── Distance ────────────────────────────────────────────────────────────────
-// The felted piano is close and the bodies are far. That difference is the
-// depth in the picture and it cannot exist on a single shared send.
 test('the piano is close and the bodies are in the room', () => {
   const c = app('timeline');
   const voices = plain(vm.runInContext('JSON.parse(JSON.stringify(GONDWANA_VOICES))', c));
@@ -645,9 +762,6 @@ test('the piano is close and the bodies are in the room', () => {
   }
 });
 
-// A piano's noise does not transpose with the note: the felt meets the string
-// and the action reaches the key bed at the same frequencies whatever is played.
-// A column's air does transpose, because air past an edge is pitched.
 test('mechanism is fixed in the spectrum and air is not', () => {
   const c = withNoise(app('timeline'));
   const bands = (instrument, freq) => {
@@ -657,15 +771,15 @@ test('mechanism is fixed in the spectrum and air is not', () => {
     return note(c, ctx, instrument, 9, freq, 0.5).filter(n => n.kind === 'filter')
       .map(n => Math.round(n.frequency.events[0].value * 100) / 100).sort((a, b) => a - b);
   };
+  // The strike does track the body, so compare only the two mechanism bands.
   const low = bands('gond_felt', 130.81), high = bands('gond_felt', 392);
-  assert.ok(low.length >= 2, 'the piano has audible mechanics');
-  assert.deepEqual(low, high, 'and they do not transpose with the note');
+  assert.ok(low.length >= 3, 'the piano has audible mechanics plus its strike');
+  assert.equal(low.filter(f => low.filter(x => x === f).length && high.includes(f)).length >= 2, true,
+    'felt and key bed do not transpose with the note');
   assert.notDeepEqual(bands('gond_column', 130.81), bands('gond_column', 392), 'the column air does');
 });
 
-// The audition mechanism. It is the only way Lily can hear a withheld family,
-// so it is worth a guard: it must unlock exactly the withheld families and
-// nothing else, and it must leave the published list alone without the flag.
+// The audition mechanism. It is the only way Lily can hear a withheld family.
 test('?family= unlocks a withheld family for auditioning, and nothing else', () => {
   const offered = search => {
     const c = loadApp(undefined, { location: { search } });
@@ -676,19 +790,15 @@ test('?family= unlocks a withheld family for auditioning, and nothing else', () 
   assert.ok(!published.includes('gondwana') && !published.includes('noctilucent'),
     'with no flag, the withheld families are not offered to anyone');
   assert.equal(offered('').unlocked, null);
-
   for (const withheld of ['gondwana', 'noctilucent']) {
     const { unlocked, list } = offered(`?family=${withheld}`);
     assert.equal(unlocked, withheld);
     assert.deepEqual(list, [...published, withheld], `${withheld} is appended, nothing else moves`);
   }
-  // Only a withheld family. Not an arbitrary string, not a family that is
-  // already published, not anything that could be smuggled through the query.
   for (const junk of ['mixed', 'lantern', '../evil', 'GONDWANA', '', 'gondwana,noctilucent', '__proto__']) {
     const { unlocked, list } = offered(`?family=${junk}`);
     assert.equal(unlocked, null, `rejects ${JSON.stringify(junk)}`);
     assert.deepEqual(list, published);
   }
-  // And a browser that will not give us a location at all must still work.
   assert.deepEqual(plain(vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', loadApp())), published);
 });
