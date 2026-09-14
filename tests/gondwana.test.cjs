@@ -662,3 +662,33 @@ test('mechanism is fixed in the spectrum and air is not', () => {
   assert.deepEqual(low, high, 'and they do not transpose with the note');
   assert.notDeepEqual(bands('gond_column', 130.81), bands('gond_column', 392), 'the column air does');
 });
+
+// The audition mechanism. It is the only way Lily can hear a withheld family,
+// so it is worth a guard: it must unlock exactly the withheld families and
+// nothing else, and it must leave the published list alone without the flag.
+test('?family= unlocks a withheld family for auditioning, and nothing else', () => {
+  const offered = search => {
+    const c = loadApp(undefined, { location: { search } });
+    return { unlocked: vm.runInContext('UNLOCKED_VOICE_MODE', c),
+             list: plain(vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c)) };
+  };
+  const published = offered('').list;
+  assert.ok(!published.includes('gondwana') && !published.includes('noctilucent'),
+    'with no flag, the withheld families are not offered to anyone');
+  assert.equal(offered('').unlocked, null);
+
+  for (const withheld of ['gondwana', 'noctilucent']) {
+    const { unlocked, list } = offered(`?family=${withheld}`);
+    assert.equal(unlocked, withheld);
+    assert.deepEqual(list, [...published, withheld], `${withheld} is appended, nothing else moves`);
+  }
+  // Only a withheld family. Not an arbitrary string, not a family that is
+  // already published, not anything that could be smuggled through the query.
+  for (const junk of ['mixed', 'lantern', '../evil', 'GONDWANA', '', 'gondwana,noctilucent', '__proto__']) {
+    const { unlocked, list } = offered(`?family=${junk}`);
+    assert.equal(unlocked, null, `rejects ${JSON.stringify(junk)}`);
+    assert.deepEqual(list, published);
+  }
+  // And a browser that will not give us a location at all must still work.
+  assert.deepEqual(plain(vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', loadApp())), published);
+});
