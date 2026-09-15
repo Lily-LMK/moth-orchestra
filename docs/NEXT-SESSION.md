@@ -7,62 +7,97 @@ unrelated pieces of work.
 
 ---
 
-## Start here — a curated common-name lookup for taxonomic families
+## Start here — a curated vernacular-name lookup
 
 Agreed with Lily on 16 September 2026, after the import repair
-([SESSION-2026-09-16-IMPORT.md](SESSION-2026-09-16-IMPORT.md)).
+([SESSION-2026-09-16-IMPORT.md](SESSION-2026-09-16-IMPORT.md)), and refined by
+her the same day.
 
 Common names now come from iNaturalist alone. The third-party enrichment that
-used to fill the gaps was removed: it cost about 65 minutes per import and,
-because it walked up the ranks as far as kingdom, could label a family-level
-record "Animals" and present that beside genuine vernacular names. Nothing
-fills the gap now, by design.
+used to fill the gaps was removed: it cost about 65 minutes per import and
+walked up the ranks as far as kingdom, so a record could be labelled "Animals".
+Nothing fills the gap now, by design.
 
-The gap is large and worth filling **locally**. Measured against the
-two-backyards export: **4,153 of 6,798** records carry no common name, across
-roughly 1,500 distinct taxa. All but **7** of those records do have a taxonomic
-family, so a family-level lookup reaches almost the whole gap.
+### The rule
 
-It is also far smaller work than it sounds. 259 distinct families account for
-all 4,146, but they are steeply distributed:
+**Prefer the taxonomic family. Climb to superfamily when the family has no
+honest vernacular name. Stop there.**
 
-| Curated entries | Records covered | Share of the gap |
-|---|---|---|
-| 10 | 2,345 | 56% |
-| 25 | 3,051 | 73% |
-| 50 | 3,539 | 85% |
-| 100 | 3,887 | 93% |
-| 259 (all) | 4,146 | 100% |
+This is Lily's rule and it is a better one than "family only", which is what
+this document said first. Her reasoning: *"Even if an owlet moth has a species
+name, it is still an owlet moth."* A superfamily name is a true statement about
+the specimen, not a guess. She would be glad to photograph an unidentified
+moth and see "owlet moth".
 
-The first dozen, by frequency: Erebidae (454), Geometridae (440), Crambidae
-(335), Oecophoridae (257), Pyralidae (199), Tortricidae (164), Noctuidae (149),
-Formicidae (138), Nolidae (116), Chrysomelidae (93), Cerambycidae (86),
-Pentatomidae (71).
+The floor matters more than the ceiling. Family and superfamily are the ranks
+where Lepidoptera actually carry vernacular names. Above them the names stop
+informing — order gives "moths and butterflies", class "insects", kingdom
+"animals". That emptiness, not the climbing itself, is what made the removed
+behaviour dishonest.
 
-**Start with about 25 entries.** That is an afternoon of careful naming for
-three-quarters of the benefit, and the table can grow afterwards without
-touching any logic.
+### Names must sound vernacular, and be singular
 
-What to build: a small curated table, embedded in `index.html`, mapping
-taxonomic family to a common name — Erebidae → "Erebid moths", Geometridae →
-"Geometer moths", and so on. Applied only where iNaturalist supplies no common
-name, and only at family level.
+"Owlet moth", not "owlet moths". Not "Erebid moths" — a latinate coinage
+wearing a vernacular coat, and the mistake this document made on its first
+pass. If there is no name a person would actually say, climb; if there is
+still none, leave the scientific name alone.
 
-Constraints that matter, drawn from why the last attempt was removed:
+### Why climbing earns its place — measured, not assumed
 
-- **Never present a borrowed name as the record's own.** A family-level name
-  describes the family, not the specimen. It must be visibly distinguishable
-  from a true vernacular name — a separate field, or a clear presentation
-  difference. Decide this with Lily before writing the table.
+Against the two-backyards export. 4,153 records carry no common name; all but 7
+have a family, and 3,972 have a superfamily.
+
+| Level | Curated entries | Records covered | Share of gap |
+|---|---|---|---|
+| Family | 10 | 2,345 | 56% |
+| Family | 25 | 3,051 | 73% |
+| Family | 50 | 3,539 | 85% |
+| **Superfamily** | **10** | **2,888** | **69%** |
+| **Superfamily** | **20** | **3,350** | **80%** |
+
+Superfamily is often both fewer entries and truer names:
+
+| Superfamily | Records | Families beneath | Vernacular |
+|---|---|---|---|
+| Noctuoidea | 762 | 6 — Erebidae, Noctuidae, Nolidae, Notodontidae… | owlet moth |
+| Pyraloidea | 534 | 2 — Crambidae, Pyralidae | snout moth |
+| Gelechioidea | 488 | 10 — Oecophoridae, Depressariidae, Xyloryctidae… | curved-horn moth |
+| Geometroidea | 452 | 2 — Geometridae, Uraniidae | — prefer family |
+| Tortricoidea | 164 | 1 — Tortricidae | leafroller moth |
+
+Noctuoidea is the case that proves the rule: one entry covers 762 records, and
+covers them better than three family entries would, because Erebidae is exactly
+the family with no honest vernacular.
+
+Names in that last column are **suggestions for Lily to judge**, not decided.
+Vernacular naming is her expertise, and the first pass of this document got
+Erebidae wrong precisely by not deferring to it.
+
+Where the family has the better name, use it: Formicidae → "ant",
+Cerambycidae → "longhorn beetle", Geometridae → "geometer moth". 174 records
+have a family but no superfamily, so family entries remain necessary either way.
+
+**Start with roughly 20 entries across both levels.** That reaches about 80% of
+the gap and is an afternoon of careful naming.
+
+### Constraints
+
 - **No network access.** The point is that it is local, instant and inspectable.
-- **Family level only.** Do not climb to order, class or kingdom. That climb is
-  precisely what made the old behaviour dishonest.
-- Coverage is better measured than guessed. Count the distinct families among
-  the ~1,500 unmatched taxa first; a few dozen entries may cover most records.
-- Keep it as data, not code, so Lily can extend it without touching logic.
+- **Never climb above superfamily.** Order, class and kingdom carry no name
+  worth showing.
+- **Record where the name came from.** Lily is content for a superfamily name
+  to appear as the record's name, so this is not a display constraint. But the
+  data model should keep the rank the name came from — a record should know it
+  is showing a Noctuoidea name rather than its own — so provenance survives
+  into exports and the presentation can change later without re-deriving
+  anything. Cheap now, impossible to add retrospectively.
+- Keep the table as **data, not code**, so Lily can extend it without touching
+  logic.
+- Applied **only** where iNaturalist supplies no common name. It never
+  overrides a real one.
 
-Open question for Lily: what should a record show when its family is not in the
-table — the scientific name alone, as now?
+Settled: where neither family nor superfamily has an entry, the scientific name
+stands alone, as now.
 
 ---
 

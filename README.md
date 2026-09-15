@@ -41,7 +41,9 @@ Records already held are refreshed, so identifications corrected upstream since 
 
 A top-up **does not** reset the Riff window; unlike a fresh import it extends a dataset already chosen and framed. It reports what it added, what it refreshed, and any observer it did not recognise.
 
-**Common names come from iNaturalist alone**, and no import path contacts any other service. Where iNaturalist offers no common name the scientific name stands alone rather than borrowing one from a higher rank, which would show inference as evidence. Roughly 4,200 records in the two-backyards export are in this position; a curated local family-level lookup is the intended replacement, and is not yet built. The removal of the earlier third-party enrichment, and what it cost, is recorded in `docs/SESSION-2026-09-16-IMPORT.md`.
+**Common names come from iNaturalist alone**, and no import path contacts any other service. Where iNaturalist offers none, the scientific name stands alone. Roughly 4,200 records in the two-backyards export are in this position.
+
+The intended replacement — planned, not yet built — is a curated local lookup giving a vernacular name at **taxonomic family, or superfamily where the family has no honest vernacular**, and never above that. A superfamily name is a true statement about the specimen: an unidentified noctuoid is still an owlet moth. The removed third-party enrichment climbed as far as kingdom, where names stop informing ("Animals"); that emptiness, not the climbing, was the problem. See `docs/NEXT-SESSION.md` for the rule and the measured coverage, and `docs/SESSION-2026-09-16-IMPORT.md` for what the removal cost.
 
 ## Reference and current work
 
