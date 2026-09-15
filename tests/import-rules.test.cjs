@@ -37,7 +37,7 @@ for(const method of ['picker','drop']) test(`${method}: actual import handler re
  const c=loadApp(); let handler;
  c.document.getElementById=()=>({addEventListener:(type,fn)=>handler=fn});
  c.window.addEventListener=(type,fn)=>handler=fn;
- c.clearSelection=()=>{};c.hardResetPlayback=()=>{};
+ c.clearSelection=()=>{};c.hardResetPlayback=()=>{};c.refreshTopUpBtn=()=>{};
  c.rebuildDerived=()=>{const pair=c.computeDuetUsers(c.state.obs);Object.assign(c.state,{userAName:pair[0],userBName:pair[1]});c.state.sequencer=c.buildSequencer(c.state.obs);};
  vm.runInContext(html.slice(start,end),c);
  const file={name:'arrivals.csv',text:async()=>csv};
