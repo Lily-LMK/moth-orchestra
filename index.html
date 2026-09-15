@@ -1791,6 +1791,12 @@ function rowToObs(r){
   const commonName = safeStr(r.common_name) || "";
   const placeGuess = safeStr(r.place_guess) || "";
   const userName = safeStr(r.user_name) || safeStr(r.userName) || safeStr(r.user_login) || safeStr(r.user_id) || safeStr(r.user) || "";
+  // Identity for merging, kept apart from the display name above. A CSV export
+  // carries "Lily Kumpe" in user_name and "lily_kumpe" in user_login, while the
+  // API only ever knows the login. Topping up a CSV matches on this field, so a
+  // refreshed record rejoins the observer it already belonged to instead of
+  // appearing as a third and fourth voice.
+  const userLogin = safeStr(r.user_login) || "";
 
 // Collect rank fields if present (header-driven)
 const ranks = {
@@ -1826,6 +1832,7 @@ const ranks = {
     commonName,
     placeGuess,
     userName,
+    userLogin,
     ranks
   };
 }
@@ -8351,6 +8358,7 @@ function initUI(){
       commonName: common ? _toTitleCase(common) : "",
       placeGuess,
       userName: user,
+      userLogin: user,
       ranks
     };
   }

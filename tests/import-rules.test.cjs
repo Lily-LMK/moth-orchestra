@@ -69,3 +69,19 @@ test('a record iNaturalist has no common name for keeps its scientific name and 
  assert.equal(o.ranks.common_name,'');
  assert.equal(o.taxon,'Hypochrysops ignitus');
 });
+test('observer identity and display name are carried separately from a CSV',()=>{
+ const c=loadApp();
+ const rows='id,user_name,user_login,scientific_name,observed_on,time_observed_at\n'+
+  '1,Lily Kumpe,lily_kumpe,Agape chloropyga,2026-09-08,2026-09-08T11:00:01Z\n'+
+  '2,Chris Burwell,christopherburwell,Agape chloropyga,2026-09-08,2026-09-08T11:00:59Z';
+ const obs=c.parseCSVText(rows);
+ assert.deepEqual(Array.from(obs,o=>o.userName),['Lily Kumpe','Chris Burwell']);
+ assert.deepEqual(Array.from(obs,o=>o.userLogin),['lily_kumpe','christopherburwell']);
+ // Display names still decide the duet, so existing scores are unaffected.
+ assert.deepEqual(Array.from(c.computeDuetUsers(obs)),['Lily Kumpe','Chris Burwell']);
+});
+test('the bundled demo has no logins and still resolves two observers',()=>{
+ const c=loadApp();const obs=c.parseCSVText(c.DEMO_CSV);
+ assert.deepEqual(Array.from(obs,o=>o.userLogin).filter(Boolean),[]);
+ assert.equal(c.computeDuetUsers(obs).length,2);
+});
