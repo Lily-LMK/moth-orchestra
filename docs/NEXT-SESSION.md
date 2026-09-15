@@ -1,4 +1,72 @@
-# Next session — a new instrument family for the gallery
+# Next session
+
+Note that "family" means two different things in these notes. The section
+immediately below concerns **taxonomic** families. Everything from "A new
+instrument family" onward concerns **instrument** families — voices. They are
+unrelated pieces of work.
+
+---
+
+## Start here — a curated common-name lookup for taxonomic families
+
+Agreed with Lily on 16 September 2026, after the import repair
+([SESSION-2026-09-16-IMPORT.md](SESSION-2026-09-16-IMPORT.md)).
+
+Common names now come from iNaturalist alone. The third-party enrichment that
+used to fill the gaps was removed: it cost about 65 minutes per import and,
+because it walked up the ranks as far as kingdom, could label a family-level
+record "Animals" and present that beside genuine vernacular names. Nothing
+fills the gap now, by design.
+
+The gap is large and worth filling **locally**. Measured against the
+two-backyards export: **4,153 of 6,798** records carry no common name, across
+roughly 1,500 distinct taxa. All but **7** of those records do have a taxonomic
+family, so a family-level lookup reaches almost the whole gap.
+
+It is also far smaller work than it sounds. 259 distinct families account for
+all 4,146, but they are steeply distributed:
+
+| Curated entries | Records covered | Share of the gap |
+|---|---|---|
+| 10 | 2,345 | 56% |
+| 25 | 3,051 | 73% |
+| 50 | 3,539 | 85% |
+| 100 | 3,887 | 93% |
+| 259 (all) | 4,146 | 100% |
+
+The first dozen, by frequency: Erebidae (454), Geometridae (440), Crambidae
+(335), Oecophoridae (257), Pyralidae (199), Tortricidae (164), Noctuidae (149),
+Formicidae (138), Nolidae (116), Chrysomelidae (93), Cerambycidae (86),
+Pentatomidae (71).
+
+**Start with about 25 entries.** That is an afternoon of careful naming for
+three-quarters of the benefit, and the table can grow afterwards without
+touching any logic.
+
+What to build: a small curated table, embedded in `index.html`, mapping
+taxonomic family to a common name — Erebidae → "Erebid moths", Geometridae →
+"Geometer moths", and so on. Applied only where iNaturalist supplies no common
+name, and only at family level.
+
+Constraints that matter, drawn from why the last attempt was removed:
+
+- **Never present a borrowed name as the record's own.** A family-level name
+  describes the family, not the specimen. It must be visibly distinguishable
+  from a true vernacular name — a separate field, or a clear presentation
+  difference. Decide this with Lily before writing the table.
+- **No network access.** The point is that it is local, instant and inspectable.
+- **Family level only.** Do not climb to order, class or kingdom. That climb is
+  precisely what made the old behaviour dishonest.
+- Coverage is better measured than guessed. Count the distinct families among
+  the ~1,500 unmatched taxa first; a few dozen entries may cover most records.
+- Keep it as data, not code, so Lily can extend it without touching logic.
+
+Open question for Lily: what should a record show when its family is not in the
+table — the scientific name alone, as now?
+
+---
+
+## A new instrument family for the gallery
 
 Read [PLAN-NEXT-FAMILY.md](PLAN-NEXT-FAMILY.md) first. It carries the measured
 case for a large palette, the naming question to settle with Lily before

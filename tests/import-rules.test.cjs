@@ -52,15 +52,24 @@ test('import reports omitted rows and preserves explicit solo and musical choice
  assert.equal(c.state.obs.length,2);assert.match(status.textContent,/1 omitted/);
  assert.equal(c.state.listenMode,'B');assert.equal(c.state.seed,42);assert.equal(c.state.toneBy,'taxon_family_name');
 });
-test('no import path reaches GBIF; iNaturalist is the only common-name source',()=>{
+// This test must name the thing it forbids; that is the only mention left
+// outside the dated session notes. The application file carries none.
+test('the application contains no GBIF reference of any kind',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
- // The comment recording why GBIF was removed is allowed; live references are not.
- const live=html.split('\n').filter(l=>/gbif/i.test(l) && !/^\s*\/\//.test(l));
- assert.deepEqual(live,[],'GBIF enrichment cost ~65 min per import and could label a family-level record "Animals"');
- assert.equal(/api\.gbif\.org/.test(html),false,'no GBIF endpoint may be contacted');
+ const hits=html.split('\n').map((l,i)=>[i+1,l]).filter(([,l])=>/gbif/i.test(l));
+ assert.deepEqual(hits,[],'no GBIF reference may remain, in code, markup or comment');
  const c=loadApp();
  assert.equal(typeof c.enrichCommonNamesGbif,'undefined');
+ assert.equal(typeof c.enrichCommonNames,'undefined');
+});
+test('the import panel offers only Fetch, Top up, Import CSV and Load demo',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const panel=html.slice(html.indexOf('<summary>Import</summary>'),html.indexOf('<summary>Export</summary>'));
+ const ids=Array.from(panel.matchAll(/<button[^>]*id="([^"]+)"/g),m=>m[1]).sort();
+ assert.deepEqual(ids,['inatFetchBtn','inatTopUpBtn','loadDemoBtn']);
+ assert.equal(/gbif/i.test(panel),false);
 });
 test('a record iNaturalist has no common name for keeps its scientific name and no invented one',()=>{
  const c=loadApp();

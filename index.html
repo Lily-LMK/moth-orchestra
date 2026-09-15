@@ -8255,11 +8255,10 @@ function initUI(){
   });
 
   // ────── iNaturalist API ──────
-  // Common names come from iNaturalist alone. An earlier build walked GBIF's
-  // vernacular names up the ranks when iNaturalist had none; it cost about an
-  // hour per import and could label a family-level record "Animals", so the
-  // scientific name now stands unaccompanied when iNaturalist offers no common
-  // name. A curated local family dictionary is the intended replacement.
+  // iNaturalist is the only source of common names. Where it offers none, the
+  // scientific name stands unaccompanied rather than borrowing a name from a
+  // higher rank, which would show inference as evidence. A curated local
+  // family lookup is the intended replacement.
 
   const INAT_API = "https://api.inaturalist.org/v1/observations";
   const INAT_TAXA_API = "https://api.inaturalist.org/v1/taxa";

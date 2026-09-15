@@ -41,7 +41,7 @@ Records already held are refreshed, so identifications corrected upstream since 
 
 A top-up **does not** reset the Riff window; unlike a fresh import it extends a dataset already chosen and framed. It reports what it added, what it refreshed, and any observer it did not recognise.
 
-Common names come from iNaturalist alone. An earlier build walked GBIF vernacular names up the taxonomic ranks whenever iNaturalist had none. On the two-backyards export that was 5,019 lookups at roughly 2.3s each — about **65 minutes per import**, run automatically and unasked — and because the chain climbed to kingdom it could label a family-level record "Animals" in the same field as a genuine vernacular name. It is gone. Where iNaturalist has no common name the scientific name now stands alone. A curated local family dictionary is the intended replacement.
+**Common names come from iNaturalist alone**, and no import path contacts any other service. Where iNaturalist offers no common name the scientific name stands alone rather than borrowing one from a higher rank, which would show inference as evidence. Roughly 4,200 records in the two-backyards export are in this position; a curated local family-level lookup is the intended replacement, and is not yet built. The removal of the earlier third-party enrichment, and what it cost, is recorded in `docs/SESSION-2026-09-16-IMPORT.md`.
 
 ## Reference and current work
 
