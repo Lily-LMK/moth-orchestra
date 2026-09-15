@@ -19,12 +19,29 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 ## Observation and synchrony rules
 
 - CSV uses `id`, `time_observed_at`, `observed_on`, observer `user_name` (falling back to `user_login` or `user_id`), and taxonomic fields. Timestamps should contain an explicit UTC offset or `Z`; offset-free timestamps retain the legacy browser-local parsing behavior and are unsuitable for portable references. Rows without a parseable timestamp or date are omitted by the importer.
+- Observer **identity** and observer **display name** are separate. `user_login` is read into `userLogin` and is what merging matches on; `userName` remains the display name and still decides the A/B pair. An iNaturalist export carries "Lily Kumpe" in `user_name` and "lily_kumpe" in `user_login`, and the API reports only the login, so collapsing the two would split one observer in two. The bundled demo has no login column and therefore cannot be topped up.
 - A/B are selected automatically: `User_A` / `User_B` when present, otherwise the first two distinct named observers in chronological order. There is no manual pair picker yet. Other named observers are excluded from the sequencer; the gallery and raw counts can still include them. Unnamed data remains playable without duet gestures.
 - A genuine shared minute contains observations from both selected people in the same absolute UTC minute bucket. It does not mean the observations occurred at exactly the same instant. Evidence retains original observation IDs and timestamps, deduplicated by ID within each observer/minute.
 - Timeline uses the selected date; Riff applies its inclusive selected clock window, including windows that cross midnight. Riff, focus filtering and displayed times use **Australia/Brisbane (AEST, UTC+10)** independently of the viewer's timezone. Other session timezones are not configurable yet. CSV `observed_on` supplies the date grouping; a cross-midnight Riff window still works within that selected date, not an inferred multi-date night.
 - Every mode exposes the same shared-minute evidence after its filters. Song arranges genuine matches in musical time and preserves the original matching accents. Its ordinary accompaniment has a separate event type and neutral dot; it is not evidence of synchrony.
 - Timeline/Riff near-simultaneous pulses require original observations within five seconds. They use the nearest B observation for each A observation and deduplicate identical pairs. This rule is independent of loop duration and distinct from same-minute matching.
 - Solo playback contains only that observer's notes, with no duet gestures. Switching players rebuilds sound, visual events and evidence together.
+
+## Importing: CSV, Fetch and Top up
+
+Three ways in, meant to be used together.
+
+- **Import CSV** replaces the loaded records with an iNaturalist export and resets the Riff window to 00:00–23:59 Brisbane, so a new dataset never inherits the demo's narrow window.
+- **Fetch** pulls from the API for one or two usernames, newest first, up to **Cap**. The cap is a deliberate choice — lowering it to 1,000 is how you hear the current week rather than a whole history — so the status line reports the fetched count against the true total and never implies completeness.
+- **Top up** extends what is already loaded. It reads each observer's login from the records, finds how far that observer's data reaches, and fetches only from two days before that point. It is enabled only when the loaded records carry logins.
+
+Why two days: iNaturalist filters by whole observation dates (`d1`), and the newest record held on a night is rarely that night's last arrival, so an exact boundary would drop the rest of a part-imported night. The overlap reconciles by observation id, so re-fetched records cost a little time and change nothing.
+
+Records already held are refreshed, so identifications corrected upstream since the export arrive. Observer identity is taken from the record already held, not from the API, which knows only the login.
+
+A top-up **does not** reset the Riff window; unlike a fresh import it extends a dataset already chosen and framed. It reports what it added, what it refreshed, and any observer it did not recognise.
+
+**Common names come from iNaturalist alone**, and no import path contacts any other service. Where iNaturalist offers no common name the scientific name stands alone rather than borrowing one from a higher rank, which would show inference as evidence. Roughly 4,200 records in the two-backyards export are in this position; a curated local family-level lookup is the intended replacement, and is not yet built. The removal of the earlier third-party enrichment, and what it cost, is recorded in `docs/SESSION-2026-09-16-IMPORT.md`.
 
 ## Reference and current work
 
@@ -39,6 +56,8 @@ The score is reproducible. Waveform bytes and animated particle positions are no
 Work on a feature branch and review changes before merging. GitHub Pages publishes the root of `main`; merging there releases the app. This session did not push or publish. Preserve historical standalone HTML files and review unpublished V2 layout changes separately.
 
 Remaining gates include a listening review, real iPhone testing, gap-shortening implementation, broader browser scheduling checks, explicit import omission feedback, and a code licence/data-attribution decision. The API importer is capped and must not be treated as complete observation history. Photos and observation data retain their source licensing requirements.
+
+The import and top-up work of 16 September 2026 has passing automated coverage, a live end-to-end check, and a headless-Chrome check in which the Top up button was actually clicked against the live API. It has **not** been tested on a real device, nor reviewed by ear — though no sound or score path was touched.
 
 ## Playback stability repair
 

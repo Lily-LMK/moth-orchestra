@@ -1361,7 +1361,7 @@ input[type="range"]::-moz-range-thumb{
           <div class="miniRow wide">
             <button class="mini" id="inatFetchBtn" type="button">Fetch</button>
             <span class="capField"><label for="inatCap">Cap</label><input id="inatCap" type="number" value="5000" min="1" max="5000" step="10"/></span>
-            <button class="mini" id="inatEnrichBtn" type="button" disabled>GBIF</button>
+            <button class="mini" id="inatTopUpBtn" type="button" disabled title="Fetch only what these observers have added since the loaded records end">Top up</button>
           </div>
           <div class="note" id="inatStatus"></div>
           <div class="miniRow wide">
@@ -1792,6 +1792,12 @@ function rowToObs(r){
   const commonName = safeStr(r.common_name) || "";
   const placeGuess = safeStr(r.place_guess) || "";
   const userName = safeStr(r.user_name) || safeStr(r.userName) || safeStr(r.user_login) || safeStr(r.user_id) || safeStr(r.user) || "";
+  // Identity for merging, kept apart from the display name above. A CSV export
+  // carries "Lily Kumpe" in user_name and "lily_kumpe" in user_login, while the
+  // API only ever knows the login. Topping up a CSV matches on this field, so a
+  // refreshed record rejoins the observer it already belonged to instead of
+  // appearing as a third and fourth voice.
+  const userLogin = safeStr(r.user_login) || "";
 
 // Collect rank fields if present (header-driven)
 const ranks = {
@@ -1827,6 +1833,7 @@ const ranks = {
     commonName,
     placeGuess,
     userName,
+    userLogin,
     ranks
   };
 }
@@ -1899,6 +1906,91 @@ function nightHasBothUsers(arr, userA, userB){
   return false;
 }
 
+/** --------------------- Top up: extend loaded records from iNaturalist ---------------------
+ * A CSV export is a snapshot. These two functions let the API add only what has
+ * happened since, rather than refetching a history already held on disk.
+ * Both are deliberately pure and free of network access so the merge rules can
+ * be tested without contacting iNaturalist.
+ */
+
+// How far back a top-up reaches before the newest record already held.
+const TOP_UP_OVERLAP_DAYS = 2;
+
+// Which observers can be topped up, and from when.
+// Each observer is carried forward on its own cutoff. A single global cutoff
+// would silently lose every record belonging to whichever observer stopped
+// contributing earlier, across the whole gap between the two end dates.
+function planTopUp(obs, opts){
+  const overlapDays = (opts && Number.isFinite(opts.overlapDays)) ? opts.overlapDays : TOP_UP_OVERLAP_DAYS;
+  const byLogin = new Map();
+  for(const o of (obs || [])){
+    const login = safeStr(o && o.userLogin).trim();
+    if(!login || !o.t) continue;
+    const held = byLogin.get(login);
+    if(!held){
+      byLogin.set(login, { login, latest: o.t, userName: safeStr(o.userName).trim() || login });
+    } else if(o.t.getTime() > held.latest.getTime()){
+      held.latest = o.t;
+    }
+  }
+  const out = [];
+  for(const held of byLogin.values()){
+    // Re-fetch from a little before the newest record held, never from exactly
+    // it. iNaturalist filters by whole observation dates, and the newest record
+    // on a night is rarely that night's last arrival, so an exact boundary
+    // would drop the remainder of the night already partly imported. The
+    // overlap is reconciled by observation id, so re-fetched records cost a
+    // little time and change nothing.
+    const since = new Date(held.latest.getTime() - overlapDays * 86400000);
+    out.push({
+      login: held.login,
+      userName: held.userName,
+      latest: held.latest,
+      since,
+      sinceDate: localDateKey(since)
+    });
+  }
+  out.sort((a, b) => a.login.localeCompare(b.login));
+  return out;
+}
+
+// Merge topped-up records into the loaded set, reconciling by observation id.
+// Existing records are refreshed so upstream identification changes arrive,
+// but observer identity is taken from the record already held: the API knows
+// only the login, and letting "lily_kumpe" overwrite "Lily Kumpe" would split
+// one observer into two and destroy every shared minute in the dataset.
+function mergeTopUp(existing, incoming){
+  const held = Array.isArray(existing) ? existing : [];
+  const arriving = Array.isArray(incoming) ? incoming : [];
+
+  const displayForLogin = new Map();
+  for(const o of held){
+    const login = safeStr(o && o.userLogin).trim();
+    const name = safeStr(o && o.userName).trim();
+    if(login && name && !displayForLogin.has(login)) displayForLogin.set(login, name);
+  }
+
+  const byId = new Map();
+  for(const o of held) byId.set(safeStr(o.id), o);
+
+  let added = 0, refreshed = 0;
+  const newObservers = new Set();
+  for(const raw of arriving){
+    if(!raw || !raw.t) continue;
+    const id = safeStr(raw.id);
+    if(!id) continue;
+    const login = safeStr(raw.userLogin).trim();
+    const known = displayForLogin.get(login);
+    if(login && !known) newObservers.add(login);
+    // Rejoin the observer this record already belonged to.
+    const o = known ? Object.assign({}, raw, { userName: known }) : raw;
+    if(byId.has(id)) refreshed++; else added++;
+    byId.set(id, o);
+  }
+
+  const obs = Array.from(byId.values()).sort((a, b) => a.t.getTime() - b.t.getTime());
+  return { obs, added, refreshed, newObservers: Array.from(newObservers).sort() };
+}
 
 function applyFocusFilter(arr){
   // Focus mode: ignore observations between 03:00 and 15:00 Brisbane time.
@@ -8149,7 +8241,7 @@ function initUI(){
     clearSelection();
     hardResetPlayback("import");
     rebuildDerived();
-    $("inatEnrichBtn").disabled = !state.obs.length;
+    refreshTopUpBtn();
     e.target.value = "";
   });
 
@@ -8159,29 +8251,24 @@ function initUI(){
     clearSelection();
     hardResetPlayback("demo");
     rebuildDerived();
-    $("inatEnrichBtn").disabled = !state.obs.length;
+    refreshTopUpBtn();
   });
 
-  // ────── iNaturalist API + GBIF common name enrichment ──────
+  // ────── iNaturalist API ──────
+  // iNaturalist is the only source of common names. Where it offers none, the
+  // scientific name stands unaccompanied rather than borrowing a name from a
+  // higher rank, which would show inference as evidence. A curated local
+  // family lookup is the intended replacement.
 
   const INAT_API = "https://api.inaturalist.org/v1/observations";
   const INAT_TAXA_API = "https://api.inaturalist.org/v1/taxa";
-  const GBIF_API = "https://api.gbif.org/v1";
-  const _gbifCommonCache = new Map();
   const _taxonCache = new Map();
 
   function _safe(v){ return v == null ? "" : String(v); }
-  function _lower(v){ return _safe(v).trim().toLowerCase(); }
   function _sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
 
   function _parseUserList(raw){
     return _safe(raw).split(",").map(s=>s.trim()).filter(Boolean);
-  }
-
-  function _isEnglishLike(s){
-    const t = _safe(s).trim();
-    if(!t) return false;
-    return /^[A-Za-z0-9][A-Za-z0-9 '\u2019\-()\/,\.&:+]+$/.test(t);
   }
 
   function _toTitleCase(s){
@@ -8358,12 +8445,20 @@ function initUI(){
       commonName: common ? _toTitleCase(common) : "",
       placeGuess,
       userName: user,
+      userLogin: user,
       ranks
     };
   }
 
-  // ── iNaturalist: fetch all observations for user(s) ──
-  async function inatFetchObservations(userCsv, cap, onProgress){
+  // ── iNaturalist: fetch observations for user(s) ──
+  // Newest first, so the cap means "the most recent N", which is how the cap is
+  // used in practice — a week of records rather than a whole history.
+  // opts.since ("YYYY-MM-DD") restricts the fetch to observations on or after
+  // that date, which is what makes topping up cheap.
+  // Returns { obs, total, error }: a page that fails partway through keeps the
+  // records already fetched instead of discarding them, because a single rate
+  // limit near the end of a long fetch used to cost the entire run.
+  async function inatFetchObservations(userCsv, cap, onProgress, opts){
     const users = _parseUserList(userCsv);
     const user_id = users.join(",");
     if(!user_id) throw new Error("Enter at least one iNaturalist username.");
@@ -8371,8 +8466,11 @@ function initUI(){
 
     const per_page = 200;
     const maxN = Math.max(1, Math.min(5000, cap || 5000));
+    const since = opts && opts.since ? String(opts.since) : "";
     const results = [];
     let page = 1;
+    let total = 0;
+    let error = null;
 
     while(results.length < maxN){
       const params = new URLSearchParams({
@@ -8383,9 +8481,18 @@ function initUI(){
         order: "desc",
         verifiable: "any"
       });
+      if(since) params.set("d1", since);
       const url = `${INAT_API}?${params.toString()}`;
-      const data = await _fetchJson(url);
+
+      let data;
+      try{
+        data = await _fetchJson(url);
+      }catch(e){
+        error = e;
+        break;
+      }
       const batch = Array.isArray(data.results) ? data.results : [];
+      total = Number(data.total_results || 0) || total;
       if(!batch.length) break;
 
       // Enrich taxa to get full ancestry
@@ -8397,7 +8504,7 @@ function initUI(){
       }
 
       if(typeof onProgress === "function"){
-        try{ onProgress(results.length, data.total_results || 0); }catch(e){}
+        try{ onProgress(results.length, total); }catch(e){}
       }
 
       const total_pages = Number(data.total_pages || 0);
@@ -8406,186 +8513,28 @@ function initUI(){
       await _sleep(1100); // Respect rate limits (~60 req/min)
     }
 
-    return results.map(inatObsToMothObs).filter(o => o.t && o.nightKey);
-  }
+    // Nothing salvaged: the caller should hear about the failure, not silence.
+    if(error && !results.length) throw error;
 
-  // ── GBIF common name enrichment ──
-
-  function _gbifCacheKey(rank, name, ctx){
-    return [rank, _safe(name).trim(),
-      _safe(ctx.kingdom), _safe(ctx.phylum), _safe(ctx.class),
-      _safe(ctx.order), _safe(ctx.family), _safe(ctx.genus)
-    ].map(x=>_safe(x).trim()).join("||");
-  }
-
-  function _gbifContext(ranks, rank){
-    const ctx = {
-      kingdom: _safe(ranks.taxon_kingdom_name).trim(),
-      phylum: _safe(ranks.taxon_phylum_name).trim(),
-      class: _safe(ranks.taxon_class_name).trim(),
-      order: _safe(ranks.taxon_order_name).trim(),
-      family: _safe(ranks.taxon_family_name).trim(),
-      genus: _safe(ranks.taxon_genus_name).trim(),
+    return {
+      obs: results.map(inatObsToMothObs).filter(o => o.t && o.nightKey),
+      total,
+      error
     };
-    const up = String(rank || "").toUpperCase();
-    if(["FAMILY","ORDER","CLASS","PHYLUM","KINGDOM"].includes(up)) ctx.genus = "";
-    if(["CLASS","PHYLUM","KINGDOM"].includes(up)) ctx.family = "";
-    if(["PHYLUM","KINGDOM"].includes(up)) ctx.order = "";
-    if(["KINGDOM"].includes(up)){ ctx.class = ""; ctx.phylum = ""; }
-    return ctx;
-  }
-
-  function _gbifCandidates(ranks){
-    const chain = [
-      { rank:"SPECIES", field:"taxon_species_name" },
-      { rank:"GENUS", field:"taxon_genus_name" },
-      { rank:"TRIBE", field:"taxon_tribe_name" },
-      { rank:"SUBFAMILY", field:"taxon_subfamily_name" },
-      { rank:"SUPERFAMILY", field:"taxon_superfamily_name" },
-      { rank:"FAMILY", field:"taxon_family_name" },
-      { rank:"ORDER", field:"taxon_order_name" },
-      { rank:"CLASS", field:"taxon_class_name" },
-      { rank:"PHYLUM", field:"taxon_phylum_name" },
-      { rank:"KINGDOM", field:"taxon_kingdom_name" },
-    ];
-    const out = [];
-    for(const step of chain){
-      const name = _safe(ranks[step.field]).trim();
-      if(!name) continue;
-      const ctx = _gbifContext(ranks, step.rank);
-      out.push({ rank: step.rank, name, ctx });
-    }
-    return out;
-  }
-
-  async function _gbifResolveKey(name, rank, ctx){
-    const params = new URLSearchParams();
-    params.set("name", name);
-    if(rank) params.set("rank", rank);
-    if(ctx.kingdom) params.set("kingdom", ctx.kingdom);
-    if(ctx.phylum) params.set("phylum", ctx.phylum);
-    if(ctx.class) params.set("class", ctx.class);
-    if(ctx.order) params.set("order", ctx.order);
-    if(ctx.family) params.set("family", ctx.family);
-    if(ctx.genus && String(rank).toUpperCase() !== "GENUS") params.set("genus", ctx.genus);
-
-    const url = `${GBIF_API}/species/match?${params.toString()}`;
-    const data = await _fetchJson(url);
-    const usageKey = data && (data.usageKey || data.speciesKey || data.key);
-    if(!usageKey) return null;
-
-    const gotRank = _safe(data.rank).toUpperCase();
-    const wantRank = _safe(rank).toUpperCase();
-    if(wantRank && gotRank && gotRank !== wantRank) return null;
-
-    const conf = (typeof data.confidence === "number") ? data.confidence : null;
-    if(conf != null && conf < 70) return null;
-    return usageKey;
-  }
-
-  function _pickEnglishVernacular(list){
-    const rows = (list && list.results) ? list.results : (Array.isArray(list) ? list : []);
-    const cand = rows
-      .map(r=>({
-        name: _safe(r.vernacularName || r.vernacular_name || r.name).trim(),
-        lang: _safe(r.language).trim(),
-        preferred: !!(r.preferredName || r.isPreferredName || r.preferred),
-      }))
-      .filter(x=>x.name);
-
-    const en = cand.filter(x=>{
-      const L = _lower(x.lang);
-      return L === "eng" || L === "en" || L.startsWith("en") || L.includes("english");
-    });
-    if(!en.length) return null;
-
-    en.sort((a,b)=>{
-      if(a.preferred !== b.preferred) return a.preferred ? -1 : 1;
-      if(a.name.length !== b.name.length) return a.name.length - b.name.length;
-      return a.name.localeCompare(b.name, undefined, {sensitivity:"base"});
-    });
-    return _toTitleCase(en[0].name);
-  }
-
-  async function _gbifFetchVernacular(name, rank, ctx){
-    const key = await _gbifResolveKey(name, rank, ctx);
-    if(!key) return null;
-    try{
-      const list = await _fetchJson(`${GBIF_API}/species/${key}/vernacularNames`);
-      return _pickEnglishVernacular(list);
-    }catch(e){ return null; }
-  }
-
-  async function enrichCommonNamesGbif(obsArr, onProgress){
-    // Find obs missing common names
-    const missing = obsArr.filter(o => !_safe(o.ranks.common_name).trim());
-    if(!missing.length) return { filled:0, total:0 };
-
-    // Build unique candidate lookups
-    const allKeys = new Map(); // cacheKey -> {rank, name, ctx}
-    for(const o of missing){
-      o._gbifCandidates = _gbifCandidates(o.ranks);
-      for(const c of o._gbifCandidates){
-        const k = _gbifCacheKey(c.rank, c.name, c.ctx);
-        if(!allKeys.has(k)) allKeys.set(k, c);
-      }
-    }
-
-    // Fetch all unique candidate vernacular names (concurrency = 3)
-    const keys = [...allKeys.keys()];
-    let done = 0;
-    const CONC = 3;
-    const q = keys.slice();
-
-    async function worker(){
-      while(q.length){
-        const k = q.shift();
-        if(_gbifCommonCache.has(k)){ done++; continue; }
-        const c = allKeys.get(k);
-        try{
-          const common = await _gbifFetchVernacular(c.name, c.rank, c.ctx);
-          _gbifCommonCache.set(k, { common: common ? _toTitleCase(common) : "", en: !!common });
-        }catch(e){
-          _gbifCommonCache.set(k, { common: "", en: false });
-        }
-        done++;
-        if(typeof onProgress === "function"){
-          try{ onProgress(done, keys.length); }catch(e){}
-        }
-      }
-    }
-
-    const workers = [];
-    for(let i=0; i<CONC; i++) workers.push(worker());
-    await Promise.all(workers);
-
-    // Apply best-available common name per record
-    let filled = 0;
-    for(const o of missing){
-      if(_safe(o.ranks.common_name).trim()) continue;
-      for(const c of (o._gbifCandidates || [])){
-        const k = _gbifCacheKey(c.rank, c.name, c.ctx);
-        const hit = _gbifCommonCache.get(k);
-        const common = hit ? _safe(hit.common).trim() : "";
-        if(hit && hit.en && common && _isEnglishLike(common)){
-          o.ranks.common_name = _toTitleCase(common);
-          o.commonName = o.ranks.common_name;
-          filled++;
-          break;
-        }
-      }
-      delete o._gbifCandidates;
-    }
-
-    return { filled, total: missing.length };
   }
 
   // ── Wire iNaturalist UI ──
   const inatUsersEl = $("inatUsers");
   const inatStatusEl = $("inatStatus");
   const inatFetchBtn = $("inatFetchBtn");
-  const inatEnrichBtn = $("inatEnrichBtn");
+  const inatTopUpBtn = $("inatTopUpBtn");
   const inatTotalsEl = $("inatTotals");
+
+  // Top up needs an iNaturalist login on the loaded records to know whom to ask
+  // for. A CSV exported from iNaturalist carries one; the bundled demo does not.
+  function refreshTopUpBtn(){
+    if(inatTopUpBtn) inatTopUpBtn.disabled = !planTopUp(state.obs).length;
+  }
 
   inatUsersEl.addEventListener("blur", async ()=>{
     const users = _parseUserList(inatUsersEl.value);
@@ -8609,36 +8558,34 @@ function initUI(){
     inatStatusEl.textContent = "Connecting to iNaturalist…";
     try{
       const capVal = parseInt($("inatCap").value, 10) || 5000;
-      const obs = await inatFetchObservations(users, capVal, (done, total)=>{
+      const fetched = await inatFetchObservations(users, capVal, (done, total)=>{
         inatStatusEl.textContent = `Fetched ${done} of ~${total} observations…`;
       });
+      const obs = fetched.obs;
       if(!obs.length){
         inatStatusEl.textContent = "No observations found.";
         inatFetchBtn.disabled = false;
         return;
       }
 
-      // Merge with existing observations: deduplicate by id, keeping new data
-      const existingById = new Map();
-      for(const o of state.obs) existingById.set(o.id, o);
-      for(const o of obs) existingById.set(o.id, o);
-      state.obs = Array.from(existingById.values());
-      state.obs.sort((a,b) => a.t.getTime() - b.t.getTime());
+      // Reconcile by observation id, preserving the display name of any
+      // observer already loaded.
+      const merged = mergeTopUp(state.obs, obs);
+      state.obs = merged.obs;
 
       clearSelection();
       hardResetPlayback("inat");
       rebuildDerived();
-      inatStatusEl.textContent = `Loaded ${obs.length} new observations (${state.obs.length} total) across ${state.nights ? state.nights.size : "?"} nights. Enriching common names…`;
-      inatEnrichBtn.disabled = false;
+      refreshTopUpBtn();
 
-      // Auto-enrich common names via GBIF
-      const result = await enrichCommonNamesGbif(state.obs, (done, total)=>{
-        inatStatusEl.textContent = `GBIF: ${done}/${total} lookups…`;
-      });
-      inatStatusEl.textContent = `Done — ${state.obs.length} obs total, ${result.filled} common names enriched via GBIF.`;
-
-      // Rebuild to pick up enriched names
-      rebuildDerived();
+      const parts = [`Loaded ${merged.added} new observations (${state.obs.length} total) across ${state.nights ? state.nights.size : "?"} nights.`];
+      if(merged.refreshed) parts.push(`${merged.refreshed} already held were refreshed.`);
+      // The cap is a deliberate choice, but it should never look like the whole record.
+      if(fetched.total && obs.length < fetched.total){
+        parts.push(`This is the most recent ${obs.length.toLocaleString()} of ${fetched.total.toLocaleString()} — raise Cap for more.`);
+      }
+      if(fetched.error) parts.push(`Stopped early: ${fetched.error.message || fetched.error}. Records already fetched were kept.`);
+      inatStatusEl.textContent = parts.join(" ");
 
     }catch(e){
       inatStatusEl.textContent = "Error: " + (e.message || e);
@@ -8646,21 +8593,66 @@ function initUI(){
     inatFetchBtn.disabled = false;
   });
 
-  inatEnrichBtn.addEventListener("click", async ()=>{
-    if(!state.obs.length){ inatStatusEl.textContent = "No data loaded."; return; }
-    inatEnrichBtn.disabled = true;
-    inatStatusEl.textContent = "Enriching common names via GBIF…";
-    try{
-      const result = await enrichCommonNamesGbif(state.obs, (done, total)=>{
-        inatStatusEl.textContent = `GBIF: ${done}/${total} lookups…`;
-      });
-      inatStatusEl.textContent = `Done — ${result.filled} of ${result.total} enriched.`;
-      rebuildDerived();
-    }catch(e){
-      inatStatusEl.textContent = "GBIF error: " + (e.message || e);
+  // ── Top up: add only what has happened since the loaded records end ──
+  if(inatTopUpBtn) inatTopUpBtn.addEventListener("click", async ()=>{
+    const targets = planTopUp(state.obs, { overlapDays: TOP_UP_OVERLAP_DAYS });
+    if(!targets.length){
+      inatStatusEl.textContent = "Nothing to top up: the loaded records carry no iNaturalist login. Import a CSV exported from iNaturalist, or use Fetch.";
+      return;
     }
-    inatEnrichBtn.disabled = false;
+    inatTopUpBtn.disabled = true;
+    inatFetchBtn.disabled = true;
+
+    const capVal = parseInt($("inatCap").value, 10) || 5000;
+    const collected = [];
+    const notes = [];
+
+    try{
+      for(const target of targets){
+        inatStatusEl.textContent = `Topping up ${target.userName} since ${target.sinceDate}…`;
+        try{
+          const fetched = await inatFetchObservations(target.login, capVal, (done)=>{
+            inatStatusEl.textContent = `Topping up ${target.userName} since ${target.sinceDate} — ${done} fetched…`;
+          }, { since: target.sinceDate });
+          for(const o of fetched.obs) collected.push(o);
+          if(fetched.error) notes.push(`${target.login} stopped early (${fetched.error.message || fetched.error})`);
+        }catch(e){
+          // One observer failing must not discard the other's records.
+          notes.push(`${target.login} failed (${e.message || e})`);
+        }
+      }
+
+      const merged = mergeTopUp(state.obs, collected);
+      const before = state.obs.length;
+      state.obs = merged.obs;
+
+      if(merged.added || merged.refreshed){
+        clearSelection();
+        // The Riff window is deliberately left alone: a top-up extends a
+        // dataset already chosen and framed, unlike a fresh CSV import.
+        hardResetPlayback("topup");
+        rebuildDerived();
+      }
+      refreshTopUpBtn();
+
+      const since = targets.map(t=>`${t.userName} since ${t.sinceDate}`).join(", ");
+      const parts = [merged.added
+        ? `Topped up: ${merged.added} new observations (${before} → ${state.obs.length}).`
+        : `Topped up: nothing new (${state.obs.length} records unchanged).`];
+      parts.push(`Asked for ${since}.`);
+      if(merged.refreshed) parts.push(`${merged.refreshed} already held were refreshed.`);
+      if(merged.newObservers.length) parts.push(`New observer(s): ${merged.newObservers.join(", ")}.`);
+      if(notes.length) parts.push(notes.join("; ") + ".");
+      inatStatusEl.textContent = parts.join(" ");
+
+    }catch(e){
+      inatStatusEl.textContent = "Top-up error: " + (e.message || e);
+    }
+    inatFetchBtn.disabled = false;
+    refreshTopUpBtn();
   });
+
+  refreshTopUpBtn();
 
   // export ZIP (CSV + WAV)
   if($("exportZipBtn")) $("exportZipBtn").addEventListener("click", exportZip);
@@ -8681,13 +8673,12 @@ function initUI(){
     clearSelection();
     hardResetPlayback("drop");
     rebuildDerived();
-    $("inatEnrichBtn").disabled = !state.obs.length;
+    refreshTopUpBtn();
   });
 
   // visual loop length stat
   $("statLoop").textContent = `${state.loopLen}s`;
   updateCornerStatus();
-  $("inatEnrichBtn").disabled = !state.obs.length;
 }
 
 /** ------------------------------ Export: ZIP (CSV + WAV) ------------------------------ */
