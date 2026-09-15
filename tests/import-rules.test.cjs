@@ -52,3 +52,20 @@ test('import reports omitted rows and preserves explicit solo and musical choice
  assert.equal(c.state.obs.length,2);assert.match(status.textContent,/1 omitted/);
  assert.equal(c.state.listenMode,'B');assert.equal(c.state.seed,42);assert.equal(c.state.toneBy,'taxon_family_name');
 });
+test('no import path reaches GBIF; iNaturalist is the only common-name source',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ // The comment recording why GBIF was removed is allowed; live references are not.
+ const live=html.split('\n').filter(l=>/gbif/i.test(l) && !/^\s*\/\//.test(l));
+ assert.deepEqual(live,[],'GBIF enrichment cost ~65 min per import and could label a family-level record "Animals"');
+ assert.equal(/api\.gbif\.org/.test(html),false,'no GBIF endpoint may be contacted');
+ const c=loadApp();
+ assert.equal(typeof c.enrichCommonNamesGbif,'undefined');
+});
+test('a record iNaturalist has no common name for keeps its scientific name and no invented one',()=>{
+ const c=loadApp();
+ const o=c.parseCSVText('id,user_login,scientific_name,observed_on,time_observed_at,taxon_family_name,common_name\n9,alice,Hypochrysops ignitus,2026-09-08,2026-09-08T11:00:01Z,Lycaenidae,')[0];
+ assert.equal(o.commonName,'');
+ assert.equal(o.ranks.common_name,'');
+ assert.equal(o.taxon,'Hypochrysops ignitus');
+});

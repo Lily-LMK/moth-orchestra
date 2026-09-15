@@ -1361,7 +1361,6 @@ input[type="range"]::-moz-range-thumb{
           <div class="miniRow wide">
             <button class="mini" id="inatFetchBtn" type="button">Fetch</button>
             <span class="capField"><label for="inatCap">Cap</label><input id="inatCap" type="number" value="5000" min="1" max="5000" step="10"/></span>
-            <button class="mini" id="inatEnrichBtn" type="button" disabled>GBIF</button>
           </div>
           <div class="note" id="inatStatus"></div>
           <div class="miniRow wide">
@@ -8149,7 +8148,6 @@ function initUI(){
     clearSelection();
     hardResetPlayback("import");
     rebuildDerived();
-    $("inatEnrichBtn").disabled = !state.obs.length;
     e.target.value = "";
   });
 
@@ -8159,29 +8157,24 @@ function initUI(){
     clearSelection();
     hardResetPlayback("demo");
     rebuildDerived();
-    $("inatEnrichBtn").disabled = !state.obs.length;
   });
 
-  // ────── iNaturalist API + GBIF common name enrichment ──────
+  // ────── iNaturalist API ──────
+  // Common names come from iNaturalist alone. An earlier build walked GBIF's
+  // vernacular names up the ranks when iNaturalist had none; it cost about an
+  // hour per import and could label a family-level record "Animals", so the
+  // scientific name now stands unaccompanied when iNaturalist offers no common
+  // name. A curated local family dictionary is the intended replacement.
 
   const INAT_API = "https://api.inaturalist.org/v1/observations";
   const INAT_TAXA_API = "https://api.inaturalist.org/v1/taxa";
-  const GBIF_API = "https://api.gbif.org/v1";
-  const _gbifCommonCache = new Map();
   const _taxonCache = new Map();
 
   function _safe(v){ return v == null ? "" : String(v); }
-  function _lower(v){ return _safe(v).trim().toLowerCase(); }
   function _sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
 
   function _parseUserList(raw){
     return _safe(raw).split(",").map(s=>s.trim()).filter(Boolean);
-  }
-
-  function _isEnglishLike(s){
-    const t = _safe(s).trim();
-    if(!t) return false;
-    return /^[A-Za-z0-9][A-Za-z0-9 '\u2019\-()\/,\.&:+]+$/.test(t);
   }
 
   function _toTitleCase(s){
@@ -8409,182 +8402,10 @@ function initUI(){
     return results.map(inatObsToMothObs).filter(o => o.t && o.nightKey);
   }
 
-  // ── GBIF common name enrichment ──
-
-  function _gbifCacheKey(rank, name, ctx){
-    return [rank, _safe(name).trim(),
-      _safe(ctx.kingdom), _safe(ctx.phylum), _safe(ctx.class),
-      _safe(ctx.order), _safe(ctx.family), _safe(ctx.genus)
-    ].map(x=>_safe(x).trim()).join("||");
-  }
-
-  function _gbifContext(ranks, rank){
-    const ctx = {
-      kingdom: _safe(ranks.taxon_kingdom_name).trim(),
-      phylum: _safe(ranks.taxon_phylum_name).trim(),
-      class: _safe(ranks.taxon_class_name).trim(),
-      order: _safe(ranks.taxon_order_name).trim(),
-      family: _safe(ranks.taxon_family_name).trim(),
-      genus: _safe(ranks.taxon_genus_name).trim(),
-    };
-    const up = String(rank || "").toUpperCase();
-    if(["FAMILY","ORDER","CLASS","PHYLUM","KINGDOM"].includes(up)) ctx.genus = "";
-    if(["CLASS","PHYLUM","KINGDOM"].includes(up)) ctx.family = "";
-    if(["PHYLUM","KINGDOM"].includes(up)) ctx.order = "";
-    if(["KINGDOM"].includes(up)){ ctx.class = ""; ctx.phylum = ""; }
-    return ctx;
-  }
-
-  function _gbifCandidates(ranks){
-    const chain = [
-      { rank:"SPECIES", field:"taxon_species_name" },
-      { rank:"GENUS", field:"taxon_genus_name" },
-      { rank:"TRIBE", field:"taxon_tribe_name" },
-      { rank:"SUBFAMILY", field:"taxon_subfamily_name" },
-      { rank:"SUPERFAMILY", field:"taxon_superfamily_name" },
-      { rank:"FAMILY", field:"taxon_family_name" },
-      { rank:"ORDER", field:"taxon_order_name" },
-      { rank:"CLASS", field:"taxon_class_name" },
-      { rank:"PHYLUM", field:"taxon_phylum_name" },
-      { rank:"KINGDOM", field:"taxon_kingdom_name" },
-    ];
-    const out = [];
-    for(const step of chain){
-      const name = _safe(ranks[step.field]).trim();
-      if(!name) continue;
-      const ctx = _gbifContext(ranks, step.rank);
-      out.push({ rank: step.rank, name, ctx });
-    }
-    return out;
-  }
-
-  async function _gbifResolveKey(name, rank, ctx){
-    const params = new URLSearchParams();
-    params.set("name", name);
-    if(rank) params.set("rank", rank);
-    if(ctx.kingdom) params.set("kingdom", ctx.kingdom);
-    if(ctx.phylum) params.set("phylum", ctx.phylum);
-    if(ctx.class) params.set("class", ctx.class);
-    if(ctx.order) params.set("order", ctx.order);
-    if(ctx.family) params.set("family", ctx.family);
-    if(ctx.genus && String(rank).toUpperCase() !== "GENUS") params.set("genus", ctx.genus);
-
-    const url = `${GBIF_API}/species/match?${params.toString()}`;
-    const data = await _fetchJson(url);
-    const usageKey = data && (data.usageKey || data.speciesKey || data.key);
-    if(!usageKey) return null;
-
-    const gotRank = _safe(data.rank).toUpperCase();
-    const wantRank = _safe(rank).toUpperCase();
-    if(wantRank && gotRank && gotRank !== wantRank) return null;
-
-    const conf = (typeof data.confidence === "number") ? data.confidence : null;
-    if(conf != null && conf < 70) return null;
-    return usageKey;
-  }
-
-  function _pickEnglishVernacular(list){
-    const rows = (list && list.results) ? list.results : (Array.isArray(list) ? list : []);
-    const cand = rows
-      .map(r=>({
-        name: _safe(r.vernacularName || r.vernacular_name || r.name).trim(),
-        lang: _safe(r.language).trim(),
-        preferred: !!(r.preferredName || r.isPreferredName || r.preferred),
-      }))
-      .filter(x=>x.name);
-
-    const en = cand.filter(x=>{
-      const L = _lower(x.lang);
-      return L === "eng" || L === "en" || L.startsWith("en") || L.includes("english");
-    });
-    if(!en.length) return null;
-
-    en.sort((a,b)=>{
-      if(a.preferred !== b.preferred) return a.preferred ? -1 : 1;
-      if(a.name.length !== b.name.length) return a.name.length - b.name.length;
-      return a.name.localeCompare(b.name, undefined, {sensitivity:"base"});
-    });
-    return _toTitleCase(en[0].name);
-  }
-
-  async function _gbifFetchVernacular(name, rank, ctx){
-    const key = await _gbifResolveKey(name, rank, ctx);
-    if(!key) return null;
-    try{
-      const list = await _fetchJson(`${GBIF_API}/species/${key}/vernacularNames`);
-      return _pickEnglishVernacular(list);
-    }catch(e){ return null; }
-  }
-
-  async function enrichCommonNamesGbif(obsArr, onProgress){
-    // Find obs missing common names
-    const missing = obsArr.filter(o => !_safe(o.ranks.common_name).trim());
-    if(!missing.length) return { filled:0, total:0 };
-
-    // Build unique candidate lookups
-    const allKeys = new Map(); // cacheKey -> {rank, name, ctx}
-    for(const o of missing){
-      o._gbifCandidates = _gbifCandidates(o.ranks);
-      for(const c of o._gbifCandidates){
-        const k = _gbifCacheKey(c.rank, c.name, c.ctx);
-        if(!allKeys.has(k)) allKeys.set(k, c);
-      }
-    }
-
-    // Fetch all unique candidate vernacular names (concurrency = 3)
-    const keys = [...allKeys.keys()];
-    let done = 0;
-    const CONC = 3;
-    const q = keys.slice();
-
-    async function worker(){
-      while(q.length){
-        const k = q.shift();
-        if(_gbifCommonCache.has(k)){ done++; continue; }
-        const c = allKeys.get(k);
-        try{
-          const common = await _gbifFetchVernacular(c.name, c.rank, c.ctx);
-          _gbifCommonCache.set(k, { common: common ? _toTitleCase(common) : "", en: !!common });
-        }catch(e){
-          _gbifCommonCache.set(k, { common: "", en: false });
-        }
-        done++;
-        if(typeof onProgress === "function"){
-          try{ onProgress(done, keys.length); }catch(e){}
-        }
-      }
-    }
-
-    const workers = [];
-    for(let i=0; i<CONC; i++) workers.push(worker());
-    await Promise.all(workers);
-
-    // Apply best-available common name per record
-    let filled = 0;
-    for(const o of missing){
-      if(_safe(o.ranks.common_name).trim()) continue;
-      for(const c of (o._gbifCandidates || [])){
-        const k = _gbifCacheKey(c.rank, c.name, c.ctx);
-        const hit = _gbifCommonCache.get(k);
-        const common = hit ? _safe(hit.common).trim() : "";
-        if(hit && hit.en && common && _isEnglishLike(common)){
-          o.ranks.common_name = _toTitleCase(common);
-          o.commonName = o.ranks.common_name;
-          filled++;
-          break;
-        }
-      }
-      delete o._gbifCandidates;
-    }
-
-    return { filled, total: missing.length };
-  }
-
   // ── Wire iNaturalist UI ──
   const inatUsersEl = $("inatUsers");
   const inatStatusEl = $("inatStatus");
   const inatFetchBtn = $("inatFetchBtn");
-  const inatEnrichBtn = $("inatEnrichBtn");
   const inatTotalsEl = $("inatTotals");
 
   inatUsersEl.addEventListener("blur", async ()=>{
@@ -8628,38 +8449,12 @@ function initUI(){
       clearSelection();
       hardResetPlayback("inat");
       rebuildDerived();
-      inatStatusEl.textContent = `Loaded ${obs.length} new observations (${state.obs.length} total) across ${state.nights ? state.nights.size : "?"} nights. Enriching common names…`;
-      inatEnrichBtn.disabled = false;
-
-      // Auto-enrich common names via GBIF
-      const result = await enrichCommonNamesGbif(state.obs, (done, total)=>{
-        inatStatusEl.textContent = `GBIF: ${done}/${total} lookups…`;
-      });
-      inatStatusEl.textContent = `Done — ${state.obs.length} obs total, ${result.filled} common names enriched via GBIF.`;
-
-      // Rebuild to pick up enriched names
-      rebuildDerived();
+      inatStatusEl.textContent = `Loaded ${obs.length} new observations (${state.obs.length} total) across ${state.nights ? state.nights.size : "?"} nights.`;
 
     }catch(e){
       inatStatusEl.textContent = "Error: " + (e.message || e);
     }
     inatFetchBtn.disabled = false;
-  });
-
-  inatEnrichBtn.addEventListener("click", async ()=>{
-    if(!state.obs.length){ inatStatusEl.textContent = "No data loaded."; return; }
-    inatEnrichBtn.disabled = true;
-    inatStatusEl.textContent = "Enriching common names via GBIF…";
-    try{
-      const result = await enrichCommonNamesGbif(state.obs, (done, total)=>{
-        inatStatusEl.textContent = `GBIF: ${done}/${total} lookups…`;
-      });
-      inatStatusEl.textContent = `Done — ${result.filled} of ${result.total} enriched.`;
-      rebuildDerived();
-    }catch(e){
-      inatStatusEl.textContent = "GBIF error: " + (e.message || e);
-    }
-    inatEnrichBtn.disabled = false;
   });
 
   // export ZIP (CSV + WAV)
@@ -8681,13 +8476,11 @@ function initUI(){
     clearSelection();
     hardResetPlayback("drop");
     rebuildDerived();
-    $("inatEnrichBtn").disabled = !state.obs.length;
   });
 
   // visual loop length stat
   $("statLoop").textContent = `${state.loopLen}s`;
   updateCornerStatus();
-  $("inatEnrichBtn").disabled = !state.obs.length;
 }
 
 /** ------------------------------ Export: ZIP (CSV + WAV) ------------------------------ */
