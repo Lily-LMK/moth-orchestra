@@ -8256,9 +8256,10 @@ function initUI(){
 
   // ────── iNaturalist API ──────
   // iNaturalist is the only source of common names. Where it offers none, the
-  // scientific name stands unaccompanied rather than borrowing a name from a
-  // higher rank, which would show inference as evidence. A curated local
-  // family lookup is the intended replacement.
+  // scientific name stands unaccompanied. The intended replacement is a curated
+  // local lookup at taxonomic family, or superfamily where the family has no
+  // honest vernacular, and never above that: an unidentified noctuoid is still
+  // an owlet moth, whereas "Animals" says nothing. See docs/NEXT-SESSION.md.
 
   const INAT_API = "https://api.inaturalist.org/v1/observations";
   const INAT_TAXA_API = "https://api.inaturalist.org/v1/taxa";
