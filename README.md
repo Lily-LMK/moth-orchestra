@@ -32,8 +32,12 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 Three ways in, meant to be used together.
 
 - **Import CSV** replaces the loaded records with an iNaturalist export and resets the Riff window to 00:00–23:59 Brisbane, so a new dataset never inherits the demo's narrow window.
-- **Fetch** pulls from the API for one or two usernames, newest first, up to **Cap**. The cap is a deliberate choice — lowering it to 1,000 is how you hear the current week rather than a whole history — so the status line reports the fetched count against the true total and never implies completeness.
+- **Fetch** pulls from the API for one or two usernames, newest first, up to **Cap**. The cap is a deliberate choice — lowering it to 1,000 is how you hear the current week rather than a whole history — so the status line reports the fetched count against the true total and never implies completeness. Like a CSV import and unlike a top-up, a fetch **replaces** what is loaded: it resets the Riff window and any year filter, and opens on a night that plays. Use Top up to extend instead.
 - **Top up** extends what is already loaded. It reads each observer's login from the records, finds how far that observer's data reaches, and fetches only from two days before that point. It is enabled only when the loaded records carry logins.
+
+A fetch must replace rather than merge, and the reason is the duet pair. A and B are the first two distinct observers in chronological order, and the API supplies a **login** where a CSV supplies a display name. Merging a September fetch into the January demo left A and B as the demo's two display names, so every fetched record failed `observerRole()` and was dropped before the sequencer: the dates appeared, the status line said success, and the loop was silent. A fetch does carry across the display name of a login already held, so `Import CSV` then `Fetch` still reads "Lily Kumpe" rather than "lily_kumpe". See `docs/SESSION-2026-09-16-FETCH.md`.
+
+A freshly fetched dataset opens on the newest **shared date** — two distinct observers and at least twenty records, the same rule that marks dates in the date list — falling back to the newest night when no date qualifies. Strictly-newest is the wrong default: a fetch run in the evening lands on tonight, which may hold a single record so far, and one lonely note is indistinguishable from a failed load. Every other date stays one selection away, and the status line names the night it chose. This applies to Fetch only; CSV import and Top up do not change the selected date.
 
 Why two days: iNaturalist filters by whole observation dates (`d1`), and the newest record held on a night is rarely that night's last arrival, so an exact boundary would drop the rest of a part-imported night. The overlap reconciles by observation id, so re-fetched records cost a little time and change nothing.
 
@@ -60,6 +64,8 @@ Work on a feature branch and review changes before merging. GitHub Pages publish
 Remaining gates include a listening review, real iPhone testing, gap-shortening implementation, broader browser scheduling checks, explicit import omission feedback, and a code licence/data-attribution decision. The API importer is capped and must not be treated as complete observation history. Photos and observation data retain their source licensing requirements.
 
 The import and top-up work of 16 September 2026 has passing automated coverage, a live end-to-end check, and a headless-Chrome check in which the Top up button was actually clicked against the live API. It has **not** been tested on a real device, nor reviewed by ear — though no sound or score path was touched.
+
+The silent-fetch repair of the same day carries 15 further tests, all of which fail against the pre-fix file, one of them running the real Fetch handler against a stubbed API. It was verified live against iNaturalist for both logins at cap 300: every one of the ten returned nights sequences notes, where before the fix none of them did. It too is unreviewed by ear and untested on a device, and touches no sound or score path.
 
 ## Playback stability repair
 
