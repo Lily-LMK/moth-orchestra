@@ -31,9 +31,27 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 
 Three ways in, meant to be used together.
 
-- **Import CSV** replaces the loaded records with an iNaturalist export and resets the Riff window to 00:00–23:59 Brisbane, so a new dataset never inherits the demo's narrow window.
-- **Fetch** pulls from the API for one or two usernames, newest first, up to **Cap**. The cap is a deliberate choice — lowering it to 1,000 is how you hear the current week rather than a whole history — so the status line reports the fetched count against the true total and never implies completeness.
-- **Top up** extends what is already loaded. It reads each observer's login from the records, finds how far that observer's data reaches, and fetches only from two days before that point. It is enabled only when the loaded records carry logins.
+- **Import CSV** replaces the loaded records with an iNaturalist export, resets the Riff window to 00:00–23:59 Brisbane and the year filter, and opens on a night that plays, so a new dataset never inherits the demo's framing.
+- **Fetch** pulls from the API for one or two usernames, newest first, up to **Cap**. The cap is a deliberate choice — lowering it to 1,000 is how you hear the current week rather than a whole history — so the status line reports the fetched count against the true total and never implies completeness. Like a CSV import and unlike a top-up, a fetch **replaces** what is loaded: it resets the Riff window and any year filter, and opens on a night that plays. Use Top up to extend instead.
+- **Top up** extends what is already loaded. It reads each observer's login from the records, finds how far that observer's data reaches, and fetches only from two days before that point. It is enabled only when the loaded records carry logins. It then moves to the newest night it **actually added** — you pressed it to see what arrived, and several hundred dates will not show you otherwise.
+
+A fetch must replace rather than merge, and the reason is the duet pair. A and B are the first two distinct observers in chronological order, and the API supplies a **login** where a CSV supplies a display name. Merging a September fetch into the January demo left A and B as the demo's two display names, so every fetched record failed `observerRole()` and was dropped before the sequencer: the dates appeared, the status line said success, and the loop was silent. A fetch does carry across the display name of a login already held, so `Import CSV` then `Fetch` still reads "Lily Kumpe" rather than "lily_kumpe". See `docs/SESSION-2026-09-16-FETCH.md`.
+
+All three paths are different intentions, and they differ. What they share is one obligation: land you where the records you just asked for are.
+
+| | replaces | resets Riff window | resets year filter | date lands on |
+|---|---|---|---|---|
+| **Import CSV** | yes | yes | yes | newest shared date |
+| **Fetch** | yes | yes | yes | newest shared date |
+| **Top up** | no | no | only if it would hide the arrival | newest night it actually added |
+
+A freshly **loaded** dataset — imported or fetched — opens on the newest **shared date**: two distinct observers and at least twenty records, the same `isSharedDate` rule that marks dates in the date list, falling back to the newest night when none qualifies. Strictly-newest is the wrong default there: a load run in the evening lands on tonight, which may hold a single record so far, and one lonely note is indistinguishable from a failed load.
+
+This matters more than it looks on the CSV path. The demo's night, 28 January 2026, is a real night in the two-backyards export, so the "is the selected date still valid?" check passes and the date does not move on its own: importing 6,794 records spanning 2020–2026 used to leave the app showing that one January night, with 428 dates listed and no status message at all, because the status element had been removed from the panel while the code kept writing to it.
+
+A **top-up** uses a different rule on purpose. It goes to the newest night that genuinely *gained* a record — a refreshed record is not an arrival, and a top-up that only refreshes moves nothing. Its Riff window is deliberately kept, because a top-up extends a dataset already chosen and framed. Its year filter is cleared only when it would hide the arrival, since jumping to a night the filter then hides is a lie.
+
+Every other date always stays one selection away, and every status line names the night it chose and how many records are on it. See `docs/SESSION-2026-09-16-ARRIVALS.md`.
 
 Why two days: iNaturalist filters by whole observation dates (`d1`), and the newest record held on a night is rarely that night's last arrival, so an exact boundary would drop the rest of a part-imported night. The overlap reconciles by observation id, so re-fetched records cost a little time and change nothing.
 
@@ -60,6 +78,12 @@ Work on a feature branch and review changes before merging. GitHub Pages publish
 Remaining gates include a listening review, real iPhone testing, gap-shortening implementation, broader browser scheduling checks, explicit import omission feedback, and a code licence/data-attribution decision. The API importer is capped and must not be treated as complete observation history. Photos and observation data retain their source licensing requirements.
 
 The import and top-up work of 16 September 2026 has passing automated coverage, a live end-to-end check, and a headless-Chrome check in which the Top up button was actually clicked against the live API. It has **not** been tested on a real device, nor reviewed by ear — though no sound or score path was touched.
+
+The silent-fetch repair of the same day carries 15 further tests, all of which fail against the pre-fix file, one of them running the real Fetch handler against a stubbed API. It was verified live against iNaturalist for both logins at cap 300: every one of the ten returned nights sequences notes, where before the fix none of them did.
+
+The arrival-visibility work that followed it carries 13 more, also all failing beforehand, two of them driving the real Top up button against a stubbed API on top of a real CSV import. It was verified in headless Chrome through the genuine file input and the genuine Top up button, against the live API and the real 6,798-row export: the import now lands on 12 September with 35 records and a status line, and the top-up moves to 16 September with what had arrived by then.
+
+Both are unreviewed by ear and untested on a device, and neither touches any sound or score path.
 
 ## Playback stability repair
 

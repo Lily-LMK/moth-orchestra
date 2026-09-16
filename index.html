@@ -1368,6 +1368,7 @@ input[type="range"]::-moz-range-thumb{
             <label class="mini asLabel">Import CSV<input id="csvFile" type="file" accept=".csv,text/csv" hidden/></label>
             <button class="mini" id="loadDemoBtn" type="button">Load demo</button>
           </div>
+          <div class="note" id="csvImportStatus" role="status" aria-live="polite"></div>
         </div>
       </details>
       <details class="disclose">
@@ -1844,7 +1845,12 @@ function parseCSVText(csvText){
   obs.sort((a,b)=>a.t.getTime()-b.t.getTime());
   return obs;
 }
-// A new dataset must not inherit the bundled demo's narrow clock window.
+// A new dataset must not inherit the bundled demo's framing: not its clock
+// window, not its year filter, and not its selected date.
+// The date matters more than it looks. The demo night, 28 January 2026, is a
+// real night in Lily's own export, so the "is the selected date still valid?"
+// check in rebuildDerived passes and the date does not move. Importing 6,794
+// records spanning 2020-2026 left the app showing that one January night.
 function importCSVData(text){
   const rows = parseCSV(text);
   const obs = rows.map(rowToObs).filter(o=>o.t && o.nightKey);
@@ -1852,8 +1858,16 @@ function importCSVData(text){
   state.obs = obs;
   state.riffStartMin = 0;
   state.riffEndMin = 1439;
+  state.filterYear = "all";
+  state.nightKey = preferredOpeningNight(obs);
+  const opening = state.nightKey ? (groupByNight(obs).get(state.nightKey) || []).length : 0;
   const status = $("csvImportStatus");
-  if(status) status.textContent = `${obs.length} observations imported; ${rows.length-obs.length} omitted without a valid observation time/date. Riff window reset to 00:00–23:59 (Brisbane).`;
+  if(status){
+    const parts = [`${obs.length.toLocaleString()} observations imported; ${(rows.length-obs.length).toLocaleString()} omitted without a valid observation time/date.`];
+    if(state.nightKey) parts.push(`Showing ${state.nightKey} (${recordCount(opening)}); pick another date to hear it.`);
+    parts.push("Riff window reset to 00:00–23:59 (Brisbane).");
+    status.textContent = parts.join(" ");
+  }
 }
 function groupByNight(obs){
   const m = new Map();
@@ -1867,6 +1881,41 @@ function groupByNight(obs){
   }
   return m;
 }
+// Status lines name record counts often enough to be worth getting right.
+function recordCount(n){
+  const v = Number(n) || 0;
+  return `${v.toLocaleString()} record${v === 1 ? "" : "s"}`;
+}
+
+// A "shared" date: both people recorded, at a length worth hearing. The date
+// list marks these, and a freshly loaded dataset opens on one.
+const SHARED_DATE_MIN_RECORDS = 20;
+function isSharedDate(arr){
+  if(!Array.isArray(arr) || arr.length < SHARED_DATE_MIN_RECORDS) return false;
+  const users = new Set();
+  for(const o of arr){
+    const u = safeStr(o && o.userName).trim();
+    if(u) users.add(u);
+    if(users.size >= 2) return true;
+  }
+  return false;
+}
+
+// Which night a freshly loaded dataset should open on.
+// Strictly the newest night is the wrong answer in practice: a fetch run in the
+// evening lands on a night holding one or two records so far, which looks like
+// the dataset failed to load. The newest night both people worked at length is
+// a night that actually plays. Every other date stays one selection away, and
+// the status line says which night was chosen.
+function preferredOpeningNight(obs){
+  const nights = groupByNight(obs || []);
+  const keys = Array.from(nights.keys()).sort((a,b)=>(a<b?1:-1)); // recent first
+  for(const k of keys){
+    if(isSharedDate(nights.get(k))) return k;
+  }
+  return keys.length ? keys[0] : "";
+}
+
 function computeDuetUsers(obs){
   // If the CSV uses the explicit duet convention, respect it.
   // (This keeps visuals/audio consistent with the labels User_A / User_B.)
@@ -1975,6 +2024,9 @@ function mergeTopUp(existing, incoming){
 
   let added = 0, refreshed = 0;
   const newObservers = new Set();
+  // Which nights genuinely gained a record. A refreshed record is not an
+  // arrival: it was already held, and its night was already visible.
+  const addedNights = new Set();
   for(const raw of arriving){
     if(!raw || !raw.t) continue;
     const id = safeStr(raw.id);
@@ -1984,12 +2036,58 @@ function mergeTopUp(existing, incoming){
     if(login && !known) newObservers.add(login);
     // Rejoin the observer this record already belonged to.
     const o = known ? Object.assign({}, raw, { userName: known }) : raw;
-    if(byId.has(id)) refreshed++; else added++;
+    if(byId.has(id)){ refreshed++; }
+    else { added++; if(o.nightKey) addedNights.add(o.nightKey); }
     byId.set(id, o);
   }
 
   const obs = Array.from(byId.values()).sort((a, b) => a.t.getTime() - b.t.getTime());
-  return { obs, added, refreshed, newObservers: Array.from(newObservers).sort() };
+  return {
+    obs, added, refreshed,
+    newObservers: Array.from(newObservers).sort(),
+    // Recent first, so [0] is the newest night this top-up brought in.
+    addedNights: Array.from(addedNights).sort((a, b) => (a < b ? 1 : -1))
+  };
+}
+
+// Replace the loaded records with a fresh API fetch.
+// Fetch is not Top up. Merging a fresh fetch into whatever was already loaded
+// left the bundled demo in place, and because the duet pair is the first two
+// distinct observers in chronological order, A and B stayed the demo's two
+// people. Every fetched record then failed observerRole() and the sequencer
+// built nothing from it: the dates appeared, the status line said success and
+// the loop was silent.
+// The display name of a login already held is carried across, so an
+// iNaturalist CSV import followed by a fetch still shows "Lily Kumpe" rather
+// than "lily_kumpe". Nothing else survives.
+function applyFetchedObs(existing, incoming){
+  const held = Array.isArray(existing) ? existing : [];
+  const arriving = Array.isArray(incoming) ? incoming : [];
+
+  const displayForLogin = new Map();
+  for(const o of held){
+    const login = safeStr(o && o.userLogin).trim();
+    const name = safeStr(o && o.userName).trim();
+    if(login && name && login !== name && !displayForLogin.has(login)) displayForLogin.set(login, name);
+  }
+
+  const byId = new Map();
+  for(const raw of arriving){
+    if(!raw || !raw.t) continue;
+    const id = safeStr(raw.id);
+    if(!id) continue;
+    const known = displayForLogin.get(safeStr(raw.userLogin).trim());
+    byId.set(id, known ? Object.assign({}, raw, { userName: known }) : raw);
+  }
+
+  const obs = Array.from(byId.values()).sort((a, b) => a.t.getTime() - b.t.getTime());
+  const observers = [];
+  const seen = new Set();
+  for(const o of obs){
+    const name = safeStr(o.userName).trim();
+    if(name && !seen.has(name)){ seen.add(name); observers.push(name); }
+  }
+  return { obs, replaced: held.length, observers };
 }
 
 function applyFocusFilter(arr){
@@ -4963,19 +5061,8 @@ function rebuildDerived(){
 
   const keysAll = Array.from(state.nights.keys()).sort((a,b)=>(a<b?1:-1)); // recent first
 
-  // Mark dates that include >= 2 distinct observers AND >= 20 records total (a "shared" date).
-  const sharedSet = new Set();
-  for(const k of keysAll){
-    const arr = state.nights.get(k) || [];
-    if(arr.length < 20) continue;
-    const users = new Set();
-    for(const o of arr){
-      const u = (o.userName||"").trim();
-      if(u) users.add(u);
-      if(users.size >= 2) break;
-    }
-    if(users.size >= 2) sharedSet.add(k);
-  }
+  // Mark dates that both people worked, at a length worth hearing.
+  const sharedSet = new Set(keysAll.filter(k => isSharedDate(state.nights.get(k))));
 
   // Filters
   const years = Array.from(new Set(keysAll.map(k=>k.slice(0,4)))).sort((a,b)=>(a<b?1:-1));
@@ -8569,18 +8656,31 @@ function initUI(){
         return;
       }
 
-      // Reconcile by observation id, preserving the display name of any
-      // observer already loaded.
-      const merged = mergeTopUp(state.obs, obs);
-      state.obs = merged.obs;
+      // A fetch is a fresh dataset, like a CSV import and unlike a top-up: it
+      // replaces the loaded records rather than joining them. Use Top up to
+      // extend what is already loaded.
+      const loaded = applyFetchedObs(state.obs, obs);
+      state.obs = loaded.obs;
+
+      // The bundled demo's narrow 19:00–20:40 window must not silently frame
+      // somebody else's night, for the same reason a CSV import resets it.
+      state.riffStartMin = 0;
+      state.riffEndMin = 1439;
+      // A year filter chosen for the replaced dataset must not hide the new one.
+      state.filterYear = "all";
+      // Open on a night that plays, not on a date only the replaced records
+      // reached and not on tonight's first solitary arrival.
+      state.nightKey = preferredOpeningNight(state.obs);
 
       clearSelection();
       hardResetPlayback("inat");
       rebuildDerived();
       refreshTopUpBtn();
 
-      const parts = [`Loaded ${merged.added} new observations (${state.obs.length} total) across ${state.nights ? state.nights.size : "?"} nights.`];
-      if(merged.refreshed) parts.push(`${merged.refreshed} already held were refreshed.`);
+      const parts = [`Loaded ${loaded.obs.length.toLocaleString()} observations across ${state.nights ? state.nights.size : "?"} nights, replacing the ${loaded.replaced.toLocaleString()} previously loaded.`];
+      if(loaded.observers.length) parts.push(`Observers: ${loaded.observers.join(", ")}.`);
+      if(state.nightKey) parts.push(`Showing ${state.nightKey} (${recordCount(state.nightObs.length)}); pick another date to hear it.`);
+      parts.push("Riff window reset to 00:00–23:59 (Brisbane).");
       // The cap is a deliberate choice, but it should never look like the whole record.
       if(fetched.total && obs.length < fetched.total){
         parts.push(`This is the most recent ${obs.length.toLocaleString()} of ${fetched.total.toLocaleString()} — raise Cap for more.`);
@@ -8627,6 +8727,20 @@ function initUI(){
       const before = state.obs.length;
       state.obs = merged.obs;
 
+      // Land on the newest night this top-up actually brought in. You pressed
+      // Top up to see what arrived, and a dataset of several hundred dates
+      // will not show it to you otherwise. The newest *added* night, not the
+      // newest night held: a top-up that only refreshed existing records has
+      // nothing new to show and must not move you.
+      const arrivedAt = merged.addedNights.length ? merged.addedNights[0] : "";
+      if(arrivedAt){
+        // A year filter that would hide the arrival makes the jump a lie.
+        if(state.filterYear !== "all" && arrivedAt.slice(0,4) !== state.filterYear){
+          state.filterYear = "all";
+        }
+        state.nightKey = arrivedAt;
+      }
+
       if(merged.added || merged.refreshed){
         clearSelection();
         // The Riff window is deliberately left alone: a top-up extends a
@@ -8640,6 +8754,10 @@ function initUI(){
       const parts = [merged.added
         ? `Topped up: ${merged.added} new observations (${before} → ${state.obs.length}).`
         : `Topped up: nothing new (${state.obs.length} records unchanged).`];
+      if(arrivedAt){
+        const spread = merged.addedNights.length > 1 ? ` across ${merged.addedNights.length} nights` : "";
+        parts.push(`Showing ${arrivedAt}, the newest night that arrived${spread} (${recordCount(state.nightObs.length)}).`);
+      }
       parts.push(`Asked for ${since}.`);
       if(merged.refreshed) parts.push(`${merged.refreshed} already held were refreshed.`);
       if(merged.newObservers.length) parts.push(`New observer(s): ${merged.newObservers.join(", ")}.`);
