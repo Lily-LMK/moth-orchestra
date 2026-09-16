@@ -1348,7 +1348,7 @@ input[type="range"]::-moz-range-thumb{
 
       <h2 class="grpTitle">View</h2>
       <div class="spec specSwitch"><span class="specK" id="nowCardLabel">Now playing card</span>
-        <button class="switch" id="nowCardToggle" type="button" role="switch" aria-checked="true" aria-labelledby="nowCardLabel"><i></i></button></div>
+        <button class="switch" id="nowCardToggle" type="button" role="switch" aria-checked="false" aria-labelledby="nowCardLabel"><i></i></button></div>
 
 
       <h2 class="grpTitle">Records</h2>
@@ -1785,6 +1785,160 @@ function parseCSV(text){
 // repeated, because the echo rule has to be able to refuse it: two
 // unidentified records are not two records of the same species.
 const UNKNOWN_TAXON = "Unknown taxon";
+/* ── Photographs ────────────────────────────────────────────────────────────
+   A photograph takes far longer to arrive than the note it belongs to lasts.
+   Measured against the real iNaturalist CDN and the busiest offered night:
+
+     medium.jpg   215 KB   1.90 s
+     small.jpg     42 KB   1.09 s
+     square.jpg    9.6 KB  0.93 s
+
+     136 records in a 19 s loop   ->  140 ms a note
+     100 records in a 10 s loop   ->  100 ms a note
+
+   So a photo assigned at the moment its note sounds arrives fourteen to
+   nineteen notes late, and the browser paints the PREVIOUS animal until it
+   does. That is why one species appeared to sound over and over: one
+   photograph was being held across fourteen different species.
+
+   Two rules come out of that, and the first matters more.
+
+   1. The card names a species beside its photograph. Showing a photo that
+      belongs to a different record is a false statement on screen, in an
+      instrument whose whole discipline is that derived data must be true.
+      **Never paint a photograph that does not belong to the record named.**
+      No photograph is honest; the wrong animal is not.
+
+   2. Ask for the size the surface actually shows. The thumbnail grid draws at
+      48-52 px and was downloading 500 px images: 29 MB a night where 1.3 MB
+      would do.
+
+   Size follows dwell time, not just pixel size. A photograph that flashes for
+   140 ms cannot be examined, so `small` is indistinguishable from `medium`
+   there and costs a fifth as much. `medium` is for a record that is being
+   held still and looked at. */
+const INAT_PHOTO_URL = /^(https?:\/\/[a-z0-9.-]*inaturalist[a-z0-9.-]*\/photos\/\d+\/)(square|small|medium|large|original)(\.[a-z0-9]+)(\?.*)?$/i;
+const PHOTO_SIZES = ["square", "small", "medium", "large", "original"];
+function photoUrlAt(url, size){
+  const raw = (url == null ? "" : String(url)).trim();
+  if(!raw || PHOTO_SIZES.indexOf(size) < 0) return raw;
+  const m = INAT_PHOTO_URL.exec(raw);
+  // A CSV may carry any URL at all. Anything not recognisably an iNaturalist
+  // photo path is left exactly as it was rather than guessed at.
+  return m ? m[1] + size + m[3] + (m[4] || "") : raw;
+}
+// Which variant a surface of this many CSS pixels should request. The gallery
+// computes its own thumb size and goes as high as 120 px in fullscreen, so
+// this cannot be a constant per surface.
+function photoSizeForPx(px){
+  const n = Number(px);
+  if(!Number.isFinite(n) || n <= 0) return "square";
+  if(n <= 75) return "square";
+  if(n <= 240) return "small";
+  return "medium";
+}
+
+// url -> "pending" | "ready" | "failed". Shared across nights so moving back
+// to a night already seen is instant, and capped so an unattended gallery
+// running for a week does not grow without bound.
+const PHOTO_CACHE_MAX = 800;
+const photoCache = new Map();
+function photoState(url){ return photoCache.get(url) || ""; }
+function photoIsReady(url){ return photoCache.get(url) === "ready"; }
+function notePhoto(url, status){
+  if(photoCache.has(url)) photoCache.delete(url);
+  photoCache.set(url, status);
+  while(photoCache.size > PHOTO_CACHE_MAX){
+    const oldest = photoCache.keys().next();
+    if(oldest.done) break;
+    photoCache.delete(oldest.value);
+  }
+}
+
+// One preload run at a time. Changing night abandons the previous queue rather
+// than letting a scrub through dates stack thousands of requests.
+let _photoRun = 0;
+let _photoProgress = { ready: 0, total: 0, done: true };
+function photoProgress(){ return { ..._photoProgress }; }
+// "Preparing photographs, 64 of 136" — or null when there is nothing to say.
+function photoStatusText(){
+  const p = _photoProgress;
+  if(p.done || !p.total || p.ready >= p.total) return null;
+  return `Preparing photographs, ${p.ready.toLocaleString()} of ${p.total.toLocaleString()}`;
+}
+function cancelPhotoPreload(){ _photoRun++; _photoProgress = { ready:0, total:0, done:true }; }
+
+// Fetch and DECODE, with a bounded number in flight. Decode rather than load:
+// decode is the one that promises the frame can be painted on the next tick,
+// which is the actual requirement here.
+function preloadPhotos(urls, opts){
+  const options = opts || {};
+  const concurrency = options.concurrency || 6;
+  const run = ++_photoRun;
+  const list = [];
+  const seen = new Set();
+  for(const u of (urls || [])){
+    const url = (u == null ? "" : String(u)).trim();
+    if(!url || seen.has(url)) continue;
+    seen.add(url);
+    if(photoCache.get(url) === "ready") continue;   // already held
+    list.push(url);
+  }
+  const already = seen.size - list.length;
+  _photoProgress = { ready: already, total: seen.size, done: list.length === 0 };
+  if(options.onProgress) options.onProgress(photoProgress());
+  if(!list.length || typeof Image !== "function"){
+    _photoProgress.done = true;
+    return Promise.resolve(photoProgress());
+  }
+  let next = 0;
+  const one = (url) => new Promise((resolve)=>{
+    notePhoto(url, "pending");
+    const img = new Image();
+    // The photographs are public and cross-origin; nothing is read back from
+    // them, so no crossOrigin attribute is wanted (it would only add a CORS
+    // preflight that S3 need not answer).
+    const settle = (status)=>{
+      if(run !== _photoRun) return resolve();   // this night was abandoned
+      notePhoto(url, status);
+      _photoProgress.ready += 1;
+      if(options.onProgress) options.onProgress(photoProgress());
+      resolve();
+    };
+    img.onload = ()=>{
+      if(img.decode) img.decode().then(()=>settle("ready"), ()=>settle("ready"));
+      else settle("ready");
+    };
+    img.onerror = ()=> settle("failed");
+    img.src = url;
+  });
+  const worker = async ()=>{
+    while(run === _photoRun && next < list.length){
+      await one(list[next++]);
+    }
+  };
+  const crew = [];
+  for(let i = 0; i < Math.min(concurrency, list.length); i++) crew.push(worker());
+  return Promise.all(crew).then(()=>{
+    if(run === _photoRun) _photoProgress.done = true;
+    return photoProgress();
+  });
+}
+
+// Every photograph a night will want, at the sizes the surfaces will ask for.
+// The flashing card takes `small`: it is on screen for a seventh of a second.
+function nightPhotoUrls(nightObs, thumbPx){
+  const size = photoSizeForPx(thumbPx);
+  const out = [];
+  for(const o of (nightObs || [])){
+    const raw = (o && o.imageUrl) ? String(o.imageUrl).trim() : "";
+    if(!raw) continue;
+    out.push(photoUrlAt(raw, size));
+    out.push(photoUrlAt(raw, "small"));
+  }
+  return out;
+}
+
 function rowToObs(r){
   const t = parseINatTime(r.time_observed_at);
   const observedOn = safeStr(r.observed_on) || (t ? localDateKey(t) : "");
@@ -5214,7 +5368,13 @@ const state = {
   // visual
   visNextIndex: 0,
   sharedPulses: [],
-  hideNowCard: false,
+  // Lily, 16 September 2026: the instrument should open in the mode that plays
+  // without photographs, so the first press of Play is instant and nothing
+  // waits on a network. The Now playing card is the only photo surface in the
+  // circle view — the gallery already starts collapsed — so turning it off by
+  // default means the opening state requests no images at all, and the night's
+  // photographs preload quietly behind it. View > Now playing card, or C.
+  hideNowCard: true,
   visLastFrameMs: 0,
   particles: [],
   callouts: [],
@@ -5229,6 +5389,29 @@ const state = {
 };
 
 /** ------------------------------ Sequencer build ------------------------------ */
+// Begin the night's photographs. Idempotent: a night already held finishes
+// immediately and says nothing.
+let _photoNightKey = null;
+function startNightPhotoPreload(nightObs){
+  const key = `${state.nightKey}::${(nightObs || []).length}`;
+  if(key === _photoNightKey && photoProgress().done){ refreshPhotoStatus(); return; }
+  _photoNightKey = key;
+  cancelPhotoPreload();
+  preloadPhotos(nightPhotoUrls(nightObs, currentThumbPx()), {
+    onProgress: refreshPhotoStatus
+  }).then(refreshPhotoStatus);
+  refreshPhotoStatus();
+}
+// The gallery counter is where you look when you have just opened the gallery
+// and the tiles are still blank, so it carries the progress while there is any.
+function refreshPhotoStatus(){
+  if(typeof $ !== "function") return;
+  const el = $("thumbCount");
+  if(!el) return;
+  const text = photoStatusText();
+  el.textContent = text ? text : String((state.nightObs || []).length || 0);
+}
+
 function rebuildDerived(){
   // Determine the first two observers in the file (User_A / User_B convention).
   const pair = computeDuetUsers(state.obs);
@@ -5280,6 +5463,9 @@ function rebuildDerived(){
   state.nightObs = base;
 
   state.sequencer = buildSequencer(base);
+  // The night's photographs begin arriving now, quietly, while the instrument
+  // plays without them. Changing night abandons the previous queue.
+  startNightPhotoPreload(base);
   if(window._mothSetRiffWindowFromNight) window._mothSetRiffWindowFromNight();
   updateStats(base.length);
   renderThumbPanel(base);
@@ -5293,7 +5479,7 @@ const thumbEls = new Map();
 function renderThumbPanel(nightObs){
   const grid = $("thumbGrid");
   const empty = $("thumbEmpty");
-  $("thumbCount").textContent = String(nightObs.length || 0);
+  refreshPhotoStatus();
 
   // Duet legend (subtle)
   const legend = $("userLegend");
@@ -5351,7 +5537,10 @@ function renderThumbPanel(nightObs){
     b.setAttribute("aria-label", label);
 
     if(o.imageUrl){
-      const u = String(o.imageUrl).replace(/"/g, "%22");
+      // The grid draws at 48-52 px in the sidebar and computes its own size in
+      // fullscreen, so the variant follows the measured tile rather than being
+      // fixed. This alone is 29 MB down to 1.3 MB on the busiest night.
+      const u = photoUrlAt(o.imageUrl, photoSizeForPx(currentThumbPx())).replace(/"/g, "%22");
       b.style.backgroundImage = `url("${u}")`;
     } else {
       b.style.backgroundImage = "radial-gradient(circle at 30% 30%, rgba(255,255,255,.10), rgba(255,255,255,.02))";
@@ -5468,6 +5657,7 @@ function autoSizeGallery(){
     }
   }
 
+  _thumbPx = best;
   grid.style.setProperty("--fs-thumb-size", best + "px");
   grid.style.setProperty("--fs-thumb-gap", Math.max(6, Math.min(gap, best * 0.12)).toFixed(0) + "px");
 
@@ -5504,6 +5694,11 @@ function autoSizeWordCloud(){
     cloud.style.transform = `scale(${Math.max(0.25, scale).toFixed(3)})`;
   });
 }
+
+// The tile size the gallery last computed. 52 px is the sidebar grid's own
+// CSS minimum, which is what is drawn until fullscreen measures itself.
+let _thumbPx = 52;
+function currentThumbPx(){ return _thumbPx; }
 
 function applyGalleryCollapse(){
   const panel = document.querySelector(".photoPanel");
@@ -5575,9 +5770,10 @@ function renderSharedMinute(box, e, nowMs){
 
   const setSide = (imgId, whoId, taxonId, o) => {
     const img = $(imgId), who = $(whoId), taxon = $(taxonId);
-    const url = (o && o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+    const raw = (o && o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+    const url = raw ? photoUrlAt(raw, "small") : "";
     if(img){
-      if(url){ img.src = url; img.onerror = ()=> img.removeAttribute("src"); }
+      if(url && photoIsReady(url)){ img.src = url; img.onerror = ()=> img.removeAttribute("src"); }
       else img.removeAttribute("src");
     }
     if(who) who.textContent = (o && o.userName) || "";
@@ -5646,15 +5842,21 @@ function updateSelectionOverlay(e){
   $("selSub").textContent = `observed ${count}×`;
 
   const img = $("selImg");
-  const url = (o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
-  box.classList.toggle("noPhoto", !url);
+  const raw = (o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+  // A record flashes past in about a seventh of a second, which is far too
+  // brief to examine, so the flashing card takes `small`. `medium` is for a
+  // record held still, which is not this.
+  const url = raw ? photoUrlAt(raw, "small") : "";
+  // Read from what has been preloaded, never straight from the network. An
+  // unloaded photo shows an empty frame; the browser would otherwise keep
+  // painting the PREVIOUS record's animal beside this record's name, which is
+  // a false statement about the data and the defect this replaces.
+  const have = url && photoIsReady(url);
+  box.classList.toggle("noPhoto", !have);
   if(img){
-    if(url){
+    if(have){
       img.src = url;
-      // A broken or unreachable photo collapses the frame rather than leaving a
-      // grey slab where the animal should be.
       img.onerror = ()=>{ img.removeAttribute("src"); box.classList.add("noPhoto"); };
-      img.onload = ()=>{ box.classList.remove("noPhoto"); };
     } else {
       img.removeAttribute("src");
     }
@@ -7039,6 +7241,9 @@ function rebuildSequencerOnly(){
   state.availableVoices = Array.from(vset).sort();
 
   state.sequencer = buildSequencer(base);
+  // The night's photographs begin arriving now, quietly, while the instrument
+  // plays without them. Changing night abandons the previous queue.
+  startNightPhotoPreload(base);
   if(window._mothSetRiffWindowFromNight) window._mothSetRiffWindowFromNight();
   updateStats(base.length);
   buildWordCloud(base);
@@ -8546,6 +8751,12 @@ function initUI(){
     state.hideNowCard = !on;
     if(nowToggle) nowToggle.setAttribute("aria-checked", String(on));
     if(!on){ const b = $("selOverlay"); if(b) b.hidden = true; }
+    // Switching into the photograph mode before the night's photographs have
+    // arrived says so, rather than showing empty frames with no explanation.
+    if(on){
+      const text = photoStatusText();
+      if(text && typeof showModeToast === "function") showModeToast(text);
+    }
   }
   if(nowToggle) nowToggle.addEventListener("click", ()=> setNowCard(state.hideNowCard));
 
