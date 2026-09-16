@@ -5360,7 +5360,7 @@ const state = {
   // derived
   nightObs: [],
   availableOrders: [],
-  sequencer: { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], countsByTaxon:new Map(), countsByVoice:new Map() } },
+  sequencer: { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], duetCrossings:[], countsByTaxon:new Map(), countsByVoice:new Map() } },
   // playback
   perfStart: 0,
   lastPlayhead: 0,
@@ -6417,7 +6417,71 @@ function matchTime(match){
 // The rule, the evidence and the synthesis are all kept and still tested; only
 // the event is withheld, so nothing sounds. Set `meeting: true` to hear it
 // again. The echo is unaffected — she accepted it.
-const DUET_GESTURES = { meeting: false, echo: true };
+const DUET_GESTURES = { meeting: false, echo: true, crossing: true };
+
+// ── The crossing ────────────────────────────────────────────────────────────
+// One of you recorded, then the other, within two minutes.
+//
+// This is the deep pad and the wide tan ring that V2 played and that Lily
+// missed. V2's rule compared positions **in the loop**, not in the night:
+//
+//     const d = Math.abs(b.atSec - a.atSec);   // loop seconds
+//     if(d > win) break;                        // "within 5 seconds"
+//
+// A twelve-hour night compressed into nineteen seconds makes five loop seconds
+// roughly three hours of real time. So it never marked simultaneity, and how
+// often it fired changed with the loop length — 32 gestures on 2026-09-08 at
+// nineteen seconds, a different number at any other setting. Repairing it to
+// real seconds was right, but it then collapsed onto the shared-minute bell
+// (311 of 311, at the same instant) and was removed as redundant.
+//
+// What V2 was accidentally detecting is real, and is worth keeping: the two of
+// them working the same stretch of the night. Said honestly at the resolution
+// the data actually has, that is a crossing — two records **adjacent in time**,
+// from **different observers**, within DUET_CROSS_WINDOW_MIN minutes.
+//
+// Measured on the two-backyards export at two minutes: 790 crossings across 55
+// nights. 315 of them (40%) fall inside a shared minute, where the pad sounds
+// with the bell and restores the composite Lily accepted; the other 475 are
+// moments nothing marked before — they alternated across a clock-minute
+// boundary, so no shared minute ever existed. On 2026-09-08, 17 crossings
+// against V2's 32, and every one of them explicable.
+//
+// Adjacent-in-time makes it symmetric (a pair has no direction), and
+// self-deduplicating (each adjacent pair is considered exactly once). Real
+// minutes make it independent of loop length, which is the defect above.
+const DUET_CROSS_WINDOW_MIN = 2;
+function findDuetCrossings(obs){
+  if(state.listenMode !== "both" || !state.userAName || !state.userBName || state.userAName === state.userBName) return [];
+  const rs = [];
+  for(const o of obs || []){
+    const role = observerRole(o);
+    if(!role || !o.t || !Number.isFinite(o.t.getTime())) continue;
+    rs.push({ o, role, t:o.t.getTime() });
+  }
+  // Ties broken on observation id, so the order rows happen to sit in the file
+  // can never change the music.
+  rs.sort((x,y)=> x.t - y.t || (String(x.o.id) < String(y.o.id) ? -1 : String(x.o.id) > String(y.o.id) ? 1 : 0));
+  const limitMs = DUET_CROSS_WINDOW_MIN*60000;
+  const out = [];
+  for(let i=1;i<rs.length;i++){
+    const first = rs[i-1], second = rs[i];
+    if(first.role === second.role) continue;
+    const gap = second.t - first.t;
+    if(gap > limitMs) continue;
+    const a = first.role === "A" ? first.o : second.o;
+    const b = first.role === "A" ? second.o : first.o;
+    out.push({
+      // The same evidence shape a shared minute carries, so every surface that
+      // can already show a match can show this one.
+      match: { minuteKey: Math.floor(first.t/60000), observations:{ A:[a], B:[b] } },
+      firstMs: first.t,
+      secondMs: second.t,
+      gapSec: gap/1000
+    });
+  }
+  return out;
+}
 
 const DUET_ECHO_WINDOW_MIN = 30;
 function findDuetEchoes(obs){
@@ -6735,10 +6799,10 @@ function buildSequencer(nightObs){
   }
 
   if(mode !== "song" && !obsForTimeline.length){
-    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
+    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], duetCrossings:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
   }
   if(mode === "song" && !nightObs.length){
-    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
+    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], duetCrossings:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
   }
 
   // "Song" mode uses the whole night's palette; timeline/riff use obsForTimeline.
@@ -6766,7 +6830,7 @@ function buildSequencer(nightObs){
 if(mode === "song"){
     // "Song" mode: ignore timestamps; turn the night's available notes into an intentional melodic loop.
     const built = buildSongEvents(nightObs, countsByTaxon);
-    return { events: built.events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId: built.eventByObsId, sharedMinutes:built.sharedMinutes || [], duetEchoes:built.duetEchoes || [] } };
+    return { events: built.events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId: built.eventByObsId, sharedMinutes:built.sharedMinutes || [], duetEchoes:built.duetEchoes || [], duetCrossings:built.duetCrossings || [] } };
   }
 
   const events = [];
@@ -6809,6 +6873,7 @@ const user = observerRole(o);
   // - Near-simultaneous pulse: a warm pad hit when records fall within a few seconds.
   const sharedMinutes = findSharedMinutes(baseObs);
   const duetEchoes = [];
+  const duetCrossings = [];
   if(state.listenMode === "both" && state.userAName && state.userBName && state.userAName !== state.userBName){
     for(const match of sharedMinutes){
       const atSec = clamp((matchTime(match)-startMs)/1000/spanSec*state.loopLen, 0, state.loopLen);
@@ -6878,6 +6943,38 @@ const user = observerRole(o);
       });
     }
 
+    // ── The crossing ──────────────────────────────────────────────────────
+    // Sounds between the two records, which is where V2 put it.
+    for(const cross of (DUET_GESTURES.crossing ? findDuetCrossings(baseObs) : [])){
+      const midMs = (cross.firstMs + cross.secondMs)/2;
+      const pitch = pickPitch({ taxon:"Duet Pulse", voiceKey:"Duet", order:"Duet", seed:state.seed ^ 0xA5A5A5A5, key:state.keyName, scaleName:state.scaleName });
+      // The pitch it records is the pitch it sounds. duet_sync wrote
+      // midi:pitch.midi while sounding an octave below, so an exported score
+      // stated two different pitches for one note.
+      const midi = pitch.midi - 12;
+      events.push({
+        kind:"duet_cross",
+        match: cross.match,
+        isSpecial:true,
+        user:"AB",
+        userName:"",
+        obs:null,
+        atSec: clamp((midMs-startMs)/1000/spanSec*state.loopLen, 0, state.loopLen),
+        taxon:"Crossing",
+        order:"__DUET__",
+        family:"",
+        voiceKey:"__DUET__",
+        voiceLabel:"Crossing",
+        instrument: state.voiceMode === "gondwana" ? "gond_sync" : state.voiceMode === "choir" ? "choir_chord" : "pad",
+        midi,
+        freq:midiToFreq(midi),
+        density: 1,
+        color:"rgba(255,210,175,0.92)",
+        isEcho:false
+      });
+      duetCrossings.push(cross);
+    }
+
     // ── The echo ──────────────────────────────────────────────────────────
     // Both of them found the same creature tonight. The two notes are already
     // the same pitch on the same instrument, because pitch and instrument are
@@ -6901,7 +6998,7 @@ const user = observerRole(o);
   }
 
   events.sort((a,b)=>a.atSec-b.atSec);
-  return { events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId, sharedMinutes, duetEchoes } };
+  return { events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId, sharedMinutes, duetEchoes, duetCrossings } };
 }
 
 /** ------------------------------ UI population ------------------------------ */
@@ -7618,6 +7715,8 @@ function drawFrame(){
       continue;
     }
     if(e.isSpecial){
+      // The bell is a small tight ring; the crossing is the wide one around it.
+      // Radius, weight and alpha are V2's, because this is V2's gesture.
       const alphaS = (e.kind === "duet_minute") ? 0.55 : 0.45;
       const rad = (e.kind === "duet_minute" ? 6.5 : 10.5)*dpr;
       ctx.globalAlpha = alphaS;
@@ -7716,6 +7815,14 @@ function drawFrame(){
             // two of them coincided.
             state.sharedPulses.push({x, y, t0:(performance.now?performance.now():Date.now()), color:e.color});
             if(state.sharedPulses.length > 12) state.sharedPulses.shift();
+            for(const side of [e.match && e.match.observations && e.match.observations.A,
+                               e.match && e.match.observations && e.match.observations.B]){
+              if(side) for(const oo of side) flashThumb(oo.id);
+            }
+          } else if(e.kind === "duet_cross"){
+            for(let n=0;n<8;n++){
+              spawnParticle({x,y,color:e.color,label:"crossing",isEcho:false});
+            }
             for(const side of [e.match && e.match.observations && e.match.observations.A,
                                e.match && e.match.observations && e.match.observations.B]){
               if(side) for(const oo of side) flashThumb(oo.id);

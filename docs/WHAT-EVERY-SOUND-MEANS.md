@@ -18,6 +18,7 @@ this page current is cheap; not having it is what let a rule that fired on
 |---|---|---|---|
 | `obs` | one per observation | this person recorded this taxon at this time | **evidence** |
 | `duet_minute` | both observers recorded in the same UTC minute | they were both working in the same minute | **evidence** |
+| `duet_cross` | two records **adjacent in time**, different observers, within 2 minutes | they were taking turns — both working the same stretch of the night | **evidence** |
 | `duet_echo` | both recorded the **same taxon** within 30 minutes | both identified the same species that night, close in time | **evidence** |
 | `accompaniment` | Song mode's composed rhythm, on non-matching slots | nothing — it is rhythm | **authorship**, and marked so |
 | `gond_pedal` | Gondwana's authored harmony on a slow clock | nothing — it is harmony | **authorship**, and marked so |
@@ -34,6 +35,23 @@ A low bell, once per minute in which both selected observers recorded. It does
 **not** claim simultaneity: iNaturalist stores minute precision, so "the same
 minute" is the finest true statement available. 311 of them on the
 two-backyards export.
+
+### `duet_cross` — one of you, then the other
+
+The deep pad and the wide tan ring. Two records **adjacent in time**, from
+**different observers**, within `DUET_CROSS_WINDOW_MIN` (2) minutes. 790 of
+them across 55 nights on the two-backyards export.
+
+40% fall **inside** a shared minute, where the pad sounds with the bell — that
+is the two-layer composite Lily accepted and asked to keep. The other 475 are
+moments nothing marked before: they alternated across a clock-minute boundary,
+so no shared minute ever existed.
+
+Adjacent-in-time is what makes it symmetric — a pair has no direction — and
+self-deduplicating, since each adjacent pair is considered exactly once.
+
+**This is the restoration of a gesture that was lost twice**, and the way it
+was lost is the most useful thing on this page. See the retired section below.
 
 ### `duet_echo` — both of them found the same creature
 
@@ -83,7 +101,51 @@ gesture heard once in a nineteen-second loop is heard against nothing.
 
 ## Retired
 
-### `duet_sync` — the five-second pulse
+### `duet_sync` — the "five-second pulse" that was never about seconds
+
+Removed 16 September 2026, and **restored in honest form as `duet_cross` on
+17 September** after Lily noticed the sound and the wide tan rings were gone.
+
+Its history is the clearest lesson in this repository about a rule that does
+not say what it means.
+
+**In V2 it compared positions in the loop, not in the night:**
+
+```js
+const d = Math.abs(b.atSec - a.atSec);   // loop seconds, not real seconds
+if(d > win) break;                        // "within 5 seconds"
+```
+
+A twelve-hour night compressed into nineteen seconds makes five loop seconds
+about **three hours** of real time. So the gesture never marked simultaneity,
+and how often it fired **changed with the loop length**: 32 gestures on
+2026-09-08 at nineteen seconds, a different number at any other setting. It was
+beautiful, and it was describing something real — the two of them working the
+same stretch of the night — but not the thing its name and its code claimed.
+
+**The repair to real observation seconds was correct and killed it.** Because
+iNaturalist stores minute precision and 97.7% of records carry `:00`, five real
+seconds collapsed onto the shared-minute rule: 32 gestures became 6, and then
+across the whole export it fired on 311 of 311 shared minutes at exactly the
+bell's instant, with a maximum difference of 0.000 seconds.
+
+**Then it was removed as redundant, and that went too far.** The plan for that
+session said plainly that the bell-and-pad composite "is the sound Lily enjoys
+… and it should be kept exactly as it is", and only the *doubling* was
+inexplicable. Deleting the whole layer took the pad and the wide tan ring with
+it. `duet_cross` restores both on a rule that is symmetric, loop-independent,
+and true at the resolution the data actually has.
+
+It was also never symmetric: it paired each A record to its nearest B record,
+and A is simply whoever appears first in the file. With Chris as A a second pad
+fired on 25 minutes; with Lily as A it would have fired on 103 different ones.
+
+`state.duetSyncWindowSec` — a dial that had controlled nothing for some time —
+went with it.
+
+### The original entry, kept
+
+The five-second pulse
 
 Removed 16 September 2026. It fired when an A record and a B record fell within
 five seconds, and it was meant to be the rare, exceptional moment.
@@ -111,4 +173,6 @@ controlled nothing for some time — went with it.
 Two tests that hold this, and should not be deleted:
 
 - `both gestures are identical when the observers swap labels`
+- `it is identical when the observers swap labels` (the crossing)
+- `IT DOES NOT CHANGE WITH LOOP LENGTH — the defect V2 shipped`
 - `the five-second pulse and its dead dial are gone`

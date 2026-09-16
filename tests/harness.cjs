@@ -18,7 +18,7 @@ function loadApp(htmlPath = path.join(__dirname, '..', 'index.html'), overrides 
     performance: { now: () => 0 }, requestAnimationFrame() {}, cancelAnimationFrame() {},
     ...overrides
   });
-  vm.runInContext(script.slice(0, boundary) + '\nObject.assign(globalThis, {state, DEMO_CSV, UNKNOWN_TAXON, DUET_ECHO_WINDOW_MIN, DUET_GESTURES, photoUrlAt, photoSizeForPx, photoCache, photoProgress, photoStatusText, preloadPhotos, cancelPhotoPreload, nightPhotoUrls, photoIsReady, PHOTO_CACHE_MAX, GROUND, GROUND_CEILING_HZ, OFFERABLE_NIGHT_MIN_RECORDS, SHARED_DATE_MIN_RECORDS});', context, { filename: htmlPath });
+  vm.runInContext(script.slice(0, boundary) + '\nObject.assign(globalThis, {state, DEMO_CSV, UNKNOWN_TAXON, DUET_ECHO_WINDOW_MIN, DUET_CROSS_WINDOW_MIN, midiToFreq, DUET_GESTURES, photoUrlAt, photoSizeForPx, photoCache, photoProgress, photoStatusText, preloadPhotos, cancelPhotoPreload, nightPhotoUrls, photoIsReady, PHOTO_CACHE_MAX, GROUND, GROUND_CEILING_HZ, OFFERABLE_NIGHT_MIN_RECORDS, SHARED_DATE_MIN_RECORDS});', context, { filename: htmlPath });
   return context;
 }
 module.exports = { loadApp };
