@@ -101,22 +101,14 @@ test('Song: composed accompaniment remains audible without claiming genuine sync
   assert.ok(seq.events.filter(e => e.kind === 'accompaniment').every(e => !e.match));
   assert.equal(seq.events.filter(e => ['duet_minute', 'duet_sync'].includes(e.kind)).length, 0);
 });
-for (const mode of ['timeline', 'riff']) {
-  test(`${mode}: near-simultaneous pulses use original seconds and do not change with loop length`, () => {
-    const signatures = [];
-    for (const loopLen of [3, 19, 120]) {
-      const c = app(mode, { loopLen });
-      const seq = c.buildSequencer([
-        obs(c, 'a', 'A', '2026-01-28T09:00:00Z'), obs(c, 'b', 'B', '2026-01-28T09:00:04Z'),
-        obs(c, 'c', 'A', '2026-01-28T09:10:00Z'), obs(c, 'd', 'B', '2026-01-28T09:10:06Z')]);
-      const pulses = seq.events.filter(e => e.kind === 'duet_sync');
-      assert.equal(pulses.length, 1, 'only four-second pair qualifies for five-second window');
-      evidence(pulses[0].match);
-      signatures.push(JSON.stringify(pulses.map(e => e.match)));
-    }
-    assert.equal(new Set(signatures).size, 1);
-  });
-}
+// Retired, 16 September 2026. These two tests held the five-second
+// near-simultaneous rule, which could not survive its data: iNaturalist stores
+// minute precision, 97.7% of records carry :00 seconds, and the rule ended up
+// firing on 311 of 311 shared minutes at exactly the shared-minute bell's
+// instant. It was not marking a rare coincidence; it had stopped being an
+// event. The gestures that replace it are in `duet-gestures.test.cjs`, and the
+// loop-length independence these tests protected is asserted there of the
+// echo, which is likewise built from original observation times.
 for (const window of [[1140, 1240, ['evening']], [1380, 60, ['late', 'early']]]) {
   test(`Riff: Brisbane clock window ${window[0]}–${window[1]} is host-timezone independent`, () => {
     const script = `const {loadApp}=require(${JSON.stringify(require.resolve('./harness.cjs'))});const c=loadApp();Object.assign(c.state,{spacingMode:'riff',userAName:'A',userBName:'B',riffStartMin:${window[0]},riffEndMin:${window[1]}});const rows=[['evening','2026-01-28T09:30:00Z'],['late','2026-01-28T13:30:00Z'],['early','2026-01-28T14:30:00Z'],['outside','2026-01-28T02:00:00Z']].map(([id,t])=>c.rowToObs({id,user_name:'A',time_observed_at:t,observed_on:'2026-01-28',scientific_name:'Test moth'}));console.log(JSON.stringify(c.buildSequencer(rows).events.filter(e=>e.obs).map(e=>e.obs.id).sort()));`;
@@ -151,11 +143,6 @@ for (const mode of modes) {
     assert.equal(JSON.stringify(rows), original);
   });
 }
-for (const mode of ['timeline', 'riff']) test(`${mode}: exactly five original seconds qualifies for near synchrony`, () => {
-  const c = app(mode);
-  const seq = c.buildSequencer([obs(c, 'a', 'A', '2026-01-28T09:00:00Z'), obs(c, 'b', 'B', '2026-01-28T09:00:05Z')]);
-  assert.equal(seq.events.filter(e => e.kind === 'duet_sync').length, 1);
-});
 test('Riff: matches outside selected window are excluded; endpoints remain inclusive', () => {
   const c = app('riff', { riffStartMin: 1140, riffEndMin: 1240 });
   const rows = ['08:59:00', '09:00:00', '10:40:00', '10:41:00'].flatMap((time, i) =>
