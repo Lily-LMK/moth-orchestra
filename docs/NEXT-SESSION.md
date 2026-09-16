@@ -77,18 +77,19 @@ per-family gap, and a suggested order. Set by Lily on 16 September 2026.
 
 Two pieces of work.
 
-**The synchrony flourishes have collapsed into each other.** They were built as
-a hierarchy — a shared minute for ordinary co-presence, a five-second window for
-the exceptional moment. iNaturalist stores minute precision (97.7% of records
-carry `:00`), so the five-second rule can only ever be satisfied by records in
-the same minute: the two rules became one rule. Measured: 56 of 71 two-observer
-nights fire both the same number of times, every near-sync event on 2026-09-03
-lands within 50 ms of a shared-minute event, and together they are 25% of that
-night's events. The rare gesture became the common one, stacked on the same
-instant. Needs a new activation measurement at minute resolution, and a
-guarantee that something beautiful happens in **each** family — four of six
-published families currently play a generic `creek`/`pad`, and Gondwana plays
-the *same sound* for both tiers.
+**One of the flourish layers fires on a rule that means nothing.** The two duet
+gestures now always coincide — iNaturalist stores minute precision, so the
+five-second window can only be satisfied inside a shared minute — and together
+they make a two-layer composite, a low bell with a pad, on every shared minute.
+**That composite is the sound Lily likes and the rate is right; neither may
+change.** The defect is that 25 of 311 shared minutes get a *second* pad, and
+which ones depends on an arbitrary internal labelling: A is whoever appears
+first in the file. With Chris as A it fires on 25 minutes; with Lily as A it
+would fire on 103 different ones. The fix is to make the composite a rule —
+one gesture per shared minute, both layers, always — not to make it rarer.
+A first draft of the plan proposed exactly that and is withdrawn; read the plan
+for why. Then: four of six published families play a generic `creek`/`pad`, and
+Gondwana plays one timbre for *both* layers where every other family plays two.
 
 **Three status lines describe an archive instead of what is loaded.** A fetch
 capped at 1,000 reports the API's `total_results` — "the most recent 1,000 of
@@ -98,6 +99,11 @@ fetching. I don't need a count of what was there and skipped."* This also
 settles the open question left by the night-display work.
 
 **Do Part 2 first.** It is small, fully specified, and actively misleading.
+
+The measure of success for Part 1's first step is unusual: **nothing should
+sound different.** The rate stays, the composite stays, and every sound becomes
+explicable. If a duet night sounds thinner after the change, the change is
+wrong.
 
 ---
 

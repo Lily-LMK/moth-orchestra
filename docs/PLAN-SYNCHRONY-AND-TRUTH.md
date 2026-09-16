@@ -13,208 +13,178 @@ have both observers**.
 
 ## What Lily said
 
+First:
+
 > The extra synchronicity flourishes were built in to be exceptionally
 > beautiful moments and we've lost them because the seconds are not stored by
-> iNaturalist. We need to figure out a different activation measurement for
-> these flourishes (three records in a minute?) and ensure that something
-> beautiful happens with each musical family.
+> iNaturalist. We need to figure out a different activation measurement.
 
-## The diagnosis — measured, not assumed
+Then, on reading the first draft of this plan — which is the constraint that
+matters:
 
-Two gestures were built as a hierarchy:
+> Right now, whatever is firing, is absolutely excellent. I enjoy the current
+> frequency. It's what makes a duet night sound so much more enriched than a
+> solo night. I don't want to make it more rare but I want to make sure that a
+> rule is applying. Each sound should be a thing I can explain with logic and
+> rules.
 
-| Gesture | Rule | Intent |
+**The first draft of this plan proposed making the flourishes rarer. That was
+wrong and is withdrawn.** It read "fires more often than intended" as the
+defect. The defect is not the rate. The rate is good. The defect is that part
+of what fires cannot be explained by any rule about the night.
+
+## What is actually happening
+
+Every shared minute currently produces a **two-layer composite**:
+
+| Layer | Event | Instrument (most families) | Sounds at |
+|---|---|---|---|
+| low | `duet_minute` | `creek` | `pitch.midi − 12` |
+| high | `duet_sync` | `pad` | `pitch.midi − 12` of its own pitch |
+
+That composite — a low bell with a pad under it — is the sound Lily enjoys, and
+it is what makes a duet night richer than a solo night. **It is already ruled
+for 92% of shared minutes**, and it should be kept exactly as it is.
+
+## The defect, measured
+
+Across the 311 shared minutes on offered two-observer nights:
+
+| | Shared minutes | Share |
 |---|---|---|
-| `duet_minute` | both observers in the same UTC minute | ordinary co-presence |
-| `duet_sync` | two records within **5 seconds** | the exceptional moment |
+| bell + **one** pad — the composite | 286 | 92.0% |
+| bell + **two** pads | 25 | 8.0% |
 
-iNaturalist stores minute precision: **97.7% of records carry `:00` seconds**
-(6,636 of 6,794). So "within five seconds" can only be satisfied by records in
-the same minute, both at `:00` — which is the shared-minute rule. **The two
-rules became one rule.**
+The doubling happens when observer **A** holds two or more records in the
+minute, because `duet_sync` pairs each A record to its nearest B record. And A
+is simply whoever appears first in the file.
 
-The measurements:
+> **A = Chris Burwell. 25 shared minutes have A ≥ 2 and get the extra pad.
+> 103 shared minutes have B ≥ 2 and get nothing. If the two observers swapped
+> labels, the extra pad would fire on 103 minutes instead of 25 — four times as
+> many, on entirely different minutes.**
 
-- **56 of 71** two-observer nights fire `duet_sync` exactly as many times as
-  `duet_minute`. In the other 15, `duet_sync` fires **more**, because the
-  pairing is per-A-record and several A records pair to the same B.
-- On 2026-09-03 (136 records), **all 24** `duet_sync` events land **within
-  50 ms** of a `duet_minute` event. They are stacked on the same instant.
-- On that night the two flourishes together are **25.3% of all events** — 46 of
-  182 — and 22 shared-minute bells fall inside a 19-second loop, one every
-  0.86 seconds through the back half.
+That is the sound that cannot be explained. Its presence depends on an
+arbitrary internal labelling, not on anything that happened in the backyard.
+This is exactly what Lily is asking to remove — and removing it changes 8% of
+minutes, not the rate.
 
-So the loss is not that the exceptional gesture stopped firing. It is that the
-exceptional gesture became **indistinguishable from the ordinary one, doubled
-onto the same instant, and then both became constant**. Nothing is exceptional
-at twelve times a night.
+### A second, smaller defect: the pitch disagrees with itself
 
-Note what is *not* broken: the shared-**minute** gesture is honest and works at
-the resolution the data actually has. Song mode is unaffected — it uses
-`findSharedMinutes` only and has no near-sync path.
+`duet_sync` is written with `midi: pitch.midi` but `freq: midiToFreq(pitch.midi
+- 12)`. Playback uses `freq`, so the note **sounds** an octave below the pitch
+it **records**. The export writes both columns side by side —
+`midi_note: e.midi` and `frequency_hz: e.freq` at `index.html:8887` — so an
+exported score states two different pitches for the same note.
 
-## The principle for the rebuild
+Nothing is audibly wrong today, because `freq` is what sounds. But the recorded
+score does not describe the music, which fails the project's own rule that
+derived data must be inspectable and true. Fix it whichever way sounds right —
+the octave is a musical choice, the disagreement is not.
 
-The hierarchy must be rebuilt on an axis the data actually carries. Seconds are
-gone. Two axes survive at minute resolution:
+## The fix — keep the sound, keep the rate, make it a rule
 
-- **density within a minute** — how much happened at once
-- **rarity across the night** — whether this is the most of it
+**One gesture per shared minute, both layers, always.**
 
-And one rule, learned directly from the failure:
+- The number of moments where a flourish happens: **311 — unchanged.**
+- The sound of each: **unchanged**, the composite that already occurs on 92%.
+- What goes: the 25 arbitrary extra pads, and the five-second window that has
+  not meant anything since it was written.
 
-> **The tiers must be exclusive. A minute is Tier 3, or Tier 2, or Tier 1 —
-> never two at once.** Stacking is what destroyed the hierarchy. Whatever is
-> built, a minute that earns a higher tier must *not* also fire the lower one.
+Say the rule in one sentence, which is the test of whether it is a rule:
 
-## The measured candidates
+> **Both of you recorded in this minute, so the minute sounds — a low bell with
+> a pad, once, however many records it holds.**
 
-Across the 71 two-observer offered nights:
+The five-second window (`state.duetSyncWindowSec`) should go rather than remain
+a dial that does nothing. `duet_sync` as a *kind* may be worth keeping as the
+name of the upper layer, since tests, the score reference and the export all
+know it; that is an implementation choice, not a design one.
 
-| Rule | Total | Per night | Nights firing | Max on a night |
-|---|---|---|---|---|
-| shared minute (current) | 311 | 4.4 | 54 | 22 |
-| ≥3 records in a minute, any observer | 190 | 2.7 | 52 | 14 |
-| **≥3 in a minute, both present** | 122 | 1.7 | 42 | 9 |
-| **≥4 in a minute, both present** | 32 | 0.5 | 21 | 3 |
-| ≥5 in a minute, both present | 5 | 0.1 | 5 | 1 |
-| both observers ≥2 in one minute | 6 | 0.1 | 5 | 2 |
-| densest shared minute (one per night) | 54 | 0.8 | 54 | 1 |
+**This is not a reduction.** If anything in the build makes a duet night sound
+less rich than it does today, the build has gone wrong.
 
-Lily's guess — three in a minute — is a good one and lands in the right region.
-At "≥3, both present" it fires 1.7 times a night on 42 of 71 nights, which is
-rare enough to notice. Its weakness is the tail: up to 9 on a busy night.
+## Optional, if the rule should say more — decided by ear, not here
 
-## The proposal — three tiers
+Two honest axes exist that do **not** change how often anything fires. Both are
+symmetric between the observers, unlike the defect above. Neither is required.
 
-### Tier 1 · Together — the quiet marker
+**1. Let the gesture's weight follow the minute's density.** Both duet events
+hardcode `density: 1`, but `density` drives note velocity
+(`0.15 + 0.12·log2(density)`) and already means "how many observations this
+represents" on ordinary notes. Setting it from the shared minute's record count
+would use the existing vocabulary rather than inventing one.
 
-Both observers in the same minute, as now, but **thinned**. Currently 5.8 a
-night and up to 22 in a 19-second loop, which is a wash rather than a marker.
+| Records in the shared minute | Count | Share |
+|---|---|---|
+| 2 | 189 | 60.8% |
+| 3 | 90 | 28.9% |
+| 4 | 27 | 8.7% |
+| 5–7 | 5 | 1.6% |
 
-| Minimum gap between markers | Per night |
-|---|---|
-| none (current) | 5.8 |
-| 2 minutes | 4.7 |
-| **5 minutes** | **3.2** |
-| 10 minutes | 2.3 |
+Rule: *"a busier minute sounds fuller."* Honest, but note 61% sit in one bucket,
+so the effect will be subtle. Measured before proposing, so it is not oversold.
 
-Recommend a **5-minute minimum gap**. It nearly halves the count while keeping
-every night that has any. An alternative worth considering is thinning relative
-to **loop length** rather than clock minutes, since the wash is a function of
-events-per-second in the loop, not of the night. Measure before choosing.
+**2. Let the gesture distinguish even from lopsided minutes.**
 
-### Tier 2 · A burst together — the rare accent
+| Shape | Count | Share |
+|---|---|---|
+| even — both recorded the same number | 193 | 62.1% |
+| uneven | 92 | 29.6% |
+| lopsided — one recorded 3× the other | 26 | 8.4% |
 
-**Four or more records in one minute with both observers present.** 0.5 a
-night, on 21 of 71 nights, and **never more than 3**. That ceiling is the
-argument for 4 over Lily's 3: at ≥3 the tail reaches 9, and a gesture that can
-fire nine times is not an exceptional moment.
+Rule: *"you each saw one thing"* against *"one of you was in a burst while the
+other passed through."* This is the meaningful version of the distinction the
+broken rule was accidentally making — but symmetric, so it does not matter who
+is A.
 
-If it proves too rare in listening, ≥3 is the fallback and is a one-number
-change. Decide by ear, not from this table.
-
-### Tier 3 · The moment of the night — guaranteed, exactly one
-
-**The densest shared minute of the night**, tie-broken to the earliest.
-
-This is the direct answer to "ensure that something beautiful happens". It is a
-guarantee rather than a probability: **every night with any shared minute gets
-exactly one**, and never more. It fires on all **54** of the 71 nights that have
-a shared minute at all.
-
-Measured caveat, which needs Lily's judgement: on **12 of those 54 nights the
-densest shared minute holds only 2 records** — one each. The peak of a quiet
-night is not much of a peak.
-
-| Densest shared minute holds | Nights |
-|---|---|
-| 2 records | 12 |
-| 3 records | 21 |
-| 4 records | 16 |
-| 5 records | 3 |
-| 6 records | 1 |
-| 7 records | 1 |
-
-Two options:
-
-- **Always fire it** (54 nights). The guarantee is unconditional; on a quiet
-  night the gesture marks "the closest you came", which is honest and still
-  true. Recommended, because the guarantee is the point.
-- **Require ≥3 records** (42 nights). The moment is always a real peak, but 12
-  nights get nothing.
-
-Also settle the ties: 27 of 54 nights have a tied densest minute. Earliest is
-the simplest tie-break and is defensible — the first time the night peaked.
-
-### What this replaces
-
-`duet_sync` and its 5-second window go. The window constant
-(`state.duetSyncWindowSec`) should go with it rather than being left as a dial
-that no longer does anything. The standing roadmap already carried the
-suppression of the five-second rule as a proposal with evidence; this is that
-decision, made.
-
-### Honesty constraints — non-negotiable
-
-The existing evidence rules must survive the rebuild:
-
-- These gestures are **composed rhythm, not measurement**. A shared minute does
-  not establish simultaneity and the interface already says so. Tiers 2 and 3
-  make a *stronger-looking* claim, so the wording must get **more** careful, not
-  less. Tier 3 in particular must never read as "they were together" — it means
-  "this is the minute with the most records from both".
-- Evidence must retain original observation IDs and timestamps, as
-  `findSharedMinutes` does now.
-- The shared-minute evidence panel, `isSharedDate`, the date diamond and the
-  offering threshold are all separate rules and none of them changes here.
-
----
+Recommendation: build the core fix first and **listen to it alone**. It should
+sound essentially identical to today. Only then decide whether either axis adds
+anything, because both are subtle and the current sound is already liked.
 
 ## Part 1b — Something beautiful in each family
 
-This is the larger half of the work and the least specified.
+Unchanged from the first draft, and still the larger half of the work. Six
+families are published; here is what each plays when a shared minute fires:
 
-Six families are published — Moth Orchestra, Boobook, Frog Yawn, Fireflies,
-Lantern Glass, Gondwana — and Noctilucent is withheld. Here is what each one
-currently plays when a flourish fires:
-
-| Family | Tier 1 sound | Tier 2 sound | State |
+| Family | Low layer | High layer | State |
 |---|---|---|---|
-| Moth Orchestra (`mixed`) | `creek` | `pad` | generic |
-| Boobook (`night`) | `creek` | `pad` | generic |
-| Frog Yawn (`choir`) | `choir_unison` | `choir_chord` | has its own |
-| Fireflies (`steelpan`) | `creek` | `pad` | generic |
-| Lantern Glass (`lantern`) | `creek` | `pad` | generic |
-| Gondwana | `gond_sync` | `gond_sync` | **the same sound twice** |
+| Moth Orchestra (`mixed`) | `creek` | `pad` | generic, two timbres |
+| Boobook (`night`) | `creek` | `pad` | generic, two timbres |
+| Frog Yawn (`choir`) | `choir_unison` | `choir_chord` | its own, two timbres |
+| Fireflies (`steelpan`) | `creek` | `pad` | generic, two timbres |
+| Lantern Glass (`lantern`) | `creek` | `pad` | generic, two timbres |
+| **Gondwana** | `gond_sync` | `gond_sync` | **one timbre, twice** |
 | Noctilucent (withheld) | `creek` | `pad` | generic |
 
-Two problems, both visible in that table.
+Two problems.
 
 **Four of six published families play a foreign sound.** `creek` and `pad`
-belong to no family in particular. In Lantern Glass or Fireflies they are an
-imported object, not a flourish of that instrument.
+belong to no family in particular; in Lantern Glass or Fireflies they are an
+imported object rather than a flourish of that instrument.
 
-**Gondwana plays one sound for both tiers.** The family Lily listens to most
-has the two gestures collapsed into a single sound *and* stacked on the same
-instant — the worst case of the bug, in the most-used voice.
+**Gondwana is the odd one, and it is the most-listened family.** Every other
+family's composite is two *different* timbres — a bell and a pad. Gondwana
+plays `gond_sync` for both layers, so its composite is one timbre sounding
+twice at two pitches. That is a different kind of sound, and it is worth
+listening for whether Gondwana's flourish already feels unlike the others.
+Lily knows Gondwana by ear better than any measurement here; the question is
+hers to answer, and it should be answered before anything is rebuilt.
 
 ### The rule to build toward
 
 > A family's flourish should be made of that family's own materials, heard in a
 > way its ordinary notes never are.
 
-Not a new instrument bolted on: the same bodies, played differently — struck
+Not a new instrument bolted on: the same bodies played differently — struck
 where they are normally plucked, held where they are normally short, doubled at
-an octave, or opened into the room. Gondwana already has the room (its
-convolver bus is the only reverb in the instrument), and `gond_rim` is the only
-light left on top of that family — a candidate for the moment of the night.
+an octave, or opened into the room. Gondwana already has the room; its
+convolver bus is the only reverb in the instrument.
 
-Available materials, for reference when designing:
+Available materials:
 
 - `night` — gecko, katydid, bat_click, weta, possum_rustle, boobook, banjo_frog
-- `choir` — soprano, alto, tenor, bass_voice (already has `choir_unison`,
-  `choir_chord`)
+- `choir` — soprano, alto, tenor, bass_voice (plus `choir_unison`, `choir_chord`)
 - `steelpan` — lead_pan, double_second, guitar_pan, bass_pan
 - `lantern` — lantern_felt, lantern_glass, lantern_reed, lantern_bloom
 - `gondwana` — gond_felt, gond_heartwood, gond_bronze, gond_bowed, gond_column,
@@ -222,22 +192,37 @@ Available materials, for reference when designing:
 - `noctilucent` — noct_root, noct_bow, noct_halo, noct_prism, noct_choir,
   noct_spark, noct_tide, noct_wire
 
-Three tiers × seven families is **21 flourish voices**, of which four exist.
-That is not one session. Sequence it:
+Two layers × seven families is fourteen voices, of which four exist. Sequence
+it, and **do not build seven families before hearing one**: the first Gondwana
+palette was rejected by ear on the day it was built.
 
-1. **Gondwana first** — most listened to, and currently the most broken.
-2. **Lantern Glass** — the other released family with a strong identity.
+1. Ask Lily what Gondwana's flourish sounds like now, before changing it.
+2. Lantern Glass — the other released family with a strong identity.
 3. Moth Orchestra, Boobook, Fireflies.
-4. Frog Yawn — already has two; it needs a third for Tier 3.
+4. Frog Yawn already has its own; confirm it still fits the rebuilt rule.
 5. Noctilucent last, and only if it is released.
 
-Every one of these is a **listening judgement**. The measurement above can say
-how often a gesture fires; it cannot say whether it is beautiful. Build one
-family, hear it, then decide whether the shape generalises. The Gondwana
-palette was rejected by ear on the day it was built — the precedent is that
-building all seven before listening would be a mistake.
+## Part 1c — The inventory of sounds
 
----
+Lily: *"Each sound should be a thing I can explain with logic and rules."*
+
+That is a broader ask than the flourishes, and it is a small closed set — the
+instrument makes five kinds of event. Writing the inventory down is cheap and
+it is the thing that would have caught this defect years earlier.
+
+| Kind | Rule | Explicable? |
+|---|---|---|
+| `obs` | one per observation; pitch from taxon, instrument from voice family and rank | yes |
+| `duet_minute` | one per shared minute | yes |
+| `duet_sync` | pairs an A record to a B record within five seconds | **no — see above** |
+| `accompaniment` | song mode's composed rhythm on non-matching slots; marked as not evidence, neutral dot | yes, as authorship |
+| `gond_pedal` | Gondwana's authored harmony on a slow clock; no glow, no thumbnail, no arrival | yes, as authorship |
+
+Proposed deliverable alongside the fix: a short **`docs/WHAT-EVERY-SOUND-MEANS.md`**
+— one page, one entry per sound, each stating what makes it fire, what it
+claims about the data, and whether it is evidence or authorship. Two of the
+five are authorship and already say so, which is the model for the rest. Verify
+the echo behaviour while writing it; it was not audited here.
 
 # Part 2 — Say what is actually being presented
 
@@ -322,12 +307,21 @@ session. Half a day at most.
 
 Then Part 1, in this order:
 
-1. Decide the tiers with Lily against the tables above — the Tier 2 number, and
-   whether Tier 3 fires on all 54 nights or only the 42 with a real peak.
-2. Build the three-tier rule with the exclusivity constraint, tests first, red
-   phase against the current file as with the last two sessions.
-3. Remove `duet_sync` and its window constant.
-4. Voice **Gondwana** only. Stop. Listen.
-5. Decide from there whether the shape generalises to the other five.
+1. **Make the composite a rule.** One gesture per shared minute, both layers,
+   always; remove the five-second window and the 25 arbitrary extra pads. Tests
+   first, red phase against the current file as with the last two sessions.
+   Fix the `midi`/`freq` disagreement in the same change.
+2. **Listen to it.** It should sound essentially as it does now. A duet night
+   must not sound thinner. If it does, stop — the constraint has been broken.
+3. Only then decide whether density or evenness should shade the gesture.
+   Both are subtle; the current sound is already liked.
+4. Ask Lily what Gondwana's flourish sounds like today, before touching it —
+   it is the one family whose composite is a single timbre twice.
+5. Voice one family. Stop. Listen. Decide whether the shape generalises.
+6. Write `WHAT-EVERY-SOUND-MEANS.md` as the work settles.
+
+The measure of success for steps 1 and 2 is that **nothing sounds different**
+and every sound can now be explained. That is an unusual brief and it is the
+right one here.
 
 Do not build seven families before hearing one.
