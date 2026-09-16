@@ -31,7 +31,9 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 
 A night needs **more than fifteen records** to appear in the date list. Below that there is not enough to compose, and a 428-entry list of which half cannot become music is worse than a shorter one. Thin nights are **hidden**, not set aside: there is no control that brings them back.
 
-The threshold is a slider, not a discovery. It is one constant, `OFFERABLE_NIGHT_MIN_RECORDS`, and the rule is applied in exactly one place — `offerableNightKeys`, called from `rebuildDerived`. What it costs on Lily's two-backyards export: 144 of 428 dates remain, holding 79.8% of the records; 284 dates and 1,374 records leave the list, **including every night of 2020–2023**, no night of which reaches sixteen records. Lily chose the number and the hiding on 16 September 2026 with those figures in view.
+The threshold is one constant, `OFFERABLE_NIGHT_MIN_RECORDS`, and the rule is applied in exactly one place — `offerableNightKeys`, called from `rebuildDerived`. On Lily's two-backyards export: 144 of 428 dates remain, holding 79.8% of the records; 284 dates leave the list, **including every night of 2020–2023**, no night of which reaches sixteen records.
+
+That last part is the intended effect rather than a price paid for it. The instrument is mostly used to hear the current or past week, and going further back is for recalling a night already known to be exceptional. A dozen wonderful nights is a better offering than years of unknown quality to scroll and guess at.
 
 Hidden is not deleted. The records stay loaded, grouped by night, counted and exportable; only the date list is shorter. Status lines still report the dataset's true size, so a fetch may say "across 428 nights" while the list offers 144.
 

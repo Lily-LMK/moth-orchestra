@@ -50,8 +50,14 @@ fifteen records a night from 2024 onward.
 | 2026 | 186 | 78 |
 
 This was put to Lily before building, because it is materially different from
-"19% of records" and she did not have it when she first chose. She confirmed 16
-with the figures in view.
+"19% of records" and she did not have it when she first chose. She confirmed 16,
+and gave the reasoning that makes it the point of the rule rather than its cost:
+
+> It would be rare that I wanted to listen to anything more than two years old.
+> That actually lands perfectly. I'd rather have a dozen wonderful nights appear
+> than years of unknown quality dates to scroll through and guess at. This is
+> often used to listen to the current or past week without going much further
+> back unless I want to recall a truly exceptional night.
 
 The single-axis finding also re-confirmed: 92 zero-span nights, **none** with
 more than one record. Count alone is sufficient.
@@ -161,11 +167,20 @@ the one fallback clause. **No sound or score path was modified.**
 - **Not re-measured on a live fetch.** Capped fetches were simulated by slicing
   the export, which is faithful to what a cap returns but is not the API.
 
-## One thing left for Lily's judgement
+## Released
+
+Committed as `bd88553` and pushed to `main` the same day. The served page is
+byte-identical to the file that passed the suite (sha256 `1b268d52…`), verified
+by hash and loaded in a real browser against the live URL with no page errors.
+
+## The open question, since answered
 
 A fetch status line says "Loaded 6,794 observations across 428 nights" while the
-list offers 144. Every word of that is true — it describes the dataset, not the
-list — but a person who reads it and then counts the list will find a gap. The
-honest fix is a clause saying how many are offered, which is close to the
-set-aside line Lily declined. It was left alone rather than quietly
-reintroducing a rejected design. Worth a minute of her attention.
+list offers 144. This was left for Lily's judgement rather than fixed, because
+the obvious fix was close to the set-aside line she had declined.
+
+She ruled on it the same day, and more broadly: status lines should say what is
+being presented and fetched, not what exists elsewhere. The fetch has the same
+fault in a worse form — it reports the API's whole archive, "the most recent
+1,000 of 24,000", when the cap is 1,000. That work is Part 2 of
+[PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md).

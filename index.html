@@ -1907,10 +1907,12 @@ function isSharedDate(arr){
 // dates, median 8 a night, range 1 to 136.
 //
 // Lily set this at more than fifteen records on 16 September 2026, and chose
-// hiding over setting aside. It is a slider, not a discovery. What it costs, at
-// this setting: 284 of 428 dates leave the list and 20.2% of the records go
-// with them, including every night of 2020-2023 — no night in those four years
-// reaches sixteen records. That was decided with the figures in view.
+// hiding over setting aside. Her reasoning, which is the point of the rule:
+// this instrument is mostly used to hear the current or past week, and she
+// would rather a dozen wonderful nights appeared than scroll years of unknown
+// quality guessing which ones play. 284 of 428 dates leave the list, including
+// every night of 2020-2023 — no night in those four years reaches sixteen
+// records. That is the intended effect, not a price paid for it.
 //
 // One axis, not two. A time-spread rule looks obviously necessary and is not:
 // all 92 zero-span nights in the export hold exactly one record, and no
@@ -2281,9 +2283,10 @@ const VOICE_MODES = ["mixed","night","choir","steelpan","lantern","noctilucent",
 // this set only when Lily has heard it and said so — measurement never stands
 // in for that. Gondwana left it on 14 September 2026.
 const WITHHELD_VOICE_MODES = new Set(["noctilucent"]);
-// A withheld family can be auditioned with ?family=gondwana. It stays out of
+// A withheld family can be auditioned with ?family=noctilucent. It stays out of
 // the published list, the dropdown and the swipe cycle for everyone else until
-// it has been accepted by ear.
+// it has been accepted by ear. Gondwana was withheld this way and released as
+// the sixth published family; Noctilucent is the only one still withheld.
 let UNLOCKED_VOICE_MODE = null;
 try { const q = new URLSearchParams(location.search).get("family"); if(q && WITHHELD_VOICE_MODES.has(q)) UNLOCKED_VOICE_MODE = q; } catch(err){ UNLOCKED_VOICE_MODE = null; }
 const PUBLIC_VOICE_MODES = VOICE_MODES.filter(m => !WITHHELD_VOICE_MODES.has(m) || m === UNLOCKED_VOICE_MODE);

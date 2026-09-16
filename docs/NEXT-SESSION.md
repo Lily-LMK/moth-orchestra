@@ -13,19 +13,20 @@ family" onward concerns **instrument** families — voices. Unrelated work.
 ## Standing state — 16 September 2026
 
 `main` is published at <https://lily-lmk.github.io/moth-orchestra/> and carries
-the import repair. **The working tree is ahead of it**: the night-display rules
-are built and tested but not committed and not released. Lily has not yet said
-to commit.
+both the import repair and the night-display rules (`bd88553`). The deployed
+page is byte-identical to the file that passed the suite, verified by hash and
+loaded in a browser with no page errors.
 
 Suite: **298 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs.
 
-Two pieces of work stand behind that number, neither heard:
+Two pieces of work stand behind that number, neither heard — though neither
+touched a sound or score path:
 
 - The import repair, released. Fetch, Import CSV and Top up all reported
   success and then showed something else.
   [SESSION-2026-09-16-FETCH.md](SESSION-2026-09-16-FETCH.md),
   [SESSION-2026-09-16-ARRIVALS.md](SESSION-2026-09-16-ARRIVALS.md).
-- The night-display rules, uncommitted.
+- The night-display rules, released.
   [SESSION-2026-09-16-NIGHTS.md](SESSION-2026-09-16-NIGHTS.md).
 
 Both are recorded in the README. Outstanding on both: **no listening review and
@@ -57,50 +58,67 @@ without re-measuring.
 
 ### What this left open
 
-1. **Commit and release.** The work is not on `main`. Lily's call.
-2. **A status line says "across 428 nights" while the list offers 144.** True,
-   but a reader can find the gap. The honest fix is close to the set-aside line
-   Lily declined, so it was left alone rather than reintroduced quietly. Worth
-   a minute of her judgement — the last section of the session doc.
-3. **The threshold is a slider.** `OFFERABLE_NIGHT_MIN_RECORDS`, one line. If
-   sixteen proves too severe in use — particularly the loss of the early
-   years — changing it is a one-word edit and the tests will follow.
+1. **Released.** Committed as `bd88553` and live.
+2. **Answered.** The "across 428 nights" line was flagged for Lily's judgement;
+   she has ruled on it and it is Part 2 of
+   [PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md).
+3. **The threshold lands as intended.** Lily, on the loss of 2020-2023: the
+   instrument is mostly used to hear the current or past week, and she would
+   rather a dozen wonderful nights appeared than scroll years of unknown quality
+   guessing which ones play. It is still one constant if that ever changes.
 
 ---
 
-## Start here — the oldest debt: nobody has listened
+## Start here — the flourishes, and telling the truth about what is loaded
 
-This is now the longest-standing gap in the project and it is not a build task.
+Read **[PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md)**. It carries
+the measured diagnosis, the candidate rules with their firing rates, the
+per-family gap, and a suggested order. Set by Lily on 16 September 2026.
 
-**Nothing released since 13 September has been judged by ear, and nothing has
-been seen on a phone or an exhibition screen.** Two sessions of import repair
-and one of night rules all end with the same two sentences. The suite has grown
-from 200 to 298 tests across that stretch; the number of times anyone has
-listened to the result is zero.
+Two pieces of work.
 
-The withheld work has been waiting longer still. **Gondwana** — seven bodies, a
-synthesised room, the first reverb this instrument has ever had — has never been
-heard by anyone. It sits in `WITHHELD_VOICE_MODES` with **Noctilucent**, which
-is also unjudged. Both were built, measured, tested and shelved. A palette was
-already rejected by ear once, on the day it was built, as *"a child's xylophone
-or panhand"* — which is the strongest evidence in this repository that
-measurement does not substitute for listening here.
+**The synchrony flourishes have collapsed into each other.** They were built as
+a hierarchy — a shared minute for ordinary co-presence, a five-second window for
+the exceptional moment. iNaturalist stores minute precision (97.7% of records
+carry `:00`), so the five-second rule can only ever be satisfied by records in
+the same minute: the two rules became one rule. Measured: 56 of 71 two-observer
+nights fire both the same number of times, every near-sync event on 2026-09-03
+lands within 50 ms of a shared-minute event, and together they are 25% of that
+night's events. The rare gesture became the common one, stacked on the same
+instant. Needs a new activation measurement at minute resolution, and a
+guarantee that something beautiful happens in **each** family — four of six
+published families currently play a generic `creek`/`pad`, and Gondwana plays
+the *same sound* for both tiers.
 
-Concretely, in order:
+**Three status lines describe an archive instead of what is loaded.** A fetch
+capped at 1,000 reports the API's `total_results` — "the most recent 1,000 of
+24,000" — and the line above it says "across 428 nights" when 144 are offered.
+Lily: *"I'd like it to say the truth of what it is presenting and what it is
+fetching. I don't need a count of what was there and skipped."* This also
+settles the open question left by the night-display work.
 
-1. Open the published page and play a night. Then play one on a phone.
-2. Audition Gondwana: `../../sessions/2026-09-13/gondwana-2/listen.html`, after
-   `python3 serve.py` in that folder. Headphones. The first attempt is kept
-   alongside at `gondwana/` for comparison. Two questions the measurements
-   raise but cannot answer: whether this is a wise voice or merely a slower
-   one, and whether `gond_rim` survives the mass underneath.
-3. Audition warm Noctilucent:
-   `../../sessions/2026-09-13/noctilucent-warm/listen.html`.
-4. Decide what is released and what stays withheld.
+**Do Part 2 first.** It is small, fully specified, and actively misleading.
 
-Building more before this happens adds to a pile nobody has checked. If Lily
-would rather build, the vernacular-name lookup below is the ready task — but it
-should be a deliberate choice to defer listening again, not a default.
+---
+
+## Corrected on 16 September 2026 — Gondwana is live
+
+Earlier versions of this file said Gondwana was withheld and unheard. **That was
+wrong**, and it was wrong in the file rather than in the code: `ca1b258`
+released Gondwana as the sixth published family, and `WITHHELD_VOICE_MODES`
+holds only `noctilucent`. Lily has listened to Gondwana many times and it sounds
+beautiful.
+
+The carried-forward section below still describes the pre-release state. It is
+kept for the design reasoning, which remains the best record of why the first
+palette failed, but its "nothing has been judged by ear" framing no longer
+applies to Gondwana.
+
+**Noctilucent is the one that is withheld and genuinely unheard.** Lily has not
+listened to it, so nothing is known about it. Audition at
+`../../sessions/2026-09-13/noctilucent-warm/listen.html`, or in the app with
+`?family=noctilucent`. It stays withheld until it has been accepted by ear —
+and Part 1 gives it a flourish voice only if it is released.
 
 ---
 
@@ -218,8 +236,13 @@ start.
 
 ---
 
-## Carried forward — Gondwana, second attempt, unheard
-<!-- Referenced from "the oldest debt" above; this is the detail behind it. -->
+## Carried forward — Gondwana, second attempt (since released and loved)
+
+**Superseded in its conclusion, kept for its reasoning.** Gondwana was released
+as the sixth published family and Lily has heard it many times; it sounds
+beautiful. Everything below describes the state before that release, including
+its "nothing has been judged by ear" framing. Read it for why the *first*
+palette failed, which is still the sharpest lesson in this repository.
 
 The first palette (fifteen physical-model bodies, rank-graded) was built and
 rejected by ear the same day: *"a child's xylophone or panhand"*. The diagnosis
@@ -298,15 +321,13 @@ layer, and "Class voices: 1" still tells a viewer nothing.
 
 ## Standing obligations
 
-Precision policy is still only a proposal, but it now has a number. Measured on
-16 September against the two-backyards export: **97.7% of records carry
-`:00` seconds** (6,636 of 6,794). The roadmap's caution that "the export
-includes both zero and nonzero seconds; neither proves measurement precision on
-its own" resolves in the direction it feared — the data is effectively
-minute-precision, and the five-second near-simultaneous pulse rule is reading
-detail that is mostly not there. That is evidence for the proposed suppression,
-not a decision; the genuine shared-*minute* flourish is unaffected either way,
-since it works at minute resolution by construction.
+**Settled.** The precision question is closed and acted on. 97.7% of records
+carry `:00` seconds (6,636 of 6,794), so the five-second near-simultaneous rule
+was reading detail that is not there; measurement then showed it had collapsed
+onto the shared-minute rule entirely. Lily has called for its replacement — see
+[PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md), which is the active
+brief. The genuine shared-*minute* flourish was never affected, since it works
+at minute resolution by construction.
 
 The date diamond still means
 "both observed on this date", not shared minutes, and still reads as though it
