@@ -209,8 +209,8 @@ families are published; here is what each plays when a shared minute fires:
 | Frog Yawn (`choir`) | `choir_unison` | `choir_chord` | its own, two timbres |
 | Fireflies (`steelpan`) | `creek` | `pad` | generic, two timbres |
 | Lantern Glass (`lantern`) | `creek` | `pad` | generic, two timbres |
-| **Gondwana** | `gond_sync` | `gond_sync` | **one timbre, twice** |
-| Noctilucent (withheld) | `creek` | `pad` | generic |
+| **Gondwana** | `gond_sync` | `gond_sync` | released, and Lily's favourite |
+| Noctilucent (withheld — the only one) | `creek` | `pad` | generic |
 
 Two problems.
 

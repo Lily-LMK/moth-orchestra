@@ -24,8 +24,42 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 - A genuine shared minute contains observations from both selected people in the same absolute UTC minute bucket. It does not mean the observations occurred at exactly the same instant. Evidence retains original observation IDs and timestamps, deduplicated by ID within each observer/minute.
 - Timeline uses the selected date; Riff applies its inclusive selected clock window, including windows that cross midnight. Riff, focus filtering and displayed times use **Australia/Brisbane (AEST, UTC+10)** independently of the viewer's timezone. Other session timezones are not configurable yet. CSV `observed_on` supplies the date grouping; a cross-midnight Riff window still works within that selected date, not an inferred multi-date night.
 - Every mode exposes the same shared-minute evidence after its filters. Song arranges genuine matches in musical time and preserves the original matching accents. Its ordinary accompaniment has a separate event type and neutral dot; it is not evidence of synchrony.
-- Timeline/Riff near-simultaneous pulses require original observations within five seconds. They use the nearest B observation for each A observation and deduplicate identical pairs. This rule is independent of loop duration and distinct from same-minute matching.
+- The **echo** marks the same taxon recorded by both observers within 30 minutes on one night: 35 moments across 21 of the 71 nights both worked on Lily's export. It adds no note — two records of one taxon already sound at one pitch on one instrument — so it marks what the score already contains. One per taxon per night, symmetric between observers, and refused for unidentified records, which share a placeholder name and are not the same species. See `docs/WHAT-EVERY-SOUND-MEANS.md`.
+- The five-second near-simultaneous pulse was **removed** on 16 September 2026. iNaturalist stores minute precision and 97.7% of records carry `:00`, so it had collapsed onto the shared-minute rule: it fired on 311 of 311 shared minutes at exactly the bell's instant. It was also asymmetric — it paired each A record to its nearest B record, and A is whoever appears first in the file, so it fired on 25 minutes with one observer as A and would have fired on 103 different ones with the other.
 - Solo playback contains only that observer's notes, with no duet gestures. Switching players rebuilds sound, visual events and evidence together.
+
+## Photographs
+
+**The instrument opens in the mode that plays without photographs**, so the
+first press of Play waits on nothing. The Now playing card is off (`View > Now
+playing card`, or `C`) and the gallery starts collapsed, which is `display:none`
+and therefore fetches no background images. The opening state requests zero
+bytes of photograph.
+
+The night's photographs preload behind that, and both the card and the gallery
+report "Preparing photographs, 64 of 136" if you switch to them early.
+
+**A photo is only ever shown once it is held.** The card names a species beside
+its photograph, so a lagging photo paired one species' name with another
+species' animal — a false statement on screen. Measured: `medium.jpg` is 215 KB
+and 1.90 s from the CDN, while the busiest offered night gives each record
+140 ms, so one photograph was being painted across fourteen species. The card
+now shows the right photo or an empty frame, and that holds even with an empty
+cache; the preload is speed, not correctness.
+
+**Each surface asks for the size it draws.** iNaturalist serves variants at one
+path — measured square 9.6 KB, small 42 KB, medium 215 KB. `photoSizeForPx`
+follows the drawn tile rather than the surface, because gallery fullscreen
+binary-searches its own tile size up to 120 px: `square` to 75 px, `small`
+above it. The flashing card takes `small` — a record is on screen for about
+140 ms, which cannot be examined. On the busiest night the thumbnail grid went
+from 27.8 MB to 1.2 MB.
+
+The preload decodes rather than merely loading, is bounded to six in flight,
+is cancelled when the night changes so scrubbing dates cannot stack thousands
+of requests, and is capped at 800 cached entries so an unattended gallery does
+not grow without bound. A URL that is not recognisably an iNaturalist photo
+path is left exactly as it is.
 
 ## Which nights are offered
 
