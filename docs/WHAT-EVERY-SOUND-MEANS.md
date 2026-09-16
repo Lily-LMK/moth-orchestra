@@ -29,6 +29,48 @@ this page current is cheap; not having it is what let a rule that fired on
 Pitch comes from the taxon, instrument from the voice family and the selected
 rank. One note per record, always. This is the instrument.
 
+**Which octave it sounds in is the voice's, not the taxon's.** The taxon
+chooses a pitch between 147 Hz and 988 Hz, and every voice of a family is
+handed the same range — so nothing but the octave can separate four voices into
+a consort. `VOICE_REGISTERS` gives each voice a floor and a ceiling, and
+`voicedFreq` folds the written pitch by **whole octaves** until it fits.
+
+Whole octaves are the whole point: the pitch class is exact, `ev.midi` and
+`ev.freq` still say what the taxon chose, and the circle still draws the
+written score. A contrabass reading a treble line sounds it low; it does not
+sound a different note.
+
+| Family | Voices with a register | Added |
+|---|---|---|
+| Gondwana | all seven, via `gondwanaVoicing` | 13 September 2026 |
+| Frog Yawn | bass_voice, tenor, alto — and **soprano** | soprano 17 September 2026 |
+| Lantern Glass | all four | 17 September 2026 |
+| Moth Orchestra, Boobook, Fireflies | none | — |
+
+**Frog Yawn's soprano did not fold**, so it sat an octave above alto's ceiling
+with a sounding median of 440 Hz and a maximum of 988 — one singer of four
+unanchored, measured across 377 notes on 40 nights. It now sings C4–E5.
+
+**Lantern Glass did not fold at all.** All four voices ran to 988 Hz, and
+`lantern_glass` carries a partial at 4× the fundamental with a 1.1 s decay, so
+a top note put 3,952 Hz over a shared-minute bell at 92 Hz with nothing in the
+middle. The four now stack in thirds — C4, E4, G4, B4 ceilings, an octave each.
+
+**What it costs, measured on a night rather than on the archive, because a
+night is what anybody hears.** Folding narrows a voice, and pitch is how a
+listener tells one taxon from another, so this is not free:
+
+| | median distinct sounds per night | taxa sharing a sound | worst pile-up |
+|---|---|---|---|
+| Lantern Glass, before | 23 | 43% | 4 |
+| Lantern Glass, after | 16 | 77% | 4 |
+| Frog Yawn, before | 19 | 67% | 4 |
+| Frog Yawn, after | 17 | 73% | 4 |
+
+Lantern Glass lands where Frog Yawn's accepted voices already sit, and the
+worst pile-up does not move. That is the argument for the cost being the right
+one; it is not proof, and only Lily's ear settles it.
+
 ### `duet_minute` — a shared minute
 
 A low bell, once per minute in which both selected observers recorded. It does
@@ -165,6 +207,43 @@ controlled nothing for some time — went with it.
 
 ---
 
+---
+
+## Known, measured, and deliberately not changed
+
+### `chime` clamps instead of folding — the written score is altered
+
+`chime` is in **Moth Orchestra**, the default family, and it is the one place
+in the instrument where a note is moved to a pitch the taxon was never given:
+
+```js
+const cappedFreq = Math.min(freq, midiToFreq(12*(4+1) + 11)); // cap at B4
+```
+
+`Math.min` is a clamp, not a fold. It does not preserve the pitch class — it
+collapses everything above B4 onto B4 itself. Measured across the 144 offered
+nights of the two-backyards export: **526 chime notes, of which 166 (32%) are
+clamped**, flattening five distinct written pitches into one and giving **56
+taxa a pitch that belongs to a different taxon**.
+
+| written | clamp gives | folding would give |
+|---|---|---|
+| 587 Hz | 494 | 293 |
+| 659 Hz | 494 | 329 |
+| 740 Hz | 494 | 370 |
+| 880 Hz | 494 | 440 |
+| 988 Hz | 494 | 494 |
+
+This is the recurring defect of this repository in a new place: a rule whose
+comment says "capped at octave 4" and whose effect is that two different moths
+sound like the same moth. The fix is one entry in `VOICE_REGISTERS` and one
+call to `voicedFreq`, exactly as Lantern Glass now does.
+
+**It has deliberately not been changed.** `chime` is in the family Lily hears
+most, the change would alter the default sound of the instrument, and it is
+outside what this session was asked to do. It is written down here so it is not
+rediscovered a fourth time. Her call.
+
 ## The rule this page exists to enforce
 
 > Every sound must be explicable by a rule about the night, not by an accident
@@ -176,3 +255,7 @@ Two tests that hold this, and should not be deleted:
 - `it is identical when the observers swap labels` (the crossing)
 - `IT DOES NOT CHANGE WITH LOOP LENGTH — the defect V2 shipped`
 - `the five-second pulse and its dead dial are gone`
+- `bass_voice, tenor and alto sound exactly where their own code put them` —
+  the registers refactor compared against the three inline folds it replaced,
+  note for note, because a sound Lily has accepted must not move
+- `folding moves by whole octaves only, so the pitch class is never altered`

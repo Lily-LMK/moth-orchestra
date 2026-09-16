@@ -10,18 +10,56 @@ family" onward concerns **instrument** families — voices. Unrelated work.
 
 ---
 
-## Standing state — 17 September 2026
+## Standing state — 17 September 2026, later
 
-`main` is published at <https://lily-lmk.github.io/moth-orchestra/>. Suite:
-**378 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs.
+`main` is published at <https://lily-lmk.github.io/moth-orchestra/> and is
+**unchanged**. Two pieces of work sit on the `voice-registers` branch, built and
+tested, **not heard and not pushed**. Suite: **400 tests, 391 pass, 0 fail**, 1
+documented skip, 8 gap-remapping TODOs.
 
 Read in this order:
 
 1. **[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md)** — every sound the
    instrument makes, what fires it, what it claims, evidence or authorship.
    Keep it current; it is the cheapest defence this project has.
-2. [SESSION-2026-09-17-CROSSING.md](SESSION-2026-09-17-CROSSING.md) and
+2. [SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md) — the
+   branch waiting on Lily's ear, below.
+3. [SESSION-2026-09-17-CROSSING.md](SESSION-2026-09-17-CROSSING.md) and
    [SESSION-2026-09-16-FLOURISHES.md](SESSION-2026-09-16-FLOURISHES.md).
+
+### Waiting on Lily's ear — the `voice-registers` branch
+
+Items 1 and 2 of the list below are **built**. Both were the same fault: pitch
+comes from the taxon, so every voice of a family is handed the same 147–988 Hz,
+and nothing but the octave can separate four voices into a consort. Frog Yawn's
+soprano and all four Lantern voices were not folding. There is now one rule for
+all of them — `VOICE_REGISTERS` and `voicedFreq` — and a test proves the three
+choir voices Lily has already accepted sound note for note identical.
+
+```sh
+cd sessions/2026-09-17/registers && python3 serve.py   # → listen.html
+```
+
+Eight rendered excerpts, before and after, dense night and sparse, both
+families; plus `before.html` and `after.html`, the whole instrument either side.
+
+**The one question for her ear:** Lantern Glass now spans 146–493 Hz where it
+spanned 146–988. That is deliberately a large move, because "too high pitched"
+was the complaint. If it is too far, the family widens by changing four floors.
+
+**Part 2 of PLAN-SYNCHRONY-AND-TRUTH is also on that branch and is done** — see
+item 4 below, now struck through. Its strings have **not been read on screen**,
+which the plan asked for and which is the only check that catches the next one.
+
+### Found and deliberately not changed: `chime` clamps
+
+`chime`, in **Moth Orchestra — the default family** — does
+`Math.min(freq, 494)`. A clamp is not a fold: it collapses every pitch above B4
+onto B4, so two different moths sound like the same moth at a pitch neither was
+given. **166 of 526 chime notes (32%), 56 taxa.** One entry in
+`VOICE_REGISTERS` fixes it. Not done, because it changes the default sound of
+the instrument and was not asked for. The measurement is in
+WHAT-EVERY-SOUND-MEANS.md. **Lily's call.**
 
 **Heard and accepted by Lily:** the crossing, the echo, the photographs, the
 gallery, the left column, the rewritten explainer.
@@ -31,8 +69,8 @@ gallery, the left column, the rewritten explainer.
 not a quieter one — a gesture heard once in a nineteen-second loop is heard
 against nothing.
 
-**Still unheard:** `GROUND.mixes.gallery`, which needs a room. **No real-device
-test of anything.**
+**Still unheard:** `GROUND.mixes.gallery`, which needs a room; and the whole
+`voice-registers` branch. **No real-device test of anything.**
 
 ### The lesson that keeps recurring
 
@@ -50,22 +88,28 @@ that the thing it fires on is the thing its name says.**
 
 Everything here has a measured cause. Roughly in the order that would help most.
 
-### 1. Lantern Glass is too high pitched — Lily, 16 September
+### ~~1. Lantern Glass is too high pitched~~ — built, on `voice-registers`, unheard
 
-All four voices run to 988 Hz with medians of 220–494, and **none folds**.
-`lantern_glass` carries a partial at 4× the fundamental, so a top note puts
-strong energy at 3,952 Hz with a 1.1 s decay, while the shared-minute bell sits
-at 92 Hz and nothing occupies the middle.
+The diagnosis was right and its suggested ceilings are the ones shipped. One
+thing it missed, which measurement caught: **ceilings alone are not enough**. A
+fold only ever comes down, so every voice keeps resting on the score's own
+147 Hz floor — all four would still share a bottom, and bloom would be squeezed
+into 147–247 Hz, under a sixth. Each voice therefore has a floor an octave
+below its ceiling.
 
-Gondwana already solves exactly this: a per-voice `ceiling` plus whole-octave
-folding in `gondwanaVoicing`, which preserves pitch class so the written score
-is untouched. Suggested ceilings to start from — **bloom 262, felt 330, reed
-392, glass 494** — which would spread four voices into a consort instead of
-four voices all reaching for the top.
+Now: bloom 146–246, felt 184–329, reed 220–369, glass 293–493. The top partial
+falls from 3,951 Hz to 1,975. See
+[SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md).
 
-Small, precedented, reversible. Tests first, then Lily's ear.
+### ~~2. Frog Yawn needs work~~ — built, on `voice-registers`, unheard
 
-### 2. Frog Yawn needs work — Lily, 16 September — and one voice is the cause
+Soprano now folds into 262–660 Hz — C4 to E5, a fifth above alto — and sounds
+293 … 440 … 659 where it sounded 147 … 330 … 988. The other three are
+**note-for-note identical**, proved by a test that runs the deleted inline code
+beside the shared rule that replaced it. Whether this alone fixes the family is
+still a question for Lily's ear, exactly as the diagnosis said.
+
+The original diagnosis, kept:
 
 Three of the four choir voices fold into a range. **Soprano does not fold at
 all.**
@@ -93,15 +137,23 @@ Pass condition from the plan: 17 February 2026 (sparse, one shared minute) and
 3 September 2026 (dense, 22 shared minutes) must not sound alike, and neither
 may sound like a preset.
 
-### 4. Three status lines describe an archive instead of what is loaded
+### ~~4. Three status lines describe an archive~~ — built, on `voice-registers`
 
-Part 2 of [PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md), still
-unbuilt and still fully specified. A capped fetch says "the most recent 1,000
-of 24,000" and the line above says "across 428 nights" when 144 are offered.
-Lily: *"I'd like it to say the truth of what it is presenting and what it is
-fetching."* `state.offeredNightKeys` does not exist yet — `rebuildDerived`
-computes the offered keys into a local and discards them, so no status line can
-see the true number. That is the one structural change it needs.
+There were **four**. The fourth is the one Lily watches while a fetch runs:
+`Fetched 412 of ~24,000 observations…`, counting against the archive for the
+whole run on its way to stopping at 1,000. It now counts against the cap.
+
+All four come from `loadedSentence` over `loadedSummary`, and the offered count
+comes from `offerableNightKeys` — the same function that builds the date list —
+so the sentence cannot drift from the list on screen. `state.offeredNightKeys`
+now exists, as the plan said it must.
+
+**Still owed: read the strings on screen.** The plan asked for it, and the
+failure being fixed here was a true sentence that told Lily the wrong thing —
+only reading one catches the next. Three judgements were made inside the plan's
+latitude and are listed in
+[SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md); the
+omitted-row count is the one most likely to want changing, and it is one `if`.
 
 ### 5. The curated vernacular-name lookup
 
@@ -153,7 +205,21 @@ without re-measuring.
 
 ---
 
-## Start here — the flourishes, and telling the truth about what is loaded
+## Start here — hear the branch, then Part 1 of the flourishes
+
+**First: listen.** The `voice-registers` branch holds two built, tested,
+unheard changes — the octave each voice sings in, and the four status lines.
+`cd sessions/2026-09-17/registers && python3 serve.py`. Nothing merges to
+`main` until Lily has heard it, and the status strings still need reading on
+screen. That is the whole of the next session's opening.
+
+**Then: Part 1 below, which is unchanged and still the brief.** Part 2 of
+PLAN-SYNCHRONY-AND-TRUTH is done; Part 1 is not started. The section below
+predates both and describes Part 2 as outstanding — read it for Part 1.
+
+---
+
+## Carried — the flourishes, and telling the truth about what is loaded
 
 Read **[PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md)**. It carries
 the measured diagnosis, the candidate rules with their firing rates, the
@@ -186,7 +252,8 @@ Lily: *"I'd like it to say the truth of what it is presenting and what it is
 fetching. I don't need a count of what was there and skipped."* This also
 settles the open question left by the night-display work.
 
-**Do Part 2 first.** It is small, fully specified, and actively misleading.
+~~**Do Part 2 first.**~~ Part 2 was done on 17 September 2026 and is on the
+`voice-registers` branch. Part 1 is what remains of this section.
 
 The measure of success for Part 1's first step: **nothing is lost, nothing
 sounds unfamiliar, and more minutes carry a sound that already exists.** No

@@ -49,7 +49,8 @@ test('import reports omitted rows and preserves explicit solo and musical choice
  const c=loadApp();const status={};c.document.getElementById=()=>status;
  Object.assign(c.state,{listenMode:'B',seed:42,toneBy:'taxon_family_name'});
  c.importCSVData(csv+'\n3,alice,Test moth,2026-09-08,,Insecta,Lepidoptera,');
- assert.equal(c.state.obs.length,2);assert.match(status.textContent,/1 omitted/);
+ assert.equal(c.state.obs.length,2);
+ assert.match(status.textContent,/1 row had no usable observation time or date/);
  assert.equal(c.state.listenMode,'B');assert.equal(c.state.seed,42);assert.equal(c.state.toneBy,'taxon_family_name');
 });
 // This test must name the thing it forbids; that is the only mention left
