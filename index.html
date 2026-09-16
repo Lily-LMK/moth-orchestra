@@ -1306,11 +1306,10 @@ input[type="range"]::-moz-range-thumb{
       </div>
       <span id="statLoop" hidden></span>
       <details id="sharedMinuteDetails" class="disclose">
-        <summary id="sharedMinuteSummary">Shared minute evidence</summary>
+        <summary id="sharedMinuteSummary">What you are hearing</summary>
         <div class="discloseBody">
-          <p>Both observers recorded within the same clock minute. This does not establish exact simultaneity. Song accompaniment is composed rhythm.</p>
+          <p id="sharedMinuteRules"></p>
           <p id="sharedMinuteContext"></p>
-          <ol id="sharedMinuteList" class="minuteList"></ol>
         </div>
       </details>
 
@@ -7038,37 +7037,67 @@ function populateNightSelect(keys, sharedSet){
 }
 
 
+// The explainer beside the night. Lily asked for prose rather than a list of
+// observation links: the rules in a paragraph, then the night itself in
+// another. The observation ids are not dropped from the instrument — they stay
+// on every event and in the CSV export — they are simply not what this panel
+// is for.
 function updateSharedMinuteDetails(){
-  const matches = state.sequencer.meta.sharedMinutes || [];
-  const summary = $("sharedMinuteSummary"), list = $("sharedMinuteList"), context = $("sharedMinuteContext");
-  if(!summary || !list || !context) return;
-  summary.textContent = matches.length ? "Shared minute evidence" : "No shared minutes";
+  const meta = (state.sequencer && state.sequencer.meta) || {};
+  const matches = meta.sharedMinutes || [];
+  const crossings = meta.duetCrossings || [];
+  const echoes = meta.duetEchoes || [];
+  const summary = $("sharedMinuteSummary"), rules = $("sharedMinuteRules"), context = $("sharedMinuteContext");
   const sharedCell = $("statShared");
   if(sharedCell) sharedCell.textContent = `${matches.length}`;
-  const pair = state.userAName && state.userBName ? `${state.userAName} + ${state.userBName}. ` : "Two named observers are needed for a shared minute. ";
-  const scope = state.listenMode !== "both" ? "Solo: shared-minute gestures are off. " :
-    state.spacingMode === "riff" ? "Within the selected Riff window. " : "Within the selected date. ";
-  context.textContent = pair + scope + "Times shown in Brisbane (AEST, UTC+10). Point fill = taxonomic voice; plain dot = A, teal outline on an offset ring = B. At Class, insects share one fill; choose Family or Genus for finer groups.";
-  list.replaceChildren();
-  for(const match of matches){
-    const item = document.createElement("li");
-    const stamp = new Intl.DateTimeFormat("en-AU", {timeZone:SESSION_TIME_ZONE,year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(match.minuteKey*60000));
-    item.append(document.createTextNode(stamp));
-    const observations = document.createElement("ul");
-    for(const o of match.observations.A.concat(match.observations.B)){
-      const row = document.createElement("li");
-      const label = `${o.userName} — ${o.taxon}, observation ${o.id}`;
-      if(/^\d+$/.test(String(o.id))){
-        const link = document.createElement("a");
-        link.href = `https://www.inaturalist.org/observations/${o.id}`;
-        link.textContent = label;
-        link.style.cssText = "color:#8ed9e5;text-decoration:underline";
-        row.append(link);
-      } else row.textContent = label;
-      observations.append(row);
-    }
-    item.append(observations); list.append(item);
+  if(!summary || !rules || !context) return;
+  summary.textContent = "What you are hearing";
+
+  const A = (state.userAName || "").trim(), B = (state.userBName || "").trim();
+  const both = state.listenMode === "both" && A && B && A !== B;
+
+  // The rules. One sentence each, in the order they were built, and the
+  // honest limit of what any of them claims.
+  if(!both){
+    rules.textContent = state.listenMode !== "both"
+      ? "Solo playback: every note is one observation by one person, and the gestures that mark the two observers together are switched off. Choose Both to hear them."
+      : "Two named observers are needed before the duet gestures can sound. Every note here is one observation.";
+  } else {
+    rules.textContent =
+      `Every note is one observation: its pitch comes from the taxon, its instrument from the voice family. ` +
+      `Three gestures mark the two of you together. A shared minute is a minute in which you both recorded, and rings a low bell. ` +
+      `A crossing is one of you recording and then the other within ${DUET_CROSS_WINDOW_MIN} minutes, and sounds a deep pad inside a wide ring. ` +
+      `An echo is the same species found by both of you within ${DUET_ECHO_WINDOW_MIN} minutes, and marks the two notes, which already share a pitch because pitch comes from the taxon. ` +
+      `None of them claims you pressed the shutter at the same instant: iNaturalist records whole minutes, so the minute is the finest true statement available.`;
   }
+
+  // The night. Counts of what actually fired, and the shape of the evening.
+  const parts = [];
+  const night = state.nightObs || [];
+  const when = state.nightKey ? state.nightKey : "this night";
+  parts.push(`${when}: ${recordCount(night.length)}${both ? ` from ${A} and ${B}` : ""}.`);
+  if(night.length){
+    const times = night.map(o=>o.t.getTime()).filter(Number.isFinite).sort((a,b)=>a-b);
+    if(times.length){
+      const fmt = (ms)=> new Intl.DateTimeFormat("en-AU", {timeZone:SESSION_TIME_ZONE, hour:"numeric", minute:"2-digit"}).format(new Date(ms));
+      parts.push(times.length > 1 ? `From ${fmt(times[0])} to ${fmt(times[times.length-1])} (Brisbane).`
+                                  : `At ${fmt(times[0])} (Brisbane).`);
+    }
+  }
+  if(both){
+    const bits = [];
+    bits.push(matches.length === 1 ? "1 shared minute" : `${matches.length} shared minutes`);
+    bits.push(crossings.length === 1 ? "1 crossing" : `${crossings.length} crossings`);
+    bits.push(echoes.length === 1 ? "1 echo" : `${echoes.length} echoes`);
+    parts.push(bits.join(", ") + ".");
+    if(echoes.length){
+      const named = echoes.slice(0, 3).map(e=>e.taxon);
+      parts.push(`Both of you found ${named.join(", ")}${echoes.length > 3 ? ", and others" : ""}.`);
+    }
+  }
+  if(state.spacingMode === "riff") parts.push("Counted within the selected Riff window.");
+  if(state.spacingMode === "song") parts.push("Song arranges the real matches in musical time; its ordinary accompaniment is composed rhythm and is not evidence of anything.");
+  context.textContent = parts.join(" ");
 }
 
 

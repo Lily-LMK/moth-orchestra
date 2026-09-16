@@ -10,51 +10,113 @@ family" onward concerns **instrument** families — voices. Unrelated work.
 
 ---
 
-## Standing state — 16 September 2026, after the flourish release
+## Standing state — 17 September 2026
 
-`main` is published at <https://lily-lmk.github.io/moth-orchestra/> and carries
-the restored synchrony gestures and the photograph work. Suite: **352 pass, 0
-fail**, 1 documented skip, 8 gap-remapping TODOs.
+`main` is published at <https://lily-lmk.github.io/moth-orchestra/>. Suite:
+**378 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs.
 
-Read [SESSION-2026-09-16-FLOURISHES.md](SESSION-2026-09-16-FLOURISHES.md) and
-[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md) first. The second is the
-inventory of every sound the instrument makes and is the page to keep current.
+Read in this order:
 
-**Heard and accepted by Lily before release:** the echo, the photographs, the
-gallery, the left column.
+1. **[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md)** — every sound the
+   instrument makes, what fires it, what it claims, evidence or authorship.
+   Keep it current; it is the cheapest defence this project has.
+2. [SESSION-2026-09-17-CROSSING.md](SESSION-2026-09-17-CROSSING.md) and
+   [SESSION-2026-09-16-FLOURISHES.md](SESSION-2026-09-16-FLOURISHES.md).
 
-**Parked by Lily on first hearing:** the meeting, and the ground beneath it.
-Behind `DUET_GESTURES.meeting`, with tests. When it returns it needs a
-different *kind* of sound, not a quieter one.
+**Heard and accepted by Lily:** the crossing, the echo, the photographs, the
+gallery, the left column, the rewritten explainer.
 
-**Still unheard:** `GROUND.mixes.gallery`, which needs a room. No real-device
-test of anything.
+**Parked by Lily:** the meeting and the ground beneath it, behind
+`DUET_GESTURES.meeting`. When it returns it needs a different *kind* of sound,
+not a quieter one — a gesture heard once in a nineteen-second loop is heard
+against nothing.
 
-### Ready and diagnosed, not built
+**Still unheard:** `GROUND.mixes.gallery`, which needs a room. **No real-device
+test of anything.**
 
-Both were named by Lily on 16 September and both have a measured cause:
+### The lesson that keeps recurring
 
-1. **Lantern Glass is too high pitched.** All four voices run to 988 Hz with
-   medians of 220-494 and none folds; `lantern_glass` has a partial at 4x the
-   fundamental, so a top note puts strong energy at 3,952 Hz with a 1.1 s
-   decay. Gondwana already solves this: per-voice `ceiling` plus whole-octave
-   folding in `gondwanaVoicing`, which preserves pitch class so the score is
-   untouched. Suggested ceilings: bloom 262, felt 330, reed 392, glass 494.
-2. **Frog Yawn needs work**, and one voice is measurably the problem. Three of
-   the four choir voices fold into a range — bass_voice 65-200, tenor 120-350,
-   alto 165-440. **Soprano does not fold at all**: median 440 Hz, maximum 988,
-   on 377 notes across 40 nights. In a four-part choir one singer is
-   unanchored, an octave above alto's ceiling.
+Three gestures have now been wrong in the same way: a rule that fires on
+something real but describes itself as something else. V2's pulse claimed
+seconds and measured loop position. `duet_sync` claimed rarity and fired on
+every shared minute. The meeting claimed a moment and delivered a volume.
 
-3. **The gallery family's floor** — the room generated from the night's own
-   shape — remains step 3 of [PLAN-NEXT-FAMILY.md](PLAN-NEXT-FAMILY.md). The
-   ground (step 2) is built but parked.
+**Before adding a gesture, measure how often it fires on real data, and check
+that the thing it fires on is the thing its name says.**
 
-4. **Part 2 of [PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md)** —
-   three status lines that describe an archive instead of what is loaded — is
-   still unbuilt and still fully specified.
+---
 
-5. **The curated vernacular-name lookup**, below, is unchanged and ready.
+## Ready and diagnosed, not built
+
+Everything here has a measured cause. Roughly in the order that would help most.
+
+### 1. Lantern Glass is too high pitched — Lily, 16 September
+
+All four voices run to 988 Hz with medians of 220–494, and **none folds**.
+`lantern_glass` carries a partial at 4× the fundamental, so a top note puts
+strong energy at 3,952 Hz with a 1.1 s decay, while the shared-minute bell sits
+at 92 Hz and nothing occupies the middle.
+
+Gondwana already solves exactly this: a per-voice `ceiling` plus whole-octave
+folding in `gondwanaVoicing`, which preserves pitch class so the written score
+is untouched. Suggested ceilings to start from — **bloom 262, felt 330, reed
+392, glass 494** — which would spread four voices into a consort instead of
+four voices all reaching for the top.
+
+Small, precedented, reversible. Tests first, then Lily's ear.
+
+### 2. Frog Yawn needs work — Lily, 16 September — and one voice is the cause
+
+Three of the four choir voices fold into a range. **Soprano does not fold at
+all.**
+
+| Voice | Folded into | Sounding median | Max |
+|---|---|---|---|
+| bass_voice | 65–200 Hz | 147 | 185 |
+| tenor | 120–350 Hz | 247 | 330 |
+| alto | 165–440 Hz | 294 | 440 |
+| **soprano** | **not folded** | **440** | **988** |
+
+Measured across 40 nights: 377 soprano notes, sitting an octave above alto's
+ceiling. In a four-part choir one singer is unanchored. The fix is one line
+matching what the other three already do — but verify by ear whether that alone
+fixes the family, or whether it needs more.
+
+### 3. The gallery family's floor — step 3 of PLAN-NEXT-FAMILY.md
+
+The room generated from the night's own shape, replacing the five ambience
+presets that are decoration laid over the night rather than anything the night
+produced. The **ground** (step 2) is built but parked, so its bus, limiter and
+parameter block are already in place and tested — the floor can reuse them.
+
+Pass condition from the plan: 17 February 2026 (sparse, one shared minute) and
+3 September 2026 (dense, 22 shared minutes) must not sound alike, and neither
+may sound like a preset.
+
+### 4. Three status lines describe an archive instead of what is loaded
+
+Part 2 of [PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md), still
+unbuilt and still fully specified. A capped fetch says "the most recent 1,000
+of 24,000" and the line above says "across 428 nights" when 144 are offered.
+Lily: *"I'd like it to say the truth of what it is presenting and what it is
+fetching."* `state.offeredNightKeys` does not exist yet — `rebuildDerived`
+computes the offered keys into a local and discards them, so no status line can
+see the true number. That is the one structural change it needs.
+
+### 5. The curated vernacular-name lookup
+
+Unchanged and ready; the rule and the measured coverage are below.
+
+### Smaller, and worth doing when nearby
+
+- **The date diamond** still means "both observed on this date", not shared
+  minutes, and still reads as though it means the latter.
+- **"Class voices: 1"** still tells a viewer nothing.
+- **Present/demo mode and the gallery fullscreen view** have not been
+  re-examined since the September interface rebuild.
+- **Photo preload on a slow connection** — it has not been watched from a cold
+  cache on anything but a fast link. `PLAN-PHOTOS.md` lists the two open
+  questions: whether Play should ever wait, and how much to hold on a phone.
 
 ## Done — rules for which nights are worth offering
 

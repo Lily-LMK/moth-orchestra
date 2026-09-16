@@ -24,6 +24,7 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 - A genuine shared minute contains observations from both selected people in the same absolute UTC minute bucket. It does not mean the observations occurred at exactly the same instant. Evidence retains original observation IDs and timestamps, deduplicated by ID within each observer/minute.
 - Timeline uses the selected date; Riff applies its inclusive selected clock window, including windows that cross midnight. Riff, focus filtering and displayed times use **Australia/Brisbane (AEST, UTC+10)** independently of the viewer's timezone. Other session timezones are not configurable yet. CSV `observed_on` supplies the date grouping; a cross-midnight Riff window still works within that selected date, not an inferred multi-date night.
 - Every mode exposes the same shared-minute evidence after its filters. Song arranges genuine matches in musical time and preserves the original matching accents. Its ordinary accompaniment has a separate event type and neutral dot; it is not evidence of synchrony.
+- The **crossing** marks two records adjacent in time from different observers within `DUET_CROSS_WINDOW_MIN` (2) minutes — one of you recorded, then the other. It sounds a deep pad inside a wide ring. 790 across 55 nights on Lily's export: 315 fall inside a shared minute, where the pad sounds with the bell and restores the two-layer composite; 475 are moments nothing marked before, where the two alternated across a clock-minute boundary. Adjacent-in-time makes it symmetric and self-deduplicating; real minutes make it independent of loop length, which is the defect the V2 version shipped.
 - The **echo** marks the same taxon recorded by both observers within 30 minutes on one night: 35 moments across 21 of the 71 nights both worked on Lily's export. It adds no note — two records of one taxon already sound at one pitch on one instrument — so it marks what the score already contains. One per taxon per night, symmetric between observers, and refused for unidentified records, which share a placeholder name and are not the same species. See `docs/WHAT-EVERY-SOUND-MEANS.md`.
 - The five-second near-simultaneous pulse was **removed** on 16 September 2026. iNaturalist stores minute precision and 97.7% of records carry `:00`, so it had collapsed onto the shared-minute rule: it fired on 311 of 311 shared minutes at exactly the bell's instant. It was also asymmetric — it paired each A record to its nearest B record, and A is whoever appears first in the file, so it fired on 25 minutes with one observer as A and would have fired on 103 different ones with the other.
 - Solo playback contains only that observer's notes, with no duet gestures. Switching players rebuilds sound, visual events and evidence together.
@@ -115,6 +116,21 @@ A top-up **does not** reset the Riff window; unlike a fresh import it extends a 
 **Common names come from iNaturalist alone**, and no import path contacts any other service. Where iNaturalist offers none, the scientific name stands alone. Roughly 4,200 records in the two-backyards export are in this position.
 
 The intended replacement — planned, not yet built — is a curated local lookup giving a vernacular name at **taxonomic family, or superfamily where the family has no honest vernacular**, and never above that. A superfamily name is a true statement about the specimen: an unidentified noctuoid is still an owlet moth. The removed third-party enrichment climbed as far as kingdom, where names stop informing ("Animals"); that emptiness, not the climbing, was the problem. See `docs/NEXT-SESSION.md` for the rule and the measured coverage, and `docs/SESSION-2026-09-16-IMPORT.md` for what the removal cost.
+
+## What the night panel says
+
+The disclosure beside the date is **"What you are hearing"**: one paragraph of
+rules and one of the night itself. The rules paragraph names all three duet
+gestures with their real windows and states the limit of what any of them
+claims — iNaturalist records whole minutes, so the minute is the finest true
+statement available, and none of them asserts that a shutter was pressed at the
+same instant. The night paragraph gives the records, the observers, the span of
+the evening, the counts of each gesture, and the species both observers found.
+Solo, Song and Riff each change what it says.
+
+It does **not** list observations or link to iNaturalist. Those identifiers are
+still carried on every event and in the CSV export; the panel is for
+understanding the night, not for auditing it.
 
 ## Reference and current work
 
