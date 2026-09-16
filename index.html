@@ -1901,6 +1901,48 @@ function isSharedDate(arr){
   return false;
 }
 
+// Which nights are worth offering. Landing on the right date fixed the symptom;
+// the date list was still 428 entries long and half of them could not become
+// music. Measured against Lily's two-backyards export: 6,794 records across 428
+// dates, median 8 a night, range 1 to 136.
+//
+// Lily set this at more than fifteen records on 16 September 2026, and chose
+// hiding over setting aside. It is a slider, not a discovery. What it costs, at
+// this setting: 284 of 428 dates leave the list and 20.2% of the records go
+// with them, including every night of 2020-2023 — no night in those four years
+// reaches sixteen records. That was decided with the figures in view.
+//
+// One axis, not two. A time-spread rule looks obviously necessary and is not:
+// all 92 zero-span nights in the export hold exactly one record, and no
+// multi-record night has a zero span. Thin nights are short because they are
+// thin. Do not add a span rule without re-measuring first.
+const OFFERABLE_NIGHT_MIN_RECORDS = 16;
+function isOfferableNight(arr){
+  return Array.isArray(arr) && arr.length >= OFFERABLE_NIGHT_MIN_RECORDS;
+}
+
+// The dates the date list offers, given the dates in scope (recent first).
+// Two exceptions keep the rule from producing the bug it was built after:
+//
+// 1. A rule that would silence everything does not apply. A capped fetch, or a
+//    first night at the sheet, can hold nothing but thin nights, and an empty
+//    date list on a dataset that loaded is exactly what the import repair fixed.
+// 2. The selected night is always offered. Top up lands on the newest night
+//    that arrived, which at 9pm may hold three records; hiding it would bounce
+//    the selection away from the records the person just asked to see. It
+//    leaves the list as soon as they move on.
+function offerableNightKeys(keys, nights, selectedKey){
+  const inScope = Array.isArray(keys) ? keys : [];
+  const kept = inScope.filter(k => isOfferableNight(nights && nights.get(k)));
+  if(!kept.length) return inScope.slice();
+  if(!selectedKey || kept.includes(selectedKey) || !inScope.includes(selectedKey)) return kept;
+  const out = kept.slice();
+  let i = 0;
+  while(i < out.length && out[i] > selectedKey) i++;  // keys are recent first
+  out.splice(i, 0, selectedKey);
+  return out;
+}
+
 // Which night a freshly loaded dataset should open on.
 // Strictly the newest night is the wrong answer in practice: a fetch run in the
 // evening lands on a night holding one or two records so far, which looks like
@@ -1912,6 +1954,11 @@ function preferredOpeningNight(obs){
   const keys = Array.from(nights.keys()).sort((a,b)=>(a<b?1:-1)); // recent first
   for(const k of keys){
     if(isSharedDate(nights.get(k))) return k;
+  }
+  // No shared night: the newest night that is long enough to be offered. Opening
+  // on a night the list would immediately have to hide reads as a failed load.
+  for(const k of keys){
+    if(isOfferableNight(nights.get(k))) return k;
   }
   return keys.length ? keys[0] : "";
 }
@@ -5068,15 +5115,20 @@ function rebuildDerived(){
   const years = Array.from(new Set(keysAll.map(k=>k.slice(0,4)))).sort((a,b)=>(a<b?1:-1));
   populateYearSelect(years);
 
-  const keys = keysAll.filter(k=>{
+  const inYear = keysAll.filter(k=>{
     if(state.filterYear !== "all" && k.slice(0,4) !== state.filterYear) return false;
     return true;
   });
 
-  // Ensure the selected date is valid under the current filters
-  if(!keys.includes(state.nightKey)){
-    state.nightKey = keys.length ? keys[0] : "";
+  // Ensure the selected date is valid under the current filters. A reset lands
+  // on the newest night worth offering, not merely the newest.
+  if(!inYear.includes(state.nightKey)){
+    const fallback = offerableNightKeys(inYear, state.nights, "");
+    state.nightKey = fallback.length ? fallback[0] : "";
   }
+
+  // The only place a night is judged worth offering.
+  const keys = offerableNightKeys(inYear, state.nights, state.nightKey);
 
   const baseAll = state.nightKey ? (state.nights.get(state.nightKey) || []) : [];
   const base = state.focus ? applyFocusFilter(baseAll) : baseAll;

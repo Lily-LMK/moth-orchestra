@@ -10,111 +10,106 @@ family" onward concerns **instrument** families — voices. Unrelated work.
 
 ---
 
-## Standing state — 16 September 2026, published
+## Standing state — 16 September 2026
 
-`main` carries the import repair and is live at
-<https://lily-lmk.github.io/moth-orchestra/>. The deployed page is byte-identical
-to the file that passed the suite. Lily authorised the release knowing it had
-not been reviewed by ear, on the grounds that it sounds the same and works
-better — no sound or score path was touched.
+`main` is published at <https://lily-lmk.github.io/moth-orchestra/> and carries
+the import repair. **The working tree is ahead of it**: the night-display rules
+are built and tested but not committed and not released. Lily has not yet said
+to commit.
 
-Suite: **282 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs.
+Suite: **298 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs.
 
-What changed: Fetch, Import CSV and Top up all reported success and then showed
-something else. See [SESSION-2026-09-16-FETCH.md](SESSION-2026-09-16-FETCH.md)
-and [SESSION-2026-09-16-ARRIVALS.md](SESSION-2026-09-16-ARRIVALS.md). The rules
-now in force are in the README's import section. Still outstanding on this work:
-**no listening review and no real-device test.**
+Two pieces of work stand behind that number, neither heard:
+
+- The import repair, released. Fetch, Import CSV and Top up all reported
+  success and then showed something else.
+  [SESSION-2026-09-16-FETCH.md](SESSION-2026-09-16-FETCH.md),
+  [SESSION-2026-09-16-ARRIVALS.md](SESSION-2026-09-16-ARRIVALS.md).
+- The night-display rules, uncommitted.
+  [SESSION-2026-09-16-NIGHTS.md](SESSION-2026-09-16-NIGHTS.md).
+
+Both are recorded in the README. Outstanding on both: **no listening review and
+no real-device test.**
+
+---
+
+## Done — rules for which nights are worth offering
+
+Settled and built on 16 September 2026. Read
+[SESSION-2026-09-16-NIGHTS.md](SESSION-2026-09-16-NIGHTS.md); the rule itself is
+in the README under "Which nights are offered".
+
+Lily decided: **more than fifteen records**, and **hidden rather than set
+aside**. She chose hiding against the recommendation, with the cost stated
+twice — 284 of 428 dates leave the list, and every night of 2020–2023 leaves the
+instrument entirely, because no night in those four years reaches sixteen
+records. That is her decision and it is implemented as she asked.
+
+The rule is one constant and two functions used in exactly one place. Two
+exceptions stop it recreating the bug it follows: the **selected** night is
+always offered (Top up lands on a night that may hold three records), and a rule
+that would silence every date does not apply (a capped fetch, judged within the
+year filter).
+
+Measured once so it is not re-guessed: a **time-spread** rule is unnecessary.
+All 92 zero-span nights hold exactly one record. Do not add a second axis
+without re-measuring.
+
+### What this left open
+
+1. **Commit and release.** The work is not on `main`. Lily's call.
+2. **A status line says "across 428 nights" while the list offers 144.** True,
+   but a reader can find the gap. The honest fix is close to the set-aside line
+   Lily declined, so it was left alone rather than reintroduced quietly. Worth
+   a minute of her judgement — the last section of the session doc.
+3. **The threshold is a slider.** `OFFERABLE_NIGHT_MIN_RECORDS`, one line. If
+   sixteen proves too severe in use — particularly the loss of the early
+   years — changing it is a one-word edit and the tests will follow.
 
 ---
 
-## Start here — rules for which nights are worth offering
+## Start here — the oldest debt: nobody has listened
 
-Lily, 16 September 2026: *"we write rules about what nights to display. If there
-aren't enough records to compose, then we skip those nights."*
+This is now the longest-standing gap in the project and it is not a build task.
 
-This follows directly from the release. Landing on the right date fixed the
-symptom; the date list itself is still 428 entries long, and half of them cannot
-become music.
+**Nothing released since 13 September has been judged by ear, and nothing has
+been seen on a phone or an exhibition screen.** Two sessions of import repair
+and one of night rules all end with the same two sentences. The suite has grown
+from 200 to 298 tests across that stretch; the number of times anyone has
+listened to the result is zero.
 
-### What the data says
+The withheld work has been waiting longer still. **Gondwana** — seven bodies, a
+synthesised room, the first reverb this instrument has ever had — has never been
+heard by anyone. It sits in `WITHHELD_VOICE_MODES` with **Noctilucent**, which
+is also unjudged. Both were built, measured, tested and shelved. A palette was
+already rejected by ear once, on the day it was built, as *"a child's xylophone
+or panhand"* — which is the strongest evidence in this repository that
+measurement does not substitute for listening here.
 
-Measured against `two-backyards-iNaturalist.csv` — 6,794 timed records across
-428 dates. Median night: **8 records**. Mean 15.9. Range 1 to 136.
+Concretely, in order:
 
-| Threshold | Dates kept | of 428 | Records kept |
-|---|---|---|---|
-| ≥ 3 | 317 | 74% | 98.1% |
-| ≥ 5 | 266 | 62% | 95.5% |
-| **≥ 8** | **215** | **50%** | **91.2%** |
-| ≥ 10 | 192 | 45% | 88.3% |
-| ≥ 15 | 150 | 35% | 81.1% |
-| ≥ 20 | 128 | 30% | 75.5% |
+1. Open the published page and play a night. Then play one on a phone.
+2. Audition Gondwana: `../../sessions/2026-09-13/gondwana-2/listen.html`, after
+   `python3 serve.py` in that folder. Headphones. The first attempt is kept
+   alongside at `gondwana/` for comparison. Two questions the measurements
+   raise but cannot answer: whether this is a wise voice or merely a slower
+   one, and whether `gond_rim` survives the mass underneath.
+3. Audition warm Noctilucent:
+   `../../sessions/2026-09-13/noctilucent-warm/listen.html`.
+4. Decide what is released and what stays withheld.
 
-**A threshold of 8 halves the date list and costs 8.8% of the records.** That is
-the shape of the curve: the thin half of the calendar holds almost none of the
-data. 213 dates hold fewer than 8 records and 597 records between them.
-
-### One axis, not two — a guess that measurement killed
-
-The obvious second rule is time spread: a night whose records all arrive in one
-minute has no structure to compose, however many it holds. It does not apply
-here. All 92 zero-span nights hold exactly **one** record; there is not a single
-multi-record night with a zero span. Among nights of ≥8 records the median span
-is 80 minutes and only 5 fall inside 15 minutes. **Thin nights are short because
-they are thin.** A count threshold is sufficient; do not build a span rule
-without re-measuring first.
-
-Taxonomic variety is likewise a non-problem: of the 128 nights with ≥20 records,
-**none** has only one family and none has ≤2 distinct taxa.
-
-### The question that actually needs deciding
-
-Not the number. The number is a slider Lily can turn. The real question is
-**what "skip" means**, and the project's own principles pull against each other:
-
-- CLAUDE.md: *avoid silent data loss; make missing values explicit.* A thin
-  night still happened. Lily stood outside and found three moths.
-- The instrument's purpose: offer nights that can become music.
-
-A hidden date is a deleted fact. The recommendation is therefore **set aside,
-not delete**: thin nights leave the primary list, a line says how many were set
-aside and why, and one control brings them back. Lily should decide this
-explicitly — it is the difference between a filter and a claim about her data.
-
-Watch the interaction with **solo nights**. 340 of 428 dates have one observer
-and only 88 have two. A rule requiring both people would hide 79% of her
-calendar. Two-observer-ness belongs in `isSharedDate` — which picks an *opening*
-night — and must not leak into what is *offered*.
-
-### Concrete steps
-
-1. Put the threshold to Lily with the table above. Recommend 8; say plainly it
-   is a slider, not a discovery.
-2. Settle set-aside versus hide. Build the "N dates set aside" line and the way
-   back before building the filter.
-3. Name the rule once, as `isSharedDate` and `preferredOpeningNight` are named,
-   and use it in exactly one place. Three import paths already share those two;
-   do not add a fourth definition of "a night worth hearing".
-4. Check what an empty result means. A fetch capped low, or a filtered year,
-   could leave zero offerable dates. Decide what the app says then — it must not
-   look like the bug just fixed.
-5. Tests first, as with the import work: a red phase against the current file,
-   and a test that drives the real control rather than re-implementing its rule.
-6. Re-measure on a fetched dataset, not only the CSV. A capped fetch returns a
-   different night-size distribution from a six-year export.
-
-### Protected
-
-The threshold governs **which dates are offered**, nothing else. It must not
-change the score of any night that is offered, the shared-minute evidence,
-`isSharedDate`, or where a fresh load lands. Nothing about sound.
+Building more before this happens adds to a pile nobody has checked. If Lily
+would rather build, the vernacular-name lookup below is the ready task — but it
+should be a deliberate choice to defer listening again, not a default.
 
 ---
+
 ## A future session — a curated vernacular-name lookup
 
-Agreed with Lily on 16 September 2026 and deferred by her the same day:
-the night-display rules come first. Agreed after the import repair
+Agreed with Lily on 16 September 2026 and deferred by her the same day so the
+night-display rules could go first. Those are now done, so this is the ready
+build task — but see "the oldest debt" above before starting it. Agreed after
+the import repair
 ([SESSION-2026-09-16-IMPORT.md](SESSION-2026-09-16-IMPORT.md)), and refined by
 her the same day.
 
@@ -224,6 +219,7 @@ start.
 ---
 
 ## Carried forward — Gondwana, second attempt, unheard
+<!-- Referenced from "the oldest debt" above; this is the detail behind it. -->
 
 The first palette (fifteen physical-model bodies, rank-graded) was built and
 rejected by ear the same day: *"a child's xylophone or panhand"*. The diagnosis

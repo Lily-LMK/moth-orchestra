@@ -27,6 +27,23 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 - Timeline/Riff near-simultaneous pulses require original observations within five seconds. They use the nearest B observation for each A observation and deduplicate identical pairs. This rule is independent of loop duration and distinct from same-minute matching.
 - Solo playback contains only that observer's notes, with no duet gestures. Switching players rebuilds sound, visual events and evidence together.
 
+## Which nights are offered
+
+A night needs **more than fifteen records** to appear in the date list. Below that there is not enough to compose, and a 428-entry list of which half cannot become music is worse than a shorter one. Thin nights are **hidden**, not set aside: there is no control that brings them back.
+
+The threshold is a slider, not a discovery. It is one constant, `OFFERABLE_NIGHT_MIN_RECORDS`, and the rule is applied in exactly one place — `offerableNightKeys`, called from `rebuildDerived`. What it costs on Lily's two-backyards export: 144 of 428 dates remain, holding 79.8% of the records; 284 dates and 1,374 records leave the list, **including every night of 2020–2023**, no night of which reaches sixteen records. Lily chose the number and the hiding on 16 September 2026 with those figures in view.
+
+Hidden is not deleted. The records stay loaded, grouped by night, counted and exportable; only the date list is shorter. Status lines still report the dataset's true size, so a fetch may say "across 428 nights" while the list offers 144.
+
+Two exceptions keep the rule from recreating the bug it was built after:
+
+- **A rule that would silence everything does not apply.** If no night in the current scope reaches the threshold, every night is offered. A capped fetch, or a first night at the sheet, can hold nothing but thin nights, and an empty date list on a dataset that loaded is exactly the failure the import repair fixed. The escape hatch is judged **within** the year filter, not across the whole dataset.
+- **The selected night is always offered.** Top up lands on the newest night it actually added, which at 9pm may hold three records. Hiding it would bounce the selection away from the records you just asked to see. It leaves the list as soon as you move on.
+
+`preferredOpeningNight` follows the same rule: newest shared date, else newest night worth offering, else newest night at all. A shared date needs twenty records and so clears the threshold by construction — the two numbers must not drift apart, and a test holds them together.
+
+Measured once, so it is not re-guessed: a **time-spread** rule looks obviously necessary and is not. All 92 zero-span nights in the export hold exactly one record, and there is no multi-record night with a zero span — thin nights are short because they are thin. Taxonomic variety is likewise a non-problem: of the 128 nights with twenty or more records, none has a single family and none has two or fewer distinct taxa. Count alone is sufficient. Do not add a second axis without re-measuring.
+
 ## Importing: CSV, Fetch and Top up
 
 Three ways in, meant to be used together.
@@ -45,7 +62,7 @@ All three paths are different intentions, and they differ. What they share is on
 | **Fetch** | yes | yes | yes | newest shared date |
 | **Top up** | no | no | only if it would hide the arrival | newest night it actually added |
 
-A freshly **loaded** dataset — imported or fetched — opens on the newest **shared date**: two distinct observers and at least twenty records, the same `isSharedDate` rule that marks dates in the date list, falling back to the newest night when none qualifies. Strictly-newest is the wrong default there: a load run in the evening lands on tonight, which may hold a single record so far, and one lonely note is indistinguishable from a failed load.
+A freshly **loaded** dataset — imported or fetched — opens on the newest **shared date**: two distinct observers and at least twenty records, the same `isSharedDate` rule that marks dates in the date list. When no date qualifies it falls back to the newest night **worth offering**, and only then to the newest night at all. Strictly-newest is the wrong default there: a load run in the evening lands on tonight, which may hold a single record so far, and one lonely note is indistinguishable from a failed load.
 
 This matters more than it looks on the CSV path. The demo's night, 28 January 2026, is a real night in the two-backyards export, so the "is the selected date still valid?" check passes and the date does not move on its own: importing 6,794 records spanning 2020–2026 used to leave the app showing that one January night, with 428 dates listed and no status message at all, because the status element had been removed from the panel while the code kept writing to it.
 
