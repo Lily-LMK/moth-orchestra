@@ -85,11 +85,15 @@ they make a two-layer composite, a low bell with a pad, on every shared minute.
 change.** The defect is that 25 of 311 shared minutes get a *second* pad, and
 which ones depends on an arbitrary internal labelling: A is whoever appears
 first in the file. With Chris as A it fires on 25 minutes; with Lily as A it
-would fire on 103 different ones. The fix is to make the composite a rule —
-one gesture per shared minute, both layers, always — not to make it rarer.
-A first draft of the plan proposed exactly that and is withdrawn; read the plan
-for why. Then: four of six published families play a generic `creek`/`pad`, and
-Gondwana plays one timbre for *both* layers where every other family plays two.
+would fire on 103 different ones. The fix is not to delete the second pad but to
+give it a reason: change the condition from "A holds 2+ records" to "the minute
+holds 3+ records". Measured, this loses nothing at all — all 25 currently-doubled
+minutes hold 3+ records, so the current set is a strict *subset*. **Zero minutes
+lose the fuller sound; 97 gain it**, and duet nights get richer rather than
+thinner. A first draft proposed making the flourishes rarer and is withdrawn;
+read the plan for why. Then: four of six published families play a generic
+`creek`/`pad`, and Gondwana plays one timbre for *both* layers where every other
+family plays two.
 
 **Three status lines describe an archive instead of what is loaded.** A fetch
 capped at 1,000 reports the API's `total_results` — "the most recent 1,000 of
@@ -100,10 +104,10 @@ settles the open question left by the night-display work.
 
 **Do Part 2 first.** It is small, fully specified, and actively misleading.
 
-The measure of success for Part 1's first step is unusual: **nothing should
-sound different.** The rate stays, the composite stays, and every sound becomes
-explicable. If a duet night sounds thinner after the change, the change is
-wrong.
+The measure of success for Part 1's first step: **nothing is lost, nothing
+sounds unfamiliar, and more minutes carry a sound that already exists.** No
+minute goes quiet, no new timbre appears, and every sound becomes explicable.
+If a duet night sounds thinner after the change, the change is wrong.
 
 ---
 

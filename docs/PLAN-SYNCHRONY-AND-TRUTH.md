@@ -82,65 +82,120 @@ score does not describe the music, which fails the project's own rule that
 derived data must be inspectable and true. Fix it whichever way sounds right —
 the octave is a musical choice, the disagreement is not.
 
-## The fix — keep the sound, keep the rate, make it a rule
+## What the extra pads actually are — measured
 
-**One gesture per shared minute, both layers, always.**
+This is the part that makes the fix obvious, and it was missing from the first
+two drafts.
 
-- The number of moments where a flourish happens: **311 — unchanged.**
-- The sound of each: **unchanged**, the composite that already occurs on 92%.
-- What goes: the 25 arbitrary extra pads, and the five-second window that has
-  not meant anything since it was written.
+Every `duet_sync` note in a night is **the same pitch and the same instrument**:
+on 2026-09-03, all 24 are `pad` at 329.63 Hz. Every `duet_minute` note is
+likewise identical to its siblings — `creek` at 110.00 Hz. And because all
+records in a minute carry `:00` seconds, paired events land at an identical
+`atSec`.
 
-Say the rule in one sentence, which is the test of whether it is a rule:
+So the two "extra" events on that night are not extra gestures. They are **the
+same note, at the same instant, as the note already there**:
 
-> **Both of you recorded in this minute, so the minute sounds — a low bell with
-> a pad, once, however many records it holds.**
+| at | freqs | instruments | identical |
+|---|---|---|---|
+| 9.3304 | 329.63 / 329.63 | pad / pad | yes |
+| 16.7946 | 329.63 / 329.63 | pad / pad | yes |
 
-The five-second window (`state.duetSyncWindowSec`) should go rather than remain
-a dial that does nothing. `duet_sync` as a *kind* may be worth keeping as the
-name of the upper layer, since tests, the score reference and the export all
-know it; that is an implementation choice, not a design one.
+Two identical notes at one instant sum to roughly double amplitude. **The only
+audible effect of the doubling is that those minutes are louder.** Nothing
+appears in the timeline that would otherwise be absent.
 
-**This is not a reduction.** If anything in the build makes a duet night sound
-less rich than it does today, the build has gone wrong.
+### Correcting the arithmetic
 
-## Optional, if the rule should say more — decided by ear, not here
+An earlier draft said the fix leaves "311 moments — identical to now". That is
+true of *moments*, and it conflated moments with events, which hid the real
+answer. Precisely:
 
-Two honest axes exist that do **not** change how often anything fires. Both are
-symmetric between the observers, unlike the defect above. Neither is required.
+| | Events |
+|---|---|
+| now | 311 bells + 338 pads = **649** |
+| one gesture per shared minute | 311 bells + 311 pads = **622** |
+| removed | **27** — every one an exact duplicate stacked on another note |
 
-**1. Let the gesture's weight follow the minute's density.** Both duet events
-hardcode `density: 1`, but `density` drives note velocity
-(`0.15 + 0.12·log2(density)`) and already means "how many observations this
-represents" on ordinary notes. Setting it from the shared minute's record count
-would use the existing vocabulary rather than inventing one.
+So plain de-duplication is not quite lossless: **25 shared minutes would get
+slightly quieter**, because they would stop being doubled. Small, but real, and
+the wrong direction given the brief.
 
-| Records in the shared minute | Count | Share |
+## The fix — give the doubling a rule instead of removing it
+
+The second pad does not need to be deleted. It needs a reason.
+
+Keep the mechanism exactly as it is — same two layers, same doubling, same
+pitches, same instruments — and change **only the condition** deciding which
+minutes get the second note:
+
+| | Condition | Minutes doubled |
 |---|---|---|
-| 2 | 189 | 60.8% |
-| 3 | 90 | 28.9% |
-| 4 | 27 | 8.7% |
-| 5–7 | 5 | 1.6% |
+| now | observer **A** holds 2+ records in the minute | 25 |
+| proposed | **the minute holds 3 or more records** | **122** |
 
-Rule: *"a busier minute sounds fuller."* Honest, but note 61% sit in one bucket,
-so the effect will be subtle. Measured before proposing, so it is not oversold.
+Measured, and this is why it is the answer:
 
-**2. Let the gesture distinguish even from lopsided minutes.**
+> **All 25 currently-doubled minutes hold 3 or more records.** The current set is
+> a strict *subset* of the proposed one. **Zero minutes lose the fuller sound;
+> 97 minutes gain it.**
 
-| Shape | Count | Share |
-|---|---|---|
-| even — both recorded the same number | 193 | 62.1% |
-| uneven | 92 | 29.6% |
-| lopsided — one recorded 3× the other | 26 | 8.4% |
+That is provable rather than hopeful: a minute doubles today only when A has ≥2
+records, and A ≥ 2 with B ≥ 1 means the minute holds at least 3 by construction.
 
-Rule: *"you each saw one thing"* against *"one of you was in a burst while the
-other passed through."* This is the meaningful version of the distinction the
-broken rule was accidentally making — but symmetric, so it does not matter who
-is A.
+### What this achieves
 
-Recommendation: build the core fix first and **listen to it alone**. It should
-sound essentially identical to today. Only then decide whether either axis adds
-anything, because both are subtle and the current sound is already liked.
+- **Nothing is lost.** No minute loses its gesture, and no minute gets quieter.
+- **Nothing sounds new.** The doubled sound already exists; 97 more minutes get
+  the sound that 25 already have.
+- **Duet nights get richer**, which is the direction the brief asks for: 39% of
+  shared minutes carry the fuller gesture instead of 8%.
+- **It becomes explicable** in one sentence: *both of you recorded in this
+  minute, so the minute sounds — and if the minute holds three or more records,
+  it sounds fuller.*
+- **It stops depending on who is A.** The rule is symmetric, so it says
+  something about the night rather than about the file.
+
+The five-second window goes, because "three or more records in the minute" is
+the whole condition. `state.duetSyncWindowSec` should go with it rather than
+remain a dial that does nothing.
+
+### If a third level is wanted
+
+32 shared minutes hold 4 or more records. A third note there is available and
+equally explicable. **Do not build it in the same change** — settle the
+two-level version by ear first, since that already quintuples how often the
+fuller gesture is heard.
+
+### The one thing to check by ear
+
+Whether 39% is the right share. It is nearly five times the current 8%, and the
+brief was "don't make it rarer", not "make it more common". If 122 minutes
+proves too many, `≥4 records` gives 32 — still ruled, still a superset of the
+current 25, still nothing lost.
+
+**The number is a slider between 25 and 122, and every setting on it is
+explicable.** That property is the point of the change; the setting is Lily's.
+
+### The pitch disagreement, fixed in the same change
+
+`duet_sync` records `midi: pitch.midi` but sounds at `midiToFreq(pitch.midi -
+12)`. Playback uses `freq`, so the note sounds an octave below the pitch it
+records, and the export writes both columns side by side at `index.html:8887`.
+Nothing is audibly wrong; the written score is untrue. Keep the sounding pitch
+exactly as it is and correct the recorded one, so nothing changes by ear.
+
+## Withdrawn — the rarity proposal
+
+The first draft proposed three tiers with rarity targets: thinning shared
+minutes to a five-minute gap, and gating a "moment of the night". **Withdrawn.**
+It treated the firing rate as the defect when the rate is the thing Lily values.
+Recorded so the reasoning is not repeated — the measurements behind it were
+sound, the question they answered was the wrong one.
+
+Two axes it raised are now moot. Density became the condition above rather than
+a separate shading. Evenness (62% of shared minutes are even, 8% lopsided)
+remains available and unused; it is symmetric and honest, but nothing needs it.
 
 ## Part 1b — Something beautiful in each family
 
@@ -307,21 +362,22 @@ session. Half a day at most.
 
 Then Part 1, in this order:
 
-1. **Make the composite a rule.** One gesture per shared minute, both layers,
-   always; remove the five-second window and the 25 arbitrary extra pads. Tests
-   first, red phase against the current file as with the last two sessions.
-   Fix the `midi`/`freq` disagreement in the same change.
-2. **Listen to it.** It should sound essentially as it does now. A duet night
-   must not sound thinner. If it does, stop — the constraint has been broken.
-3. Only then decide whether density or evenness should shade the gesture.
-   Both are subtle; the current sound is already liked.
-4. Ask Lily what Gondwana's flourish sounds like today, before touching it —
-   it is the one family whose composite is a single timbre twice.
+1. **Re-condition the second layer.** Change only which minutes get the second
+   pad: from "observer A holds 2+ records" to "the minute holds 3+ records".
+   Remove the five-second window and `duetSyncWindowSec`. Fix the `midi`/`freq`
+   disagreement in the same change. Tests first, red phase against the current
+   file, as with the last two sessions.
+2. **Listen to a duet night.** Nothing should sound thinner, and 97 more minutes
+   should carry the fuller gesture. If anything sounds thinner, stop.
+3. Settle the threshold by ear — 3 records (122 minutes) or 4 (32). Both are
+   supersets of today; neither can lose anything.
+4. Ask Lily what Gondwana's flourish sounds like today, before touching it. It
+   is the one family whose composite is a single timbre twice.
 5. Voice one family. Stop. Listen. Decide whether the shape generalises.
 6. Write `WHAT-EVERY-SOUND-MEANS.md` as the work settles.
 
-The measure of success for steps 1 and 2 is that **nothing sounds different**
-and every sound can now be explained. That is an unusual brief and it is the
-right one here.
+The measure of success for steps 1 and 2: **nothing is lost, nothing sounds
+unfamiliar, more minutes carry a sound that already exists, and every sound can
+now be explained.** No minute goes quiet and no new timbre appears.
 
 Do not build seven families before hearing one.
