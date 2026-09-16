@@ -6200,6 +6200,23 @@ function matchTime(match){
 //
 // One per taxon per night: a moth both of them recorded five times is one
 // coincidence, not twenty-five.
+// Parked by Lily, 16 September 2026, on first hearing.
+//
+// Her judgement: "It's too strong, and an effect that only happens a single
+// time in a loop needs to certainly sound different than that."
+//
+// Both halves of that matter, and the second is the harder one. Level is a
+// number and can be turned. Character is not: a gesture that fires once in a
+// nineteen-second loop is heard against nothing, so it cannot be a bigger
+// version of an ordinary sound — it has to be a different KIND of sound, or it
+// reads as an intrusion rather than as a moment. The ground as built is a
+// louder, lower swell, which is exactly the shape she is rejecting.
+//
+// The rule, the evidence and the synthesis are all kept and still tested; only
+// the event is withheld, so nothing sounds. Set `meeting: true` to hear it
+// again. The echo is unaffected — she accepted it.
+const DUET_GESTURES = { meeting: false, echo: true };
+
 const DUET_ECHO_WINDOW_MIN = 30;
 function findDuetEchoes(obs){
   if(state.listenMode !== "both" || !state.userAName || !state.userBName || state.userAName === state.userBName) return [];
@@ -6628,7 +6645,7 @@ const user = observerRole(o);
     // minute and carries that minute's observations, so the body-felt cue —
     // the most persuasive signal in the piece — can never mark something that
     // did not happen.
-    if(sharedMinutes.length){
+    if(DUET_GESTURES.meeting && sharedMinutes.length){
       const first = sharedMinutes[0];
       const pitch = pickPitch({ taxon:"Duet Minute", voiceKey:"Duet", order:"Duet", seed:state.seed, key:state.keyName, scaleName:state.scaleName });
       // The bell's own note, carried down by whole octaves into the register
@@ -6664,7 +6681,7 @@ const user = observerRole(o);
     // the same pitch on the same instrument, because pitch and instrument are
     // derived from the taxon — so this marks notes rather than adding them.
     // Nothing here changes the number of notes in the score.
-    for(const echo of findDuetEchoes(baseObs)){
+    for(const echo of (DUET_GESTURES.echo ? findDuetEchoes(baseObs) : [])){
       const call = eventByObsId.get(echo.call.id);
       const answer = eventByObsId.get(echo.answer.id);
       if(!call || !answer) continue;
@@ -9589,22 +9606,47 @@ if(typeof ResizeObserver !== "undefined" && canvas){
   setInterval(syncTransport, 400);
 })();
 
-/* ═══ DESKTOP SIDEBAR: move controls + gallery into sidebar ═══ */
+/* ═══ DESKTOP SIDEBAR: move controls + gallery into sidebar ═══
+   The controls live in one place in the markup and are moved to wherever the
+   viewport wants them: the left column at 768px and up, the slide-up sheet
+   below that.
+
+   This used to run once, at load, and only in the desktop direction. Two ways
+   to lose every control on the page: open the window narrower than 768 and the
+   column stayed empty for the session, because widening it moved nothing; or
+   open it wide and then narrow it, and the controls were stranded inside a
+   column that mobile CSS hides. Moving a node keeps its listeners, so the only
+   thing needed is to run it in both directions whenever the breakpoint is
+   crossed. */
 (function(){
-  if(window.innerWidth < 768) return;
-  const target = document.getElementById("desktopControlsTarget");
-  const sheetInner = document.querySelector(".sheetInner");
-  const photoPanel = document.getElementById("photoPanel");
-  if(!target || !sheetInner) return;
-  while(sheetInner.firstChild){
-    target.appendChild(sheetInner.firstChild);
+  const DESKTOP_MIN = 768;
+  let placedWide = null;   // null until the first placement, then a boolean
+  function placeControls(){
+    const wide = window.innerWidth >= DESKTOP_MIN;
+    if(wide === placedWide) return;
+    const target = document.getElementById("desktopControlsTarget");
+    const sheetInner = document.querySelector(".sheetInner");
+    const photoPanel = document.getElementById("photoPanel");
+    if(!target || !sheetInner) return;
+    const to = wide ? target : sheetInner;
+    const from = wide ? sheetInner : target;
+    while(from.firstChild) to.appendChild(from.firstChild);
+    if(photoPanel){
+      to.appendChild(photoPanel);
+      // The gallery is laid out by CSS in the sheet and needs these cleared;
+      // in the sidebar it is a panel that fills the space under the controls.
+      photoPanel.style.display = wide ? "" : "";
+      photoPanel.style.position = "";
+      photoPanel.style.marginTop = wide ? "12px" : "";
+    }
+    placedWide = wide;
   }
-  if(photoPanel){
-    target.appendChild(photoPanel);
-    photoPanel.style.display = "";
-    photoPanel.style.position = "";
-    photoPanel.style.marginTop = "12px";
-  }
+  placeControls();
+  let pending = 0;
+  window.addEventListener("resize", ()=>{
+    clearTimeout(pending);
+    pending = setTimeout(placeControls, 120);
+  });
 })();
 
 /* ═══ MOBILE GALLERY TOGGLE ═══ */

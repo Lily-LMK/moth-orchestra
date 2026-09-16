@@ -179,7 +179,7 @@ test('gallery extends the sub; personal leads with the companion', () => {
     'personal rolls off what a laptop cannot reproduce anyway');
 });
 
-test('the meeting asks for the ground, and each family answers with its own', () => {
+test('when unparked, the meeting asks for the ground and each family answers with its own', () => {
   const rows = (c) => [
     c.rowToObs({ id: 'a', user_name: 'A', time_observed_at: '2026-01-28T09:30:00Z',
       observed_on: '2026-01-28', scientific_name: 'Agrotis munda', taxon_order_name: 'Lepidoptera' }),
@@ -189,6 +189,8 @@ test('the meeting asks for the ground, and each family answers with its own', ()
   for (const [voiceMode, instrument] of [['gondwana', 'gond_ground'], ['mixed', 'ground'],
                                           ['lantern', 'ground'], ['choir', 'ground']]) {
     const c = app({ voiceMode });
+    // Parked for listeners; switched on here so the wiring stays covered.
+    c.DUET_GESTURES.meeting = true;
     const seq = c.buildSequencer(rows(c));
     const meeting = seq.events.find(e => e.kind === 'duet_meeting');
     assert.equal(meeting.instrument, instrument, voiceMode);

@@ -35,6 +35,10 @@ function obs(c, id, user, time, taxon = 'Test moth ' + id) {
     taxon_family_name: 'Noctuidae', taxon_class_name: 'Insecta'
   });
 }
+// The meeting is parked (Lily, 16 September 2026: "it's too strong"). Its rule
+// is still built and still tested — the tests below switch it on deliberately,
+// which is also what proves the parking flag is the only thing silencing it.
+function withMeeting(c) { c.DUET_GESTURES.meeting = true; return c; }
 const echoes = (seq) => seq.meta.duetEchoes || [];
 const marked = (seq) => seq.events.filter(e => e.kind === 'obs' && e.duetEcho);
 const meetings = (seq) => seq.events.filter(e => e.kind === 'duet_meeting');
@@ -191,7 +195,7 @@ test('echo: a third observer cannot answer', () => {
 // ── The meeting ─────────────────────────────────────────────────────────────
 
 test('meeting: exactly one per duet night, on the earliest shared minute', () => {
-  const c = app();
+  const c = withMeeting(app());
   const seq = c.buildSequencer([
     obs(c, 'a0', 'A', '2026-01-28T09:00:00Z'),
     obs(c, 'a1', 'A', '2026-01-28T09:30:00Z'),
@@ -206,7 +210,7 @@ test('meeting: exactly one per duet night, on the earliest shared minute', () =>
 });
 
 test('meeting: it sounds at the instant of the shared minute it marks', () => {
-  const c = app();
+  const c = withMeeting(app());
   const seq = c.buildSequencer([
     obs(c, 'a', 'A', '2026-01-28T09:30:00Z'),
     obs(c, 'b', 'B', '2026-01-28T09:30:00Z'),
@@ -217,7 +221,7 @@ test('meeting: it sounds at the instant of the shared minute it marks', () => {
 });
 
 test('meeting: it carries the shared minute as evidence', () => {
-  const c = app();
+  const c = withMeeting(app());
   const seq = c.buildSequencer([
     obs(c, 'a', 'A', '2026-01-28T09:30:00Z'),
     obs(c, 'b', 'B', '2026-01-28T09:30:00Z')
@@ -229,7 +233,7 @@ test('meeting: it carries the shared minute as evidence', () => {
 });
 
 test('meeting: a night with no shared minute has none', () => {
-  const c = app();
+  const c = withMeeting(app());
   const seq = c.buildSequencer([
     obs(c, 'a', 'A', '2026-01-28T09:00:00Z'),
     obs(c, 'b', 'B', '2026-01-28T10:00:00Z')
@@ -238,7 +242,7 @@ test('meeting: a night with no shared minute has none', () => {
 });
 
 test('meeting: solo playback has none', () => {
-  const c = app({ listenMode: 'A' });
+  const c = withMeeting(app({ listenMode: 'A' }));
   const seq = c.buildSequencer([
     obs(c, 'a', 'A', '2026-01-28T09:30:00Z'),
     obs(c, 'b', 'B', '2026-01-28T09:30:00Z')
@@ -247,7 +251,7 @@ test('meeting: solo playback has none', () => {
 });
 
 test('meeting: it is authored emphasis on real evidence, and marked special', () => {
-  const c = app();
+  const c = withMeeting(app());
   const seq = c.buildSequencer([
     obs(c, 'a', 'A', '2026-01-28T09:30:00Z'),
     obs(c, 'b', 'B', '2026-01-28T09:30:00Z')
@@ -272,7 +276,7 @@ test('both gestures are identical when the observers swap labels', () => {
     obs(c, 'q3', 'Q', '2026-01-28T09:31:00Z', 'Fifth moth')
   ];
   const run = (A, B) => {
-    const c = app({ userAName: A, userBName: B });
+    const c = withMeeting(app({ userAName: A, userBName: B }));
     const seq = c.buildSequencer(rows(c));
     return {
       echoes: echoes(seq).map(e => [e.taxon, e.call.id, e.answer.id, e.gapSec].join('|')).sort(),
@@ -310,4 +314,46 @@ test('the shared-minute composite is untouched', () => {
   ]);
   assert.equal(seq.events.filter(e => e.kind === 'duet_minute').length, 2,
     'one bell per shared minute, regardless of how many records are in it');
+});
+
+// ── Parked, and provably silent ─────────────────────────────────────────────
+
+test('the meeting is parked by default and makes no sound', () => {
+  // Lily, on first hearing: "It's too strong, and an effect that only happens
+  // a single time in a loop needs to certainly sound different than that."
+  const c = app();
+  assert.equal(c.DUET_GESTURES.meeting, false, 'parked');
+  const seq = c.buildSequencer([
+    obs(c, 'a', 'A', '2026-01-28T09:30:00Z'),
+    obs(c, 'b', 'B', '2026-01-28T09:30:00Z')
+  ]);
+  assert.equal(meetings(seq).length, 0, 'no event, so nothing is scheduled');
+  assert.equal(seq.meta.sharedMinutes.length, 1, 'the shared minute is still found');
+  assert.equal(seq.events.filter(e => e.kind === 'duet_minute').length, 1,
+    'and the bell Lily accepted still rings');
+});
+
+test('the echo is not parked with it', () => {
+  const c = app();
+  assert.equal(c.DUET_GESTURES.echo, true);
+  const seq = c.buildSequencer([
+    obs(c, 'a', 'A', '2026-01-28T09:00:00Z', 'Agrotis munda'),
+    obs(c, 'b', 'B', '2026-01-28T09:20:00Z', 'Agrotis munda')
+  ]);
+  assert.equal(echoes(seq).length, 1);
+});
+
+test('parking is one flag, and unparking restores the gesture exactly', () => {
+  // The work is kept alive rather than deleted: the rule, the evidence and the
+  // synthesis are all still here and still correct when switched back on.
+  const rows = (c) => [
+    obs(c, 'a', 'A', '2026-01-28T09:30:00Z'),
+    obs(c, 'b', 'B', '2026-01-28T09:30:00Z')
+  ];
+  const off = app();
+  assert.equal(meetings(off.buildSequencer(rows(off))).length, 0);
+  const on = withMeeting(app());
+  const seq = on.buildSequencer(rows(on));
+  assert.equal(meetings(seq).length, 1);
+  assert.ok(meetings(seq)[0].freq <= on.GROUND_CEILING_HZ, 'still in its register');
 });
