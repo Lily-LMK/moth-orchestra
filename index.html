@@ -2017,10 +2017,17 @@ function importCSVData(text){
   state.riffEndMin = 1439;
   state.filterYear = "all";
   state.nightKey = preferredOpeningNight(obs);
-  const opening = state.nightKey ? (groupByNight(obs).get(state.nightKey) || []).length : 0;
+  const nights = groupByNight(obs);
+  const opening = state.nightKey ? (nights.get(state.nightKey) || []).length : 0;
   const status = $("csvImportStatus");
   if(status){
-    const parts = [`${obs.length.toLocaleString()} observations imported; ${(rows.length-obs.length).toLocaleString()} omitted without a valid observation time/date.`];
+    const parts = [loadedSentence("Imported", loadedSummary(obs, nights, state.nightKey))];
+    // Rows the file could not supply a time or date for are a fact about the
+    // file just chosen, not about an archive elsewhere, and a silent drop of
+    // half an import would be worse than a number nobody reads. Said only when
+    // it happened.
+    const omitted = rows.length - obs.length;
+    if(omitted > 0) parts.push(`${omitted.toLocaleString()} row${omitted === 1 ? "" : "s"} had no usable observation time or date and ${omitted === 1 ? "was" : "were"} left out.`);
     if(state.nightKey) parts.push(`Showing ${state.nightKey} (${recordCount(opening)}); pick another date to hear it.`);
     parts.push("Riff window reset to 00:00–23:59 (Brisbane).");
     status.textContent = parts.join(" ");
@@ -2038,6 +2045,40 @@ function groupByNight(obs){
   }
   return m;
 }
+// ── What a status line is allowed to say ────────────────────────────────────
+// Lily: "I'd like it to say the truth of what it is presenting and what it is
+// fetching. I don't need a count of what was there and skipped."
+//
+// A status line reports what you now have and can play. Not the archive it
+// came from, not what was left behind. Three lines used to report the other
+// thing, and every word of them was true: "the most recent 1,000 of 24,000"
+// is a fact about iNaturalist, and "across 428 nights" is a fact about the
+// dataset when the date list offers 144. A true sentence about the wrong
+// subject is the defect this repository keeps finding.
+//
+// `offered` comes from `offerableNightKeys`, the same function the date list
+// uses, so the number in the sentence cannot drift from the list on screen.
+function loadedSummary(obs, nights, selectedKey){
+  const list = Array.isArray(obs) ? obs : [];
+  const map = nights || groupByNight(list);
+  const keys = Array.from(map.keys()).sort((a,b)=>(a<b?1:-1));
+  const offered = offerableNightKeys(keys, map, selectedKey || "");
+  return { records:list.length, nights:map.size, offered:offered.length };
+}
+// "6,794 observations across 428 nights. 144 dates are long enough to play."
+// The second sentence is dropped when every night is offered, because then it
+// is saying nothing; and a dataset of one night does not need it either.
+function loadedSentence(verb, summary){
+  const nights = `${summary.nights.toLocaleString()} night${summary.nights === 1 ? "" : "s"}`;
+  const first = `${verb} ${summary.records.toLocaleString()} observation${summary.records === 1 ? "" : "s"} across ${nights}.`;
+  // An unknown offering is not an offering of none. If the count is missing the
+  // clause is dropped, because a status line that says "0 dates are long enough
+  // to play" over a working date list is the same class of defect this change
+  // exists to remove.
+  if(!(summary.offered > 0) || summary.nights <= 1 || summary.offered >= summary.nights) return first;
+  return `${first} ${summary.offered.toLocaleString()} date${summary.offered === 1 ? " is" : "s are"} long enough to play.`;
+}
+
 // Status lines name record counts often enough to be worth getting right.
 function recordCount(n){
   const v = Number(n) || 0;
@@ -3346,6 +3387,71 @@ function rootMidi(key, octave=3){
   return 12*(octave+1) + semi;
 }
 
+// ── Registers: which octave a voice sings in ────────────────────────────────
+// Written pitch comes from the taxon, so every voice of a family is handed the
+// same range — 147 Hz to 988 Hz on Lily's export, measured across the 144
+// offered nights. The only thing that can turn four voices into a consort is
+// the octave each one folds into.
+//
+// Folding is by whole octaves, so the pitch class is exact and the written
+// score is never altered: `ev.midi` and `ev.freq` keep saying what the taxon
+// chose, and only the synthesis moves. Gondwana has worked this way since it
+// was built (`gondwanaVoicing`), and three of Frog Yawn's four voices have
+// worked this way since the family was written — each with its own inline
+// copy of the rule. This is that rule, once, with the numbers as data.
+//
+// A register is a floor and a ceiling in Hz. The choir's three are exactly the
+// numbers their inline copies used, and a test compares the two note for note;
+// Lily has accepted those sounds and a tidier version of them is worth nothing
+// if it moves them.
+const VOICE_REGISTERS = {
+  // Frog Yawn. soprano was the one voice that did not fold, so it sat an
+  // octave above alto's ceiling with a sounding median of 440 Hz and a maximum
+  // of 988 — one singer of four unanchored. C4–E5 is a soprano tessitura, a
+  // fifth above alto, and gives it the same span and the same seven distinct
+  // pitches per night that tenor and alto already have.
+  bass_voice:    { floor:  65, ceiling: 200 },
+  tenor:         { floor: 120, ceiling: 350 },
+  alto:          { floor: 165, ceiling: 440 },
+  soprano:       { floor: 262, ceiling: 660 },
+
+  // Lantern Glass, added 17 September 2026. Lily, 16 September: too high
+  // pitched. Nothing folded, so all four voices ran to 988 Hz — and
+  // lantern_glass carries a partial at 4× the fundamental with a 1.1 s decay,
+  // putting 3,952 Hz on a top note while the shared-minute bell sat at 92 Hz
+  // and nothing occupied the middle.
+  //
+  // The ceilings are Lily's: C4, E4, G4, B4 — a chord in thirds. Each floor is
+  // an octave below its ceiling, which is the part her diagnosis did not
+  // include and the measurement asked for: ceilings alone leave every voice
+  // resting on the score's own 147 Hz floor, so all four would still share a
+  // bottom and bloom would be squeezed under a sixth.
+  //
+  // Measured cost, per night rather than across the archive, because a night
+  // is what anybody hears: the median night drops from 23 distinct sounds to
+  // 16, and the share of taxa sharing a sound with another rises from 43% to
+  // 77%. That is where Frog Yawn's accepted voices already sit (17 sounds,
+  // 73%), and the worst pile-up on one sound does not move at all.
+  lantern_bloom: { floor: 131, ceiling: 262 },
+  lantern_felt:  { floor: 165, ceiling: 330 },
+  lantern_reed:  { floor: 196, ceiling: 392 },
+  lantern_glass: { floor: 247, ceiling: 494 }
+};
+
+// The octave of `freq` that this voice sings in. Both loops are guarded
+// against the other end, so a note with less than an octave of room is left
+// exactly where it was written rather than oscillating. A voice with no
+// register — every instrument outside these two families — is never touched.
+function voicedFreq(instrument, freq){
+  const reg = Object.prototype.hasOwnProperty.call(VOICE_REGISTERS, instrument)
+    ? VOICE_REGISTERS[instrument] : null;
+  if(!reg || !Number.isFinite(freq) || freq <= 0) return freq;
+  let f = freq;
+  while(f > reg.ceiling && f/2 >= reg.floor) f /= 2;
+  while(f < reg.floor && f*2 <= reg.ceiling) f *= 2;
+  return f;
+}
+
 // Authored timbres, not recordings or biological traits. Each row is
 // [harmonic ratio, relative amplitude, decay relative to the fundamental].
 const LANTERN_VOICES = {
@@ -4197,13 +4303,22 @@ function scheduleInstrument(ctx, instrument, when, freq, velocity){
   g.gain.setValueAtTime(0.0001, when);
 
   // Lantern Glass: harmonic, finite resonances; no random noise or stereo cue.
-  // Ratios preserve the scored fundamental. Faster upper-partial decays soften
-  // the tail, leaving room for subsequent records and the shared-minute creek.
+  // Ratios preserve the scored pitch class — the voice sings it in its own
+  // octave, never at another pitch. Faster upper-partial decays soften the
+  // tail, leaving room for subsequent records and the shared-minute creek.
   const lantern = LANTERN_VOICES[instrument];
   if(lantern){
     const level = Number.isFinite(velocity) ? clamp(velocity, 0, 1) : 0;
     if(!Number.isFinite(freq) || freq <= 0 || level === 0){ g.disconnect(); return; }
-    const fundamental = freq;
+    // A written pitch outside the band is refused before folding, not after.
+    // Folding would otherwise make an out-of-band fundamental audible by
+    // bringing it down; a pitch that high is a fault upstream, and silence is
+    // the honest answer. Gondwana guards in the same order and for the same
+    // reason.
+    if(freq >= ctx.sampleRate*0.45){ g.disconnect(); return; }
+    // The octave this voice sings in. Whole octaves only, so the pitch class
+    // is exact and the written score is untouched.
+    const fundamental = voicedFreq(instrument, freq);
     const partials = lantern.partials.filter(p => fundamental*p[0] < ctx.sampleRate*0.45);
     if(!partials.length){ g.disconnect(); return; }
     const weight = partials.reduce((sum,p)=>sum+p[1],0);
@@ -4961,10 +5076,11 @@ function scheduleInstrument(ctx, instrument, when, freq, velocity){
 
   // ── Soprano: bright 'aah' vowel pad ──
   if(instrument === "soprano"){
+    const sopF = voicedFreq(instrument, freq);
     const oscSo = ctx.createOscillator(); oscSo.type="sine";
-    oscSo.frequency.setValueAtTime(freq, when);
+    oscSo.frequency.setValueAtTime(sopF, when);
     const oSo2 = ctx.createOscillator(); oSo2.type="sine";
-    oSo2.frequency.setValueAtTime(freq*2.005, when);
+    oSo2.frequency.setValueAtTime(sopF*2.005, when);
     const oSo2g = ctx.createGain(); oSo2g.gain.value=0.20;
     const vibSo = ctx.createOscillator(); vibSo.type="sine";
     vibSo.frequency.setValueAtTime(5.5, when);
@@ -4990,9 +5106,7 @@ function scheduleInstrument(ctx, instrument, when, freq, velocity){
 
   // ── Alto: warm 'ooh' vowel pad ──
   if(instrument === "alto"){
-    let altF = freq;
-    while(altF > 440) altF /= 2;
-    if(altF < 165) altF *= 2;
+    const altF = voicedFreq(instrument, freq);
     const oscAl = ctx.createOscillator(); oscAl.type="sine";
     oscAl.frequency.setValueAtTime(altF, when);
     const oAl2 = ctx.createOscillator(); oAl2.type="sine";
@@ -5024,9 +5138,7 @@ function scheduleInstrument(ctx, instrument, when, freq, velocity){
 
   // ── Tenor: mid-range vocal presence ──
   if(instrument === "tenor"){
-    let tenF = freq;
-    while(tenF > 350) tenF /= 2;
-    if(tenF < 120) tenF *= 2;
+    const tenF = voicedFreq(instrument, freq);
     const oscTe = ctx.createOscillator(); oscTe.type="sine";
     oscTe.frequency.setValueAtTime(tenF, when);
     const oTe2 = ctx.createOscillator(); oTe2.type="triangle";
@@ -5056,9 +5168,7 @@ function scheduleInstrument(ctx, instrument, when, freq, velocity){
 
   // ── Bass Voice: deep sustained hum ──
   if(instrument === "bass_voice"){
-    let bvf = freq;
-    while(bvf > 200) bvf /= 2;
-    if(bvf < 65) bvf *= 2;
+    const bvf = voicedFreq(instrument, freq);
     const oscBv = ctx.createOscillator(); oscBv.type="sine";
     oscBv.frequency.setValueAtTime(bvf, when);
     const oBv2 = ctx.createOscillator(); oBv2.type="sine";
@@ -5444,6 +5554,11 @@ function rebuildDerived(){
 
   // The only place a night is judged worth offering.
   const keys = offerableNightKeys(inYear, state.nights, state.nightKey);
+  // Kept rather than discarded, so a status line can report what the date list
+  // actually offers instead of how many nights the dataset happens to hold.
+  // Before this existed, the only number available to those lines was the
+  // archive's, which is why three of them described somewhere else.
+  state.offeredNightKeys = keys;
 
   const baseAll = state.nightKey ? (state.nights.get(state.nightKey) || []) : [];
   const base = state.focus ? applyFocusFilter(baseAll) : baseAll;
@@ -9293,8 +9408,12 @@ function initUI(){
     inatStatusEl.textContent = "Connecting to iNaturalist…";
     try{
       const capVal = parseInt($("inatCap").value, 10) || 5000;
-      const fetched = await inatFetchObservations(users, capVal, (done, total)=>{
-        inatStatusEl.textContent = `Fetched ${done} of ~${total} observations…`;
+      const fetched = await inatFetchObservations(users, capVal, (done)=>{
+        // Against the cap, which is what this fetch is actually going to
+        // return. It used to count against iNaturalist's total, so a capped
+        // fetch spent its whole run saying "412 of ~24,000" on its way to
+        // stopping at 1,000.
+        inatStatusEl.textContent = `Fetched ${done.toLocaleString()} of up to ${capVal.toLocaleString()} observations…`;
       });
       const obs = fetched.obs;
       if(!obs.length){
@@ -9302,6 +9421,10 @@ function initUI(){
         inatFetchBtn.disabled = false;
         return;
       }
+      // Whether the cap bound the fetch is knowable from the cap and the count,
+      // without asking the archive how much more of itself there is. A fetch
+      // that stopped on an error stopped for that reason, and says so instead.
+      const capped = !fetched.error && obs.length >= capVal;
 
       // A fetch is a fresh dataset, like a CSV import and unlike a top-up: it
       // replaces the loaded records rather than joining them. Use Top up to
@@ -9324,14 +9447,21 @@ function initUI(){
       rebuildDerived();
       refreshTopUpBtn();
 
-      const parts = [`Loaded ${loaded.obs.length.toLocaleString()} observations across ${state.nights ? state.nights.size : "?"} nights, replacing the ${loaded.replaced.toLocaleString()} previously loaded.`];
+      // Reported after rebuildDerived, so `state.offeredNightKeys` is the list
+      // that is on screen rather than a second count of the same thing.
+      const summary = { records: loaded.obs.length, nights: state.nights ? state.nights.size : 0,
+        offered: (state.offeredNightKeys || []).length };
+      const parts = [loadedSentence("Fetched", summary)];
+      // The cap is a deliberate choice, but it should never look like the whole
+      // record. It used to say so by quoting iNaturalist's total — "the most
+      // recent 1,000 of 24,000" — which is a fact about the archive and not
+      // about what is now loaded. "Your cap" carries the same warning by
+      // construction: it says plainly that this is a slice.
+      if(capped) parts.push(`That is the most recent ${obs.length.toLocaleString()}, your cap — raise Cap for more.`);
+      if(loaded.replaced) parts.push(`${loaded.replaced.toLocaleString()} previously loaded observation${loaded.replaced === 1 ? " was" : "s were"} replaced.`);
       if(loaded.observers.length) parts.push(`Observers: ${loaded.observers.join(", ")}.`);
       if(state.nightKey) parts.push(`Showing ${state.nightKey} (${recordCount(state.nightObs.length)}); pick another date to hear it.`);
       parts.push("Riff window reset to 00:00–23:59 (Brisbane).");
-      // The cap is a deliberate choice, but it should never look like the whole record.
-      if(fetched.total && obs.length < fetched.total){
-        parts.push(`This is the most recent ${obs.length.toLocaleString()} of ${fetched.total.toLocaleString()} — raise Cap for more.`);
-      }
       if(fetched.error) parts.push(`Stopped early: ${fetched.error.message || fetched.error}. Records already fetched were kept.`);
       inatStatusEl.textContent = parts.join(" ");
 

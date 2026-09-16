@@ -279,6 +279,9 @@ test('the actual Fetch handler replaces, reframes and sequences the fetched nigh
   const keys=Array.from(c.state.nights.keys()).sort((a,b)=>(a<b?1:-1));
   if(!keys.includes(c.state.nightKey)) c.state.nightKey=keys[0]||'';
   c.state.nightObs=c.state.nights.get(c.state.nightKey)||[];
+  // The status line reports what the date list offers, so the stub must build
+  // that list with the real rule rather than leave it unset.
+  c.state.offeredNightKeys=c.offerableNightKeys(keys,c.state.nights,c.state.nightKey);
   c.state.sequencer=c.buildSequencer(c.state.nightObs);
  };
 
@@ -297,8 +300,72 @@ test('the actual Fetch handler replaces, reframes and sequences the fetched nigh
  const notes=c.state.sequencer.events.filter(e=>e.kind==='obs').length;
  assert.equal(notes,24,`the loop holds every record of the opening night (got ${notes})`);
  assert.equal(c.state.sequencer.meta.sharedMinutes.length,12);
- assert.match(status.textContent,/replacing the/);
+ // What is now loaded, then what it cost. Not the archive it came from.
+ assert.match(status.textContent,/^Fetched 25 observations across 2 nights\./);
+ assert.match(status.textContent,/previously loaded observations were replaced/);
+ assert.equal(/of 24,000|total_results|raise Cap for more/.test(status.textContent),false,
+  'an uncapped fetch quotes no archive total and offers no cap advice');
  assert.match(status.textContent,/Showing 2026-09-10 \(24 records\)/);
  assert.match(status.textContent,/Riff window reset/);
  assert.equal(els.inatFetchBtn.disabled,false,'the button is released again');
+});
+
+// The case Lily reported: a cap of 1,000 against an archive of 24,000. The old
+// line said "the most recent 1,000 of 24,000", which is true about iNaturalist
+// and says nothing about what is now loaded and playable.
+test('a capped fetch reports its own slice, never the archive behind it',async()=>{
+ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const start=html.indexOf('  const INAT_API = ');
+ const end=html.indexOf('\n  // ── Top up: add only what has happened since the loaded records end ──');
+ const c=loadApp();
+
+ const apiRow=(id,login,iso)=>({
+  id, uri:`https://www.inaturalist.org/observations/${id}`,
+  observed_on:iso.slice(0,10), time_observed_at:iso,
+  user:{login}, place_guess:'Mount Nebo, QLD', photos:[],
+  taxon:{id:1,name:'Nyctemera amicus',rank:'species',preferred_common_name:'Magpie Moth',
+         iconic_taxon_name:'Insecta',
+         ancestors:[{rank:'class',name:'Insecta'},{rank:'order',name:'Lepidoptera'},
+                    {rank:'family',name:'Erebidae'},{rank:'genus',name:'Nyctemera'}]}});
+ // Forty records over two nights; the cap stops the fetch at forty, and the
+ // archive claims twenty-four thousand more.
+ const results=[];
+ for(let i=0;i<20;i++){
+  results.push(apiRow(100+i,'lily_kumpe',`2026-09-10T03:${String(i).padStart(2,'0')}:00Z`));
+  results.push(apiRow(200+i,'lily_kumpe',`2026-09-09T03:${String(i).padStart(2,'0')}:00Z`));
+ }
+ const progress=[];
+ c.fetch=async(url)=>{return{ok:true,status:200,async json(){
+   return String(url).includes('/taxa')?{results:[]}
+     :{total_results:24000,total_pages:600,page:1,results};}};};
+ c.navigator={userAgent:'node',platform:'node',maxTouchPoints:0};
+ const status={get textContent(){return this._t||'';},set textContent(v){this._t=v;progress.push(v);}};
+ const els={inatUsers:{value:'lily_kumpe',addEventListener(){}},inatStatus:status,
+            inatFetchBtn:{disabled:false,addEventListener(t,fn){this._fn=fn;}},
+            inatTopUpBtn:{disabled:false,addEventListener(){}},
+            inatTotals:{textContent:''},inatCap:{value:'40'}};
+ c.document.getElementById=(id)=>els[id]||{addEventListener(){},style:{},value:'',textContent:''};
+ c.$=(id)=>c.document.getElementById(id);
+ c.clearSelection=()=>{};c.hardResetPlayback=()=>{};
+ c.rebuildDerived=()=>{
+  c.state.nights=c.groupByNight(c.state.obs);
+  const keys=Array.from(c.state.nights.keys()).sort((a,b)=>(a<b?1:-1));
+  if(!keys.includes(c.state.nightKey)) c.state.nightKey=keys[0]||'';
+  c.state.nightObs=c.state.nights.get(c.state.nightKey)||[];
+  c.state.offeredNightKeys=c.offerableNightKeys(keys,c.state.nights,c.state.nightKey);
+  c.state.sequencer=c.buildSequencer(c.state.nightObs);
+ };
+ vm.runInContext(html.slice(start,end),c);
+ await els.inatFetchBtn._fn();
+
+ const line=status.textContent;
+ assert.match(line,/^Fetched 40 observations across 2 nights\./,'what is now loaded');
+ assert.match(line,/That is the most recent 40, your cap — raise Cap for more\./,
+  'it still says plainly that this is a slice');
+ assert.equal(/24,000|24000/.test(line),false,'and never says how much more exists');
+ assert.equal(/of 24,000/.test(progress.join(' ')),false,
+  'nor does the line shown while it runs');
+ assert.ok(progress.some(p=>/of up to 40 observations/.test(p)),
+  'progress counts against the cap, which is what this fetch will return');
 });

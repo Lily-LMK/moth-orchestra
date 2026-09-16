@@ -29,6 +29,25 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 - The five-second near-simultaneous pulse was **removed** on 16 September 2026. iNaturalist stores minute precision and 97.7% of records carry `:00`, so it had collapsed onto the shared-minute rule: it fired on 311 of 311 shared minutes at exactly the bell's instant. It was also asymmetric — it paired each A record to its nearest B record, and A is whoever appears first in the file, so it fired on 25 minutes with one observer as A and would have fired on 103 different ones with the other.
 - Solo playback contains only that observer's notes, with no duet gestures. Switching players rebuilds sound, visual events and evidence together.
 
+## What a status line says
+
+> A status line reports what you now have and can play. Not the archive it came from, not what was skipped.
+
+Lily, 16 September 2026: *"It will claim to be returning 24,000 records even when I've set a cap of 1k. I'd like it to say the truth of what it is presenting and what it is fetching. I don't need a count of what was there and skipped."*
+
+Four lines described somewhere else, and **every word of all four was true**. `fetched.total` is iNaturalist's `total_results` — the whole matching archive — so a capped fetch reported "the most recent 1,000 of 24,000" and spent its entire run showing "412 of ~24,000" on its way to stopping at 1,000. The line above it said "across 428 nights" when the date list offered 144. A true sentence about the wrong subject is the same defect this project keeps finding in its sounds, wearing different clothes.
+
+All four now come from one function, `loadedSentence`, over one measurement, `loadedSummary`:
+
+> Fetched 1,000 observations across 59 nights. 16 dates are long enough to play. That is the most recent 1,000, your cap — raise Cap for more. Showing 2026-09-12 (35 records); pick another date to hear it. Riff window reset to 00:00–23:59 (Brisbane).
+
+- **The offered count comes from `offerableNightKeys`**, the same function that builds the date list, so the number in the sentence cannot drift from the list on screen. `rebuildDerived` now keeps what it built in `state.offeredNightKeys` instead of discarding it, which is the one structural change this needed.
+- **The cap still warns.** Removing the archive total removed the guard that stopped a capped fetch looking complete; "your cap" carries the same warning by construction, and is decided from the cap and the count rather than by asking the archive how much more of itself there is.
+- **Clauses that say nothing are not said.** The playable-dates clause is dropped when every night is offered, and dropped when the count is unknown — unknown is not zero, and a line reading "0 dates are long enough to play" over a working date list would be this same defect again.
+- **Rows your own file could not date are still reported**, but only when there were some. That is a fault in the import you just ran, not a count of an archive elsewhere, and a silent drop of half a dataset would be worse than a number nobody reads.
+
+`tests/status-truth.test.cjs` holds the composed strings, and `tests/fetch-replaces.test.cjs` drives the real Fetch button at a cap of 40 against a stubbed archive of 24,000 to prove neither the finished line nor the progress line mentions it. **The strings have not yet been read on screen** — the failure this fixes was a true sentence that told Lily the wrong thing, and only reading it catches the next one of those.
+
 ## Photographs
 
 **The instrument opens in the mode that plays without photographs**, so the
@@ -70,7 +89,7 @@ The threshold is one constant, `OFFERABLE_NIGHT_MIN_RECORDS`, and the rule is ap
 
 That last part is the intended effect rather than a price paid for it. The instrument is mostly used to hear the current or past week, and going further back is for recalling a night already known to be exceptional. A dozen wonderful nights is a better offering than years of unknown quality to scroll and guess at.
 
-Hidden is not deleted. The records stay loaded, grouped by night, counted and exportable; only the date list is shorter. Status lines still report the dataset's true size, so a fetch may say "across 428 nights" while the list offers 144.
+Hidden is not deleted. The records stay loaded, grouped by night, counted and exportable; only the date list is shorter — and since 17 September 2026 the status lines say so, naming both numbers: "across 428 nights. 144 dates are long enough to play." See "What a status line says" below.
 
 Two exceptions keep the rule from recreating the bug it was built after:
 
@@ -86,7 +105,7 @@ Measured once, so it is not re-guessed: a **time-spread** rule looks obviously n
 Three ways in, meant to be used together.
 
 - **Import CSV** replaces the loaded records with an iNaturalist export, resets the Riff window to 00:00–23:59 Brisbane and the year filter, and opens on a night that plays, so a new dataset never inherits the demo's framing.
-- **Fetch** pulls from the API for one or two usernames, newest first, up to **Cap**. The cap is a deliberate choice — lowering it to 1,000 is how you hear the current week rather than a whole history — so the status line reports the fetched count against the true total and never implies completeness. Like a CSV import and unlike a top-up, a fetch **replaces** what is loaded: it resets the Riff window and any year filter, and opens on a night that plays. Use Top up to extend instead.
+- **Fetch** pulls from the API for one or two usernames, newest first, up to **Cap**. The cap is a deliberate choice — lowering it to 1,000 is how you hear the current week rather than a whole history — so a capped fetch says "That is the most recent 1,000, your cap — raise Cap for more", which names it as a slice without quoting how much more exists. Like a CSV import and unlike a top-up, a fetch **replaces** what is loaded: it resets the Riff window and any year filter, and opens on a night that plays. Use Top up to extend instead.
 - **Top up** extends what is already loaded. It reads each observer's login from the records, finds how far that observer's data reaches, and fetches only from two days before that point. It is enabled only when the loaded records carry logins. It then moves to the newest night it **actually added** — you pressed it to see what arrived, and several hundred dates will not show you otherwise.
 
 A fetch must replace rather than merge, and the reason is the duet pair. A and B are the first two distinct observers in chronological order, and the API supplies a **login** where a CSV supplies a display name. Merging a September fetch into the January demo left A and B as the demo's two display names, so every fetched record failed `observerRole()` and was dropped before the sequencer: the dates appeared, the status line said success, and the loop was silent. A fetch does carry across the display name of a login already held, so `Import CSV` then `Fetch` still reads "Lily Kumpe" rather than "lily_kumpe". See `docs/SESSION-2026-09-16-FETCH.md`.

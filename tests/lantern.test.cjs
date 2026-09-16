@@ -156,8 +156,19 @@ for (const instrument of family) {
         c.scheduleInstrument(ctx, instrument, 11, frequency, 0.4);
         const frequencies = ctx.automation.filter(a => a.name === 'frequency').map(a => a.value);
         assert.ok(frequencies.every(f => f > 0 && f < sampleRate * 0.45));
-        if (frequency < sampleRate * 0.45) assert.ok(frequencies.includes(frequency), 'retains scored fundamental');
-        else assert.equal(ctx.nodes.filter(n => n.source).length, 0, 'out-of-band fundamentals are silent');
+        // Since 17 September 2026 each Lantern voice folds into its own
+        // register, so the sounding fundamental is the written pitch moved by
+        // whole octaves — the pitch class, not the octave, is what is
+        // preserved. An out-of-band written pitch is still refused outright,
+        // and is refused before folding so it cannot be folded into audibility.
+        if (frequency < sampleRate * 0.45) {
+          const sounding = c.voicedFreq(instrument, frequency);
+          assert.ok(frequencies.includes(sounding), 'retains the scored pitch class');
+          const octaves = Math.log2(sounding / frequency);
+          assert.ok(Math.abs(octaves - Math.round(octaves)) < 1e-9, 'moved by whole octaves');
+        } else {
+          assert.equal(ctx.nodes.filter(n => n.source).length, 0, 'out-of-band fundamentals are silent');
+        }
       }
     }
   });

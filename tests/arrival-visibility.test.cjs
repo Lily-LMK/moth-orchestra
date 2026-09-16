@@ -79,8 +79,10 @@ test('the import status names the counts, the chosen night and the window',()=>{
  const status={textContent:''};
  c.document.getElementById=()=>status;
  c.importCSVData(exportCsv()+'\n9999,Lily Kumpe,lily_kumpe,Test moth,2026-09-12,,Insecta,Lepidoptera,');
- assert.match(status.textContent,/48 observations imported/);
- assert.match(status.textContent,/1 omitted/);
+ // The line leads with what is now loaded and playable, not with what the
+ // file held and not with an archive elsewhere. See loadedSentence.
+ assert.match(status.textContent,/Imported 48 observations across \d+ nights/);
+ assert.match(status.textContent,/1 row had no usable observation time or date/);
  assert.match(status.textContent,/Showing 2026-09-12 \(24 records\)/);
  assert.match(status.textContent,/Riff window reset/);
 });
