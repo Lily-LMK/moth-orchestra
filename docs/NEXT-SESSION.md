@@ -10,29 +10,51 @@ family" onward concerns **instrument** families — voices. Unrelated work.
 
 ---
 
-## Standing state — 16 September 2026
+## Standing state — 16 September 2026, after the flourish release
 
 `main` is published at <https://lily-lmk.github.io/moth-orchestra/> and carries
-both the import repair and the night-display rules (`bd88553`). The deployed
-page is byte-identical to the file that passed the suite, verified by hash and
-loaded in a browser with no page errors.
+the restored synchrony gestures and the photograph work. Suite: **352 pass, 0
+fail**, 1 documented skip, 8 gap-remapping TODOs.
 
-Suite: **298 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs.
+Read [SESSION-2026-09-16-FLOURISHES.md](SESSION-2026-09-16-FLOURISHES.md) and
+[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md) first. The second is the
+inventory of every sound the instrument makes and is the page to keep current.
 
-Two pieces of work stand behind that number, neither heard — though neither
-touched a sound or score path:
+**Heard and accepted by Lily before release:** the echo, the photographs, the
+gallery, the left column.
 
-- The import repair, released. Fetch, Import CSV and Top up all reported
-  success and then showed something else.
-  [SESSION-2026-09-16-FETCH.md](SESSION-2026-09-16-FETCH.md),
-  [SESSION-2026-09-16-ARRIVALS.md](SESSION-2026-09-16-ARRIVALS.md).
-- The night-display rules, released.
-  [SESSION-2026-09-16-NIGHTS.md](SESSION-2026-09-16-NIGHTS.md).
+**Parked by Lily on first hearing:** the meeting, and the ground beneath it.
+Behind `DUET_GESTURES.meeting`, with tests. When it returns it needs a
+different *kind* of sound, not a quieter one.
 
-Both are recorded in the README. Outstanding on both: **no listening review and
-no real-device test.**
+**Still unheard:** `GROUND.mixes.gallery`, which needs a room. No real-device
+test of anything.
 
----
+### Ready and diagnosed, not built
+
+Both were named by Lily on 16 September and both have a measured cause:
+
+1. **Lantern Glass is too high pitched.** All four voices run to 988 Hz with
+   medians of 220-494 and none folds; `lantern_glass` has a partial at 4x the
+   fundamental, so a top note puts strong energy at 3,952 Hz with a 1.1 s
+   decay. Gondwana already solves this: per-voice `ceiling` plus whole-octave
+   folding in `gondwanaVoicing`, which preserves pitch class so the score is
+   untouched. Suggested ceilings: bloom 262, felt 330, reed 392, glass 494.
+2. **Frog Yawn needs work**, and one voice is measurably the problem. Three of
+   the four choir voices fold into a range — bass_voice 65-200, tenor 120-350,
+   alto 165-440. **Soprano does not fold at all**: median 440 Hz, maximum 988,
+   on 377 notes across 40 nights. In a four-part choir one singer is
+   unanchored, an octave above alto's ceiling.
+
+3. **The gallery family's floor** — the room generated from the night's own
+   shape — remains step 3 of [PLAN-NEXT-FAMILY.md](PLAN-NEXT-FAMILY.md). The
+   ground (step 2) is built but parked.
+
+4. **Part 2 of [PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md)** —
+   three status lines that describe an archive instead of what is loaded — is
+   still unbuilt and still fully specified.
+
+5. **The curated vernacular-name lookup**, below, is unchanged and ready.
 
 ## Done — rules for which nights are worth offering
 
@@ -270,8 +292,10 @@ Audition: `../../sessions/2026-09-13/gondwana-2/listen.html` — run
 `python3 serve.py` in that folder first. The first attempt is kept at
 `../../sessions/2026-09-13/gondwana/` for comparison.
 
-**Nothing has been judged by ear.** Gondwana stays in `WITHHELD_VOICE_MODES`
-alongside Noctilucent; no visitor can reach it. Two questions the measurements
+**Superseded — this paragraph described the state before release.** Gondwana
+left `WITHHELD_VOICE_MODES` on 14 September 2026, is published, and is Lily's
+favourite family. Noctilucent is the only withheld one. Kept only because the
+reasoning above it is the sharpest lesson in this repository. Two questions the measurements
 raise but cannot answer: whether this is a wise voice or merely a slower one,
 and whether `gond_rim` — the only light left on top, and among the quietest —
 survives the mass underneath.

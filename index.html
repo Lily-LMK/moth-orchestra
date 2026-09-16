@@ -1348,7 +1348,7 @@ input[type="range"]::-moz-range-thumb{
 
       <h2 class="grpTitle">View</h2>
       <div class="spec specSwitch"><span class="specK" id="nowCardLabel">Now playing card</span>
-        <button class="switch" id="nowCardToggle" type="button" role="switch" aria-checked="true" aria-labelledby="nowCardLabel"><i></i></button></div>
+        <button class="switch" id="nowCardToggle" type="button" role="switch" aria-checked="false" aria-labelledby="nowCardLabel"><i></i></button></div>
 
 
       <h2 class="grpTitle">Records</h2>
@@ -1781,11 +1781,169 @@ function parseCSV(text){
 }
 
 /** ------------------------------ Data model ------------------------------ */
+// What a record is called when nothing identified it. Named rather than
+// repeated, because the echo rule has to be able to refuse it: two
+// unidentified records are not two records of the same species.
+const UNKNOWN_TAXON = "Unknown taxon";
+/* ── Photographs ────────────────────────────────────────────────────────────
+   A photograph takes far longer to arrive than the note it belongs to lasts.
+   Measured against the real iNaturalist CDN and the busiest offered night:
+
+     medium.jpg   215 KB   1.90 s
+     small.jpg     42 KB   1.09 s
+     square.jpg    9.6 KB  0.93 s
+
+     136 records in a 19 s loop   ->  140 ms a note
+     100 records in a 10 s loop   ->  100 ms a note
+
+   So a photo assigned at the moment its note sounds arrives fourteen to
+   nineteen notes late, and the browser paints the PREVIOUS animal until it
+   does. That is why one species appeared to sound over and over: one
+   photograph was being held across fourteen different species.
+
+   Two rules come out of that, and the first matters more.
+
+   1. The card names a species beside its photograph. Showing a photo that
+      belongs to a different record is a false statement on screen, in an
+      instrument whose whole discipline is that derived data must be true.
+      **Never paint a photograph that does not belong to the record named.**
+      No photograph is honest; the wrong animal is not.
+
+   2. Ask for the size the surface actually shows. The thumbnail grid draws at
+      48-52 px and was downloading 500 px images: 29 MB a night where 1.3 MB
+      would do.
+
+   Size follows dwell time, not just pixel size. A photograph that flashes for
+   140 ms cannot be examined, so `small` is indistinguishable from `medium`
+   there and costs a fifth as much. `medium` is for a record that is being
+   held still and looked at. */
+const INAT_PHOTO_URL = /^(https?:\/\/[a-z0-9.-]*inaturalist[a-z0-9.-]*\/photos\/\d+\/)(square|small|medium|large|original)(\.[a-z0-9]+)(\?.*)?$/i;
+const PHOTO_SIZES = ["square", "small", "medium", "large", "original"];
+function photoUrlAt(url, size){
+  const raw = (url == null ? "" : String(url)).trim();
+  if(!raw || PHOTO_SIZES.indexOf(size) < 0) return raw;
+  const m = INAT_PHOTO_URL.exec(raw);
+  // A CSV may carry any URL at all. Anything not recognisably an iNaturalist
+  // photo path is left exactly as it was rather than guessed at.
+  return m ? m[1] + size + m[3] + (m[4] || "") : raw;
+}
+// Which variant a surface of this many CSS pixels should request. The gallery
+// computes its own thumb size and goes as high as 120 px in fullscreen, so
+// this cannot be a constant per surface.
+function photoSizeForPx(px){
+  const n = Number(px);
+  if(!Number.isFinite(n) || n <= 0) return "square";
+  if(n <= 75) return "square";
+  if(n <= 240) return "small";
+  return "medium";
+}
+
+// url -> "pending" | "ready" | "failed". Shared across nights so moving back
+// to a night already seen is instant, and capped so an unattended gallery
+// running for a week does not grow without bound.
+const PHOTO_CACHE_MAX = 800;
+const photoCache = new Map();
+function photoState(url){ return photoCache.get(url) || ""; }
+function photoIsReady(url){ return photoCache.get(url) === "ready"; }
+function notePhoto(url, status){
+  if(photoCache.has(url)) photoCache.delete(url);
+  photoCache.set(url, status);
+  while(photoCache.size > PHOTO_CACHE_MAX){
+    const oldest = photoCache.keys().next();
+    if(oldest.done) break;
+    photoCache.delete(oldest.value);
+  }
+}
+
+// One preload run at a time. Changing night abandons the previous queue rather
+// than letting a scrub through dates stack thousands of requests.
+let _photoRun = 0;
+let _photoProgress = { ready: 0, total: 0, done: true };
+function photoProgress(){ return { ..._photoProgress }; }
+// "Preparing photographs, 64 of 136" — or null when there is nothing to say.
+function photoStatusText(){
+  const p = _photoProgress;
+  if(p.done || !p.total || p.ready >= p.total) return null;
+  return `Preparing photographs, ${p.ready.toLocaleString()} of ${p.total.toLocaleString()}`;
+}
+function cancelPhotoPreload(){ _photoRun++; _photoProgress = { ready:0, total:0, done:true }; }
+
+// Fetch and DECODE, with a bounded number in flight. Decode rather than load:
+// decode is the one that promises the frame can be painted on the next tick,
+// which is the actual requirement here.
+function preloadPhotos(urls, opts){
+  const options = opts || {};
+  const concurrency = options.concurrency || 6;
+  const run = ++_photoRun;
+  const list = [];
+  const seen = new Set();
+  for(const u of (urls || [])){
+    const url = (u == null ? "" : String(u)).trim();
+    if(!url || seen.has(url)) continue;
+    seen.add(url);
+    if(photoCache.get(url) === "ready") continue;   // already held
+    list.push(url);
+  }
+  const already = seen.size - list.length;
+  _photoProgress = { ready: already, total: seen.size, done: list.length === 0 };
+  if(options.onProgress) options.onProgress(photoProgress());
+  if(!list.length || typeof Image !== "function"){
+    _photoProgress.done = true;
+    return Promise.resolve(photoProgress());
+  }
+  let next = 0;
+  const one = (url) => new Promise((resolve)=>{
+    notePhoto(url, "pending");
+    const img = new Image();
+    // The photographs are public and cross-origin; nothing is read back from
+    // them, so no crossOrigin attribute is wanted (it would only add a CORS
+    // preflight that S3 need not answer).
+    const settle = (status)=>{
+      if(run !== _photoRun) return resolve();   // this night was abandoned
+      notePhoto(url, status);
+      _photoProgress.ready += 1;
+      if(options.onProgress) options.onProgress(photoProgress());
+      resolve();
+    };
+    img.onload = ()=>{
+      if(img.decode) img.decode().then(()=>settle("ready"), ()=>settle("ready"));
+      else settle("ready");
+    };
+    img.onerror = ()=> settle("failed");
+    img.src = url;
+  });
+  const worker = async ()=>{
+    while(run === _photoRun && next < list.length){
+      await one(list[next++]);
+    }
+  };
+  const crew = [];
+  for(let i = 0; i < Math.min(concurrency, list.length); i++) crew.push(worker());
+  return Promise.all(crew).then(()=>{
+    if(run === _photoRun) _photoProgress.done = true;
+    return photoProgress();
+  });
+}
+
+// Every photograph a night will want, at the sizes the surfaces will ask for.
+// The flashing card takes `small`: it is on screen for a seventh of a second.
+function nightPhotoUrls(nightObs, thumbPx){
+  const size = photoSizeForPx(thumbPx);
+  const out = [];
+  for(const o of (nightObs || [])){
+    const raw = (o && o.imageUrl) ? String(o.imageUrl).trim() : "";
+    if(!raw) continue;
+    out.push(photoUrlAt(raw, size));
+    out.push(photoUrlAt(raw, "small"));
+  }
+  return out;
+}
+
 function rowToObs(r){
   const t = parseINatTime(r.time_observed_at);
   const observedOn = safeStr(r.observed_on) || (t ? localDateKey(t) : "");
   const nightKey = observedOn;
-  const taxon = safeStr(r.scientific_name) || safeStr(r.species_guess) || safeStr(r.common_name) || "Unknown taxon";
+  const taxon = safeStr(r.scientific_name) || safeStr(r.species_guess) || safeStr(r.common_name) || UNKNOWN_TAXON;
   const order = safeStr(r.taxon_order_name) || safeStr(r.iconic_taxon_name) || "Unknown";
   const family = safeStr(r.taxon_family_name) || "";
   const imageUrl = safeStr(r.image_url);
@@ -3903,10 +4061,137 @@ function scheduleGondwanaEvent(ctx, event, when, velocity, cycle, out){
   }
 }
 
+// ── The ground ──────────────────────────────────────────────────────────────
+// The stratum that makes the meeting something you feel rather than hear.
+//
+// It fires once a night, on the first genuine shared minute. A long swell in
+// the register below the instrument, arriving as a pressure change rather than
+// a thump: attack measured in hundreds of milliseconds, not milliseconds.
+//
+// Three rules from the design plan, all load-bearing:
+//
+//  1. It gets its own bus and its own limiter, exactly as the ambience bus
+//     does. The mix has about three decibels of margin and no master limiter,
+//     and fitting one would compress the dynamic range that makes Gondwana's
+//     quiet arrivals quiet — which would mean re-accepting every family by
+//     ear. Containing the new risk to the new thing costs nothing and leaves
+//     the six published families bit-for-bit unchanged.
+//  2. Every room-dependent quantity is a named parameter here, not a constant
+//     buried in the synthesis. An afternoon in the gallery should be an
+//     afternoon of turning these numbers, saved as a preset.
+//  3. It carries an audible mid-register companion. Forty hertz does not exist
+//     on a phone or a laptop, and the moment must not be silent on the devices
+//     Lily can actually judge it on. Personal leads with the companion;
+//     Gallery leads with the sub.
+//
+// It bypasses the master delay deliberately: a sub in a reverb is mud, and the
+// gesture wants to be felt as a single body of air moving, not smeared.
+const GROUND_CEILING_HZ = 46;
+const GROUND = {
+  // "personal" — headphones and laptops, the only case that can be judged now.
+  // "gallery"  — full sub extension. Built, measured, and unheard until a room.
+  mix: "personal",
+  // How hard the gesture is struck, before any mix is applied. This and
+  // `level` are the two numbers to turn first in a room. Unjudged by ear.
+  eventVelocity: 0.55,
+  level: 0.62,
+  // The swell. Pressure, not impact — and it begins *before* the shared minute
+  // so that it crests on it. That offset is the attack itself rather than a
+  // second number: two numbers drift apart, and a preroll that no longer
+  // matches the attack pushes the gesture off the moment it exists to mark.
+  attackSec: 0.55,
+  decaySec: 3.40,
+  limiterThresholdDb: -10,
+  companion: { ratio: 8, level: 0.34, attackSec: 0.22, decaySec: 1.70 },
+  // Gondwana is the patient family and asks for a longer arrival.
+  gondwana: { attackSec: 0.78, decaySec: 5.20, level: 0.66 },
+  mixes: {
+    personal: { sub: 0.38, companion: 1.00, highpassHz: 44 },
+    gallery:  { sub: 1.00, companion: 0.55, highpassHz: 0 }
+  }
+};
+// One bus per audio context, so an offline render builds its own chain and the
+// live one survives a hard reset that nulls the master.
+const _groundBuses = new WeakMap();
+function groundBus(ctx){
+  const held = _groundBuses.get(ctx);
+  if(held) return held;
+  const bus = ctx.createGain();
+  bus.gain.value = 1.0;
+  let tail = bus;
+  if(ctx.createDynamicsCompressor){
+    const lim = ctx.createDynamicsCompressor();
+    lim.threshold.value = GROUND.limiterThresholdDb;
+    lim.knee.value = 6;
+    lim.ratio.value = 12;
+    lim.attack.value = 0.02;
+    lim.release.value = 0.35;
+    bus.connect(lim);
+    tail = lim;
+  }
+  tail.connect(ctx.destination);
+  _groundBuses.set(ctx, bus);
+  return bus;
+}
+function scheduleGround(ctx, instrument, when, freq, velocity){
+  if(instrument !== "ground" && instrument !== "gond_ground") return false;
+  // A handled but silent request must not allocate or connect an audio graph.
+  if(!Number.isFinite(freq) || freq <= 0 || !Number.isFinite(velocity) || velocity <= 0 ||
+     !Number.isFinite(when) || !ctx || !Number.isFinite(ctx.sampleRate)) return true;
+  const shape = instrument === "gond_ground" ? { ...GROUND, ...GROUND.gondwana } : GROUND;
+  const mix = GROUND.mixes[GROUND.mix] || GROUND.mixes.personal;
+  // Every voice crests on the shared minute. Each one therefore starts an
+  // attack ahead of it — and where the loop begins on the gesture there is no
+  // room to do so, in which case it simply starts now and arrives late.
+  const peak = Math.max(when, ctx.currentTime + 0.002);
+  const level = Math.min(1, velocity) * shape.level;
+  const out = groundBus(ctx);
+  const temporary = [];
+
+  const voice = (hz, amp, attack, decay, highpassHz) => {
+    if(!(hz > 0) || hz >= ctx.sampleRate*0.45 || !(amp > 0)) return;
+    const begin = Math.max(peak - attack, ctx.currentTime + 0.002);
+    const osc = ctx.createOscillator(); osc.type = "sine";
+    osc.frequency.setValueAtTime(hz, begin);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, begin);
+    // Linear up, exponential down: a swell that arrives, then a body of air
+    // losing energy. An exponential rise would read as a fade-in.
+    env.gain.linearRampToValueAtTime(amp, begin + attack);
+    env.gain.exponentialRampToValueAtTime(0.0001, begin + attack + decay);
+    let node = env;
+    if(highpassHz > 0){
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.setValueAtTime(highpassHz, begin);
+      hp.Q.setValueAtTime(0.5, begin);
+      env.connect(hp); node = hp; temporary.push(hp);
+    }
+    osc.connect(env); node.connect(out);
+    osc.start(begin);
+    osc.stop(begin + attack + decay + 0.10);
+    osc.onended = ()=>{ try{ osc.disconnect(); env.disconnect(); for(const n of temporary) n.disconnect(); }catch(_){ } };
+    temporary.push(env);
+  };
+
+  // The sub itself, and a weak octave above it that gives the swell an edge
+  // on speakers that only just reach it.
+  voice(freq, level*mix.sub, shape.attackSec, shape.decaySec, mix.highpassHz);
+  voice(freq*2, level*mix.sub*0.22, shape.attackSec*0.85, shape.decaySec*0.75, mix.highpassHz);
+  // The companion: the same note, three octaves up, so the moment exists on a
+  // phone. It is the part Lily can judge today.
+  const c = GROUND.companion;
+  voice(freq*c.ratio, level*c.level*mix.companion, c.attackSec, c.decaySec, 0);
+  return true;
+}
+
 function scheduleInstrument(ctx, instrument, when, freq, velocity){
   // Guard: never schedule in the past (causes RangeError on AudioParam)
   if(when < ctx.currentTime) when = ctx.currentTime + 0.002;
   const out = masterGain || ctx.destination;
+  // The ground has its own bus and its own limiter, so it is routed before the
+  // families and never touches the master chain they share.
+  if(scheduleGround(ctx, instrument, when, freq, velocity)) return;
   if(scheduleGondwana(ctx, instrument, when, freq, velocity, out)) return;
   if(scheduleNoctilucent(ctx, instrument, when, freq, velocity, out)) return;
   const g = ctx.createGain();
@@ -5053,7 +5338,6 @@ const state = {
   voiceMode: "mixed",
   userAName: "",
   userBName: "",
-  duetSyncWindowSec: 5,
   riffStartMin: 19*60,
   riffEndMin: 20*60+40,
   loopLen: 19,
@@ -5076,7 +5360,7 @@ const state = {
   // derived
   nightObs: [],
   availableOrders: [],
-  sequencer: { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], countsByTaxon:new Map(), countsByVoice:new Map() } },
+  sequencer: { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], countsByTaxon:new Map(), countsByVoice:new Map() } },
   // playback
   perfStart: 0,
   lastPlayhead: 0,
@@ -5084,7 +5368,13 @@ const state = {
   // visual
   visNextIndex: 0,
   sharedPulses: [],
-  hideNowCard: false,
+  // Lily, 16 September 2026: the instrument should open in the mode that plays
+  // without photographs, so the first press of Play is instant and nothing
+  // waits on a network. The Now playing card is the only photo surface in the
+  // circle view — the gallery already starts collapsed — so turning it off by
+  // default means the opening state requests no images at all, and the night's
+  // photographs preload quietly behind it. View > Now playing card, or C.
+  hideNowCard: true,
   visLastFrameMs: 0,
   particles: [],
   callouts: [],
@@ -5099,6 +5389,29 @@ const state = {
 };
 
 /** ------------------------------ Sequencer build ------------------------------ */
+// Begin the night's photographs. Idempotent: a night already held finishes
+// immediately and says nothing.
+let _photoNightKey = null;
+function startNightPhotoPreload(nightObs){
+  const key = `${state.nightKey}::${(nightObs || []).length}`;
+  if(key === _photoNightKey && photoProgress().done){ refreshPhotoStatus(); return; }
+  _photoNightKey = key;
+  cancelPhotoPreload();
+  preloadPhotos(nightPhotoUrls(nightObs, currentThumbPx()), {
+    onProgress: refreshPhotoStatus
+  }).then(refreshPhotoStatus);
+  refreshPhotoStatus();
+}
+// The gallery counter is where you look when you have just opened the gallery
+// and the tiles are still blank, so it carries the progress while there is any.
+function refreshPhotoStatus(){
+  if(typeof $ !== "function") return;
+  const el = $("thumbCount");
+  if(!el) return;
+  const text = photoStatusText();
+  el.textContent = text ? text : String((state.nightObs || []).length || 0);
+}
+
 function rebuildDerived(){
   // Determine the first two observers in the file (User_A / User_B convention).
   const pair = computeDuetUsers(state.obs);
@@ -5150,6 +5463,9 @@ function rebuildDerived(){
   state.nightObs = base;
 
   state.sequencer = buildSequencer(base);
+  // The night's photographs begin arriving now, quietly, while the instrument
+  // plays without them. Changing night abandons the previous queue.
+  startNightPhotoPreload(base);
   if(window._mothSetRiffWindowFromNight) window._mothSetRiffWindowFromNight();
   updateStats(base.length);
   renderThumbPanel(base);
@@ -5163,7 +5479,7 @@ const thumbEls = new Map();
 function renderThumbPanel(nightObs){
   const grid = $("thumbGrid");
   const empty = $("thumbEmpty");
-  $("thumbCount").textContent = String(nightObs.length || 0);
+  refreshPhotoStatus();
 
   // Duet legend (subtle)
   const legend = $("userLegend");
@@ -5221,7 +5537,10 @@ function renderThumbPanel(nightObs){
     b.setAttribute("aria-label", label);
 
     if(o.imageUrl){
-      const u = String(o.imageUrl).replace(/"/g, "%22");
+      // The grid draws at 48-52 px in the sidebar and computes its own size in
+      // fullscreen, so the variant follows the measured tile rather than being
+      // fixed. This alone is 29 MB down to 1.3 MB on the busiest night.
+      const u = photoUrlAt(o.imageUrl, photoSizeForPx(currentThumbPx())).replace(/"/g, "%22");
       b.style.backgroundImage = `url("${u}")`;
     } else {
       b.style.backgroundImage = "radial-gradient(circle at 30% 30%, rgba(255,255,255,.10), rgba(255,255,255,.02))";
@@ -5338,6 +5657,7 @@ function autoSizeGallery(){
     }
   }
 
+  _thumbPx = best;
   grid.style.setProperty("--fs-thumb-size", best + "px");
   grid.style.setProperty("--fs-thumb-gap", Math.max(6, Math.min(gap, best * 0.12)).toFixed(0) + "px");
 
@@ -5374,6 +5694,11 @@ function autoSizeWordCloud(){
     cloud.style.transform = `scale(${Math.max(0.25, scale).toFixed(3)})`;
   });
 }
+
+// The tile size the gallery last computed. 52 px is the sidebar grid's own
+// CSS minimum, which is what is drawn until fullscreen measures itself.
+let _thumbPx = 52;
+function currentThumbPx(){ return _thumbPx; }
 
 function applyGalleryCollapse(){
   const panel = document.querySelector(".photoPanel");
@@ -5445,9 +5770,10 @@ function renderSharedMinute(box, e, nowMs){
 
   const setSide = (imgId, whoId, taxonId, o) => {
     const img = $(imgId), who = $(whoId), taxon = $(taxonId);
-    const url = (o && o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+    const raw = (o && o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+    const url = raw ? photoUrlAt(raw, "small") : "";
     if(img){
-      if(url){ img.src = url; img.onerror = ()=> img.removeAttribute("src"); }
+      if(url && photoIsReady(url)){ img.src = url; img.onerror = ()=> img.removeAttribute("src"); }
       else img.removeAttribute("src");
     }
     if(who) who.textContent = (o && o.userName) || "";
@@ -5516,15 +5842,21 @@ function updateSelectionOverlay(e){
   $("selSub").textContent = `observed ${count}×`;
 
   const img = $("selImg");
-  const url = (o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
-  box.classList.toggle("noPhoto", !url);
+  const raw = (o.imageUrl && String(o.imageUrl).trim()) ? String(o.imageUrl).trim() : "";
+  // A record flashes past in about a seventh of a second, which is far too
+  // brief to examine, so the flashing card takes `small`. `medium` is for a
+  // record held still, which is not this.
+  const url = raw ? photoUrlAt(raw, "small") : "";
+  // Read from what has been preloaded, never straight from the network. An
+  // unloaded photo shows an empty frame; the browser would otherwise keep
+  // painting the PREVIOUS record's animal beside this record's name, which is
+  // a false statement about the data and the defect this replaces.
+  const have = url && photoIsReady(url);
+  box.classList.toggle("noPhoto", !have);
   if(img){
-    if(url){
+    if(have){
       img.src = url;
-      // A broken or unreachable photo collapses the frame rather than leaving a
-      // grey slab where the animal should be.
       img.onerror = ()=>{ img.removeAttribute("src"); box.classList.add("noPhoto"); };
-      img.onload = ()=>{ box.classList.remove("noPhoto"); };
     } else {
       img.removeAttribute("src");
     }
@@ -5543,7 +5875,7 @@ async function auditionEvent(e){
     const ctx = await ensureAudio();
     const when = ctx.currentTime + 0.015;
     const dens = (e.density != null) ? e.density : 1;
-    const velBase = e.isSpecial ? (e.velocity ?? (e.kind==="duet_sync" || e.kind==="accompaniment" ? 0.26 : 0.20)) : clamp(0.18 + 0.12*Math.log2(dens), 0.14, 0.75);
+    const velBase = e.isSpecial ? (e.velocity ?? (e.kind==="accompaniment" ? 0.26 : 0.20)) : clamp(0.18 + 0.12*Math.log2(dens), 0.14, 0.75);
     const vel = velBase * clamp(state.volume, 0, 1);
     scheduleInstrument(ctx, e.instrument, when, e.freq, vel);
   }catch(err){
@@ -6049,6 +6381,91 @@ function matchTime(match){
   return Math.min(...match.observations.A.concat(match.observations.B).map(o=>o.t.getTime()));
 }
 
+// ── The echo ────────────────────────────────────────────────────────────────
+// The same taxon, recorded by both observers, close in time.
+//
+// This replaces the five-second pulse, which could not survive the data:
+// iNaturalist stores minute precision, every record carries :00 seconds, and
+// the pulse ended up firing on 311 of 311 shared minutes at exactly the bell's
+// instant. It had stopped being an event at all.
+//
+// This rule asks a question the data can still answer at minute resolution:
+// did both of them find the same creature? Measured on the two-backyards
+// export, it never happens inside a single minute (0 of 311 shared minutes),
+// but it happens 35 times within thirty minutes, across 21 of the 71 nights
+// both observers worked. Rare, symmetric between observers, and a statement
+// about the forest rather than about the order of rows in a file.
+//
+// It adds no note. Two records of one taxon already sound at one pitch on one
+// instrument — true of all 55 such pairs in the export — so the answer is
+// already in the score. The gesture only marks it, so it can be heard.
+//
+// One per taxon per night: a moth both of them recorded five times is one
+// coincidence, not twenty-five.
+// Parked by Lily, 16 September 2026, on first hearing.
+//
+// Her judgement: "It's too strong, and an effect that only happens a single
+// time in a loop needs to certainly sound different than that."
+//
+// Both halves of that matter, and the second is the harder one. Level is a
+// number and can be turned. Character is not: a gesture that fires once in a
+// nineteen-second loop is heard against nothing, so it cannot be a bigger
+// version of an ordinary sound — it has to be a different KIND of sound, or it
+// reads as an intrusion rather than as a moment. The ground as built is a
+// louder, lower swell, which is exactly the shape she is rejecting.
+//
+// The rule, the evidence and the synthesis are all kept and still tested; only
+// the event is withheld, so nothing sounds. Set `meeting: true` to hear it
+// again. The echo is unaffected — she accepted it.
+const DUET_GESTURES = { meeting: false, echo: true };
+
+const DUET_ECHO_WINDOW_MIN = 30;
+function findDuetEchoes(obs){
+  if(state.listenMode !== "both" || !state.userAName || !state.userBName || state.userAName === state.userBName) return [];
+  const byTaxon = new Map();
+  for(const o of obs || []){
+    const role = observerRole(o);
+    if(!role || !o.t || !Number.isFinite(o.t.getTime())) continue;
+    const taxon = (o.taxon == null ? "" : String(o.taxon)).trim();
+    // Two unidentified records are not two records of one species. Without
+    // this they would share the "Unknown taxon" placeholder and the instrument
+    // would claim a coincidence that nobody observed.
+    if(!taxon || taxon === UNKNOWN_TAXON) continue;
+    if(!byTaxon.has(taxon)) byTaxon.set(taxon, {A:[], B:[]});
+    const side = byTaxon.get(taxon)[role];
+    if(!side.some(existing=>existing.id === o.id)) side.push(o);
+  }
+  const limitMs = DUET_ECHO_WINDOW_MIN*60000;
+  const out = [];
+  for(const [taxon, sides] of byTaxon){
+    if(!sides.A.length || !sides.B.length) continue;
+    // The closest crossing of the two observers on this taxon. Ties are broken
+    // on time and then on observation id, so the result never depends on the
+    // order rows arrived in.
+    let best = null;
+    for(const a of sides.A) for(const b of sides.B){
+      const gap = Math.abs(a.t.getTime() - b.t.getTime());
+      if(gap > limitMs) continue;
+      if(best && gap >= best.gap) continue;
+      best = { a, b, gap };
+    }
+    if(!best) continue;
+    // Whoever recorded it first calls; the other answers. Where the times are
+    // identical the id decides, so that swapping which observer is A changes
+    // nothing — the failure of the rule this one replaces.
+    const at = best.a.t.getTime(), bt = best.b.t.getTime();
+    const aFirst = at !== bt ? at < bt : String(best.a.id) < String(best.b.id);
+    out.push({
+      taxon,
+      call: aFirst ? best.a : best.b,
+      answer: aFirst ? best.b : best.a,
+      gapSec: best.gap/1000
+    });
+  }
+  out.sort((x,y)=> x.call.t.getTime() - y.call.t.getTime() || (x.taxon < y.taxon ? -1 : x.taxon > y.taxon ? 1 : 0));
+  return out;
+}
+
 function buildSongEvents(nightObs, countsByTaxon){
   const eventByObsId = new Map();
   if(!nightObs || !nightObs.length) return { events:[], eventByObsId };
@@ -6318,10 +6735,10 @@ function buildSequencer(nightObs){
   }
 
   if(mode !== "song" && !obsForTimeline.length){
-    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
+    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
   }
   if(mode === "song" && !nightObs.length){
-    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
+    return { events: [], meta: { start:null, end:null, spanSec:1, orderList:[], voiceList:[], sharedMinutes:[], duetEchoes:[], countsByTaxon:new Map(), countsByVoice:new Map() } };
   }
 
   // "Song" mode uses the whole night's palette; timeline/riff use obsForTimeline.
@@ -6349,7 +6766,7 @@ function buildSequencer(nightObs){
 if(mode === "song"){
     // "Song" mode: ignore timestamps; turn the night's available notes into an intentional melodic loop.
     const built = buildSongEvents(nightObs, countsByTaxon);
-    return { events: built.events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId: built.eventByObsId, sharedMinutes:built.sharedMinutes || [] } };
+    return { events: built.events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId: built.eventByObsId, sharedMinutes:built.sharedMinutes || [], duetEchoes:built.duetEchoes || [] } };
   }
 
   const events = [];
@@ -6391,6 +6808,7 @@ const user = observerRole(o);
   // - Shared-minute flourish: one gentle bell accent per minute where both users recorded.
   // - Near-simultaneous pulse: a warm pad hit when records fall within a few seconds.
   const sharedMinutes = findSharedMinutes(baseObs);
+  const duetEchoes = [];
   if(state.listenMode === "both" && state.userAName && state.userBName && state.userAName !== state.userBName){
     for(const match of sharedMinutes){
       const atSec = clamp((matchTime(match)-startMs)/1000/spanSec*state.loopLen, 0, state.loopLen);
@@ -6417,50 +6835,61 @@ const user = observerRole(o);
         });
     }
 
-    // Near-simultaneous pulses (within N seconds)
-    const win = clamp(state.duetSyncWindowSec || 5, 1, 15);
-    const A = events.filter(e=>!e.isEcho && !e.isSpecial && e.user==="A").slice().sort((a,b)=>a.obs.t-b.obs.t);
-    const B = events.filter(e=>!e.isEcho && !e.isSpecial && e.user==="B").slice().sort((a,b)=>a.obs.t-b.obs.t);
-    let j = 0;
-    const used = new Set(); // de-dupe by original observation pair
-    for(let i=0;i<A.length;i++){
-      const a = A[i];
-      while(j < B.length && B[j].obs.t.getTime() < a.obs.t.getTime() - win*1000) j++;
-      let best = null, bestD = Infinity;
-      for(let k=j;k<B.length;k++){
-        const b = B[k];
-        const d = Math.abs(b.obs.t.getTime() - a.obs.t.getTime())/1000;
-        if(d > win) break;
-        if(d < bestD){ bestD = d; best = b; }
-      }
-      if(best){
-        const at = (a.atSec + best.atSec)/2;
-        const bucket = `${a.obs.id}::${best.obs.id}`; // evidence, independent of loop length
-        if(used.has(bucket)) continue;
-        used.add(bucket);
+    // ── The meeting ───────────────────────────────────────────────────────
+    // The first shared minute of the night, marked once. It is the moment the
+    // duet begins: before it there are two people recording near each other,
+    // after it there is a night they worked together.
+    //
+    // Exactly one per duet night, and it never replaces the bell it marks —
+    // the shared-minute composite Lily accepted is untouched by this.
+    //
+    // Authored emphasis on real evidence. It fires only on a genuine shared
+    // minute and carries that minute's observations, so the body-felt cue —
+    // the most persuasive signal in the piece — can never mark something that
+    // did not happen.
+    if(DUET_GESTURES.meeting && sharedMinutes.length){
+      const first = sharedMinutes[0];
+      const pitch = pickPitch({ taxon:"Duet Minute", voiceKey:"Duet", order:"Duet", seed:state.seed, key:state.keyName, scaleName:state.scaleName });
+      // The bell's own note, carried down by whole octaves into the register
+      // you feel rather than hear. Same pitch class, so it agrees with the
+      // bell sounding above it.
+      let groundMidi = pitch.midi - 12;
+      while(midiToFreq(groundMidi) > GROUND_CEILING_HZ) groundMidi -= 12;
+      events.push({
+        kind:"duet_meeting",
+        match:first,
+        isSpecial:true,
+        user:"AB",
+        userName:"",
+        obs:null,
+        atSec: clamp((matchTime(first)-startMs)/1000/spanSec*state.loopLen, 0, state.loopLen),
+        taxon:"The meeting",
+        order:"__DUET__",
+        family:"",
+        voiceKey:"__DUET__",
+        voiceLabel:"The meeting",
+        instrument: state.voiceMode === "gondwana" ? "gond_ground" : "ground",
+        velocity: GROUND.eventVelocity,
+        midi:groundMidi,
+        freq:midiToFreq(groundMidi),
+        density: 1,
+        color:"rgba(70,194,210,0.90)",
+        isEcho:false
+      });
+    }
 
-        const pitch = pickPitch({ taxon:"Duet Pulse", voiceKey:"Duet", order:"Duet", seed:state.seed ^ 0xA5A5A5A5, key:state.keyName, scaleName:state.scaleName });
-        events.push({
-          kind:"duet_sync",
-          match:{minuteKey:Math.floor(a.obs.t.getTime()/60000), observations:{A:[a.obs],B:[best.obs]}},
-          isSpecial:true,
-          user:"AB",
-          userName:"",
-          obs:null,
-          atSec: clamp(at, 0, state.loopLen),
-          taxon:"Co-presence",
-          order:"__DUET__",
-          family:"",
-          voiceKey:"__DUET__",
-          voiceLabel:"Synchrony",
-          instrument: state.voiceMode === "gondwana" ? "gond_sync" : state.voiceMode === "choir" ? "choir_chord" : "pad",
-          midi:pitch.midi,
-          freq:midiToFreq(pitch.midi - 12),
-          density: 1,
-          color:"rgba(255,210,175,0.92)",
-          isEcho:false
-        });
-      }
+    // ── The echo ──────────────────────────────────────────────────────────
+    // Both of them found the same creature tonight. The two notes are already
+    // the same pitch on the same instrument, because pitch and instrument are
+    // derived from the taxon — so this marks notes rather than adding them.
+    // Nothing here changes the number of notes in the score.
+    for(const echo of (DUET_GESTURES.echo ? findDuetEchoes(baseObs) : [])){
+      const call = eventByObsId.get(echo.call.id);
+      const answer = eventByObsId.get(echo.answer.id);
+      if(!call || !answer) continue;
+      call.duetEcho   = { role:"call",   taxon:echo.taxon, partnerId:echo.answer.id, gapSec:echo.gapSec };
+      answer.duetEcho = { role:"answer", taxon:echo.taxon, partnerId:echo.call.id,   gapSec:echo.gapSec };
+      duetEchoes.push(echo);
     }
   }
 
@@ -6472,7 +6901,7 @@ const user = observerRole(o);
   }
 
   events.sort((a,b)=>a.atSec-b.atSec);
-  return { events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId, sharedMinutes } };
+  return { events, meta:{ start, end, spanSec, orderList, voiceList, countsByTaxon, countsByVoice, eventByObsId, sharedMinutes, duetEchoes } };
 }
 
 /** ------------------------------ UI population ------------------------------ */
@@ -6763,7 +7192,7 @@ if(state.listenMode !== "both" && e.isSpecial){
       // quiet arrivals have to be genuinely quiet, or the silence around them
       // reads as a gap rather than as space.
       const velBase = e.isSpecial
-        ? (e.velocity ?? (e.kind==="duet_sync" || e.kind==="accompaniment" ? 0.26 : 0.20))
+        ? (e.velocity ?? (e.kind==="accompaniment" ? 0.26 : 0.20))
         : (state.voiceMode === "gondwana"
             ? clamp(0.11 + 0.19*Math.log2(e.density), 0.10, 0.88)
             : clamp(0.15 + 0.12*Math.log2(e.density), 0.12, 0.65));
@@ -6812,6 +7241,9 @@ function rebuildSequencerOnly(){
   state.availableVoices = Array.from(vset).sort();
 
   state.sequencer = buildSequencer(base);
+  // The night's photographs begin arriving now, quietly, while the instrument
+  // plays without them. Changing night abandons the previous queue.
+  startNightPhotoPreload(base);
   if(window._mothSetRiffWindowFromNight) window._mothSetRiffWindowFromNight();
   updateStats(base.length);
   buildWordCloud(base);
@@ -7233,14 +7665,16 @@ function drawFrame(){
     ctx.save();
     for(let i=state.sharedPulses.length-1;i>=0;i--){
       const pz = state.sharedPulses[i];
-      const age = (tNow - pz.t0)/1500;
+      // The meeting reaches further and takes longer, because that is what it
+      // sounds like. Every other pulse keeps the ring it has always had.
+      const age = (tNow - pz.t0)/(pz.lifeMs || 1500);
       if(age >= 1){ state.sharedPulses.splice(i,1); continue; }
       const ease = 1 - Math.pow(1-age, 3);
-      ctx.globalAlpha = (1-age)*0.5;
+      ctx.globalAlpha = (1-age)*(pz.strength || 0.5);
       ctx.strokeStyle = pz.color || "rgba(255,255,255,.8)";
-      ctx.lineWidth = (1.8*(1-age)+0.4)*dpr;
+      ctx.lineWidth = ((pz.weight || 1.8)*(1-age)+0.4)*dpr;
       ctx.beginPath();
-      ctx.arc(pz.x, pz.y, (6 + ease*46)*dpr, 0, Math.PI*2);
+      ctx.arc(pz.x, pz.y, (6 + ease*(pz.reach || 46))*dpr, 0, Math.PI*2);
       ctx.stroke();
     }
     ctx.restore();
@@ -7286,15 +7720,31 @@ function drawFrame(){
                                e.match && e.match.observations && e.match.observations.B]){
               if(side) for(const oo of side) flashThumb(oo.id);
             }
-          } else if(e.kind === "duet_sync"){
-            for(let n=0;n<8;n++){
-              spawnParticle({x,y,color:e.color,label:"pulse",isEcho:false});
+          } else if(e.kind === "duet_meeting"){
+            // The moment the duet begins. One a night, and it should look like
+            // the room filling rather than like another arrival: a ring that
+            // travels further and fades slower than any other.
+            state.sharedPulses.push({x, y, t0:(performance.now?performance.now():Date.now()),
+              color:e.color, reach:150, lifeMs:2600, strength:0.72, weight:2.6});
+            if(state.sharedPulses.length > 12) state.sharedPulses.shift();
+            for(let n=0;n<10;n++) spawnParticle({x,y,color:e.color,label:"meeting",isEcho:false});
+            for(const side of [e.match && e.match.observations && e.match.observations.A,
+                               e.match && e.match.observations && e.match.observations.B]){
+              if(side) for(const oo of side) flashThumb(oo.id);
             }
           } else {
             spawnParticle({x,y,color:e.color,label:e.taxon,isEcho:false});
           }
         } else {
           spawnParticle({x,y,color:e.color,label:e.taxon,isEcho:e.isEcho});
+          // Both of them found this one. A ring at the call and a ring at the
+          // answer, so the pair reads as a pair across the clock of the night.
+          if(e.duetEcho && !e.isEcho){
+            state.sharedPulses.push({x, y, t0:(performance.now?performance.now():Date.now()),
+              color:"rgba(255,210,175,0.92)", reach:e.duetEcho.role === "answer" ? 66 : 40,
+              lifeMs:1900, strength:0.60, weight:2.0});
+            if(state.sharedPulses.length > 12) state.sharedPulses.shift();
+          }
           if(!e.isEcho){
             const toneLabel = (e.voiceLabel && e.voiceLabel.trim()) ? e.voiceLabel.trim() : ((e.family && e.family.trim()) ? e.family.trim() : ((e.order && e.order.trim()) ? e.order.trim() : "Unknown"));
             const toneColor = (e.user === "B") ? "rgba(70,194,210,0.95)" : e.color;
@@ -8301,6 +8751,12 @@ function initUI(){
     state.hideNowCard = !on;
     if(nowToggle) nowToggle.setAttribute("aria-checked", String(on));
     if(!on){ const b = $("selOverlay"); if(b) b.hidden = true; }
+    // Switching into the photograph mode before the night's photographs have
+    // arrived says so, rather than showing empty frames with no explanation.
+    if(on){
+      const text = photoStatusText();
+      if(text && typeof showModeToast === "function") showModeToast(text);
+    }
   }
   if(nowToggle) nowToggle.addEventListener("click", ()=> setNowCard(state.hideNowCard));
 
@@ -9084,7 +9540,7 @@ async function renderOfflineBuffer(minDuration, statusEl){
 
         const when = offset + e.atSec;
         const velBase = e.isSpecial
-          ? (e.velocity ?? (e.kind === "duet_sync" || e.kind === "accompaniment" ? 0.26 : 0.20))
+          ? (e.velocity ?? (e.kind === "accompaniment" ? 0.26 : 0.20))
           : (state.voiceMode === "gondwana"
               ? clamp(0.11 + 0.19 * Math.log2(e.density), 0.10, 0.88)
               : clamp(0.15 + 0.12 * Math.log2(e.density), 0.12, 0.65));
@@ -9361,22 +9817,47 @@ if(typeof ResizeObserver !== "undefined" && canvas){
   setInterval(syncTransport, 400);
 })();
 
-/* ═══ DESKTOP SIDEBAR: move controls + gallery into sidebar ═══ */
+/* ═══ DESKTOP SIDEBAR: move controls + gallery into sidebar ═══
+   The controls live in one place in the markup and are moved to wherever the
+   viewport wants them: the left column at 768px and up, the slide-up sheet
+   below that.
+
+   This used to run once, at load, and only in the desktop direction. Two ways
+   to lose every control on the page: open the window narrower than 768 and the
+   column stayed empty for the session, because widening it moved nothing; or
+   open it wide and then narrow it, and the controls were stranded inside a
+   column that mobile CSS hides. Moving a node keeps its listeners, so the only
+   thing needed is to run it in both directions whenever the breakpoint is
+   crossed. */
 (function(){
-  if(window.innerWidth < 768) return;
-  const target = document.getElementById("desktopControlsTarget");
-  const sheetInner = document.querySelector(".sheetInner");
-  const photoPanel = document.getElementById("photoPanel");
-  if(!target || !sheetInner) return;
-  while(sheetInner.firstChild){
-    target.appendChild(sheetInner.firstChild);
+  const DESKTOP_MIN = 768;
+  let placedWide = null;   // null until the first placement, then a boolean
+  function placeControls(){
+    const wide = window.innerWidth >= DESKTOP_MIN;
+    if(wide === placedWide) return;
+    const target = document.getElementById("desktopControlsTarget");
+    const sheetInner = document.querySelector(".sheetInner");
+    const photoPanel = document.getElementById("photoPanel");
+    if(!target || !sheetInner) return;
+    const to = wide ? target : sheetInner;
+    const from = wide ? sheetInner : target;
+    while(from.firstChild) to.appendChild(from.firstChild);
+    if(photoPanel){
+      to.appendChild(photoPanel);
+      // The gallery is laid out by CSS in the sheet and needs these cleared;
+      // in the sidebar it is a panel that fills the space under the controls.
+      photoPanel.style.display = wide ? "" : "";
+      photoPanel.style.position = "";
+      photoPanel.style.marginTop = wide ? "12px" : "";
+    }
+    placedWide = wide;
   }
-  if(photoPanel){
-    target.appendChild(photoPanel);
-    photoPanel.style.display = "";
-    photoPanel.style.position = "";
-    photoPanel.style.marginTop = "12px";
-  }
+  placeControls();
+  let pending = 0;
+  window.addEventListener("resize", ()=>{
+    clearTimeout(pending);
+    pending = setTimeout(placeControls, 120);
+  });
 })();
 
 /* ═══ MOBILE GALLERY TOGGLE ═══ */

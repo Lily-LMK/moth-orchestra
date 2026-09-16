@@ -138,8 +138,12 @@ for (const mode of ['timeline', 'riff']) {
     const gestures = seq => plain(seq.events.filter(e => e.kind !== 'obs' && e.kind !== 'gond_pedal')
       .map(({ instrument, ...e }) => e));
     assert.deepEqual(gestures(candidate), gestures(baseline), 'all special gestures and source matches are preserved');
-    assert.ok(candidate.events.filter(e => e.isSpecial).every(e => e.instrument === 'gond_sync'),
-      'and the shared minute is sounded by this family, not borrowed');
+    // Every gesture is voiced by a Gondwana body. The shared minute is
+    // gond_sync; the meeting is gond_ground, the family's own sub. Asserting
+    // the prefix rather than one name keeps the intent — nothing borrowed —
+    // without pinning the family to a single gesture.
+    assert.ok(candidate.events.filter(e => e.isSpecial).every(e => /^gond_/.test(e.instrument)),
+      'and every gesture is sounded by this family, not borrowed');
   });
 }
 
