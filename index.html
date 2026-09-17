@@ -2440,12 +2440,20 @@ function instrumentPoolForDepth(depth){
   return INSTRUMENTS_BASE;                     // class→family: 7
 }
 const INSTRUMENTS = INSTRUMENTS_BASE; // kept for compat
+// Emergence is the family that reads the record's own lineage. It is a family
+// of its own rather than a replacement: Lily asked on 17 September 2026 to
+// *"push it live as 'Emergence' and leave the original moth orchestra family
+// intact for a while"*, so Moth Orchestra is exactly what it always was and
+// every rule below applies to Emergence alone. One predicate, used everywhere,
+// so the family can never half-apply.
+function isEmergence(){ return state.voiceMode === "emergence"; }
+
 function pickInstrument(order, seed, obs){
-  // Moth Orchestra reads the record's own lineage rather than hashing whichever
-  // rank Tone by happens to be set to. `obs` is the record; without one there
-  // is no lineage to read, so the old pool still answers — which is what the
-  // selection fallback and the older tests rely on.
-  if((!state.voiceMode || state.voiceMode === "mixed") && obs && obs.ranks){
+  // Emergence reads the record's own lineage rather than hashing whichever rank
+  // Tone by happens to be set to. `obs` is the record; without one there is no
+  // lineage to read, so the pool still answers — which is what the selection
+  // fallback relies on.
+  if(isEmergence() && obs && obs.ranks){
     return mothCode(mothVoicing(obs, currentRankDepth(), seed));
   }
   // Voice mode override: force all voices to a specific instrument family
@@ -2482,7 +2490,10 @@ function pickInstrument(order, seed, obs){
 
 const NOCTILUCENT_INSTRUMENTS = ["noct_root","noct_bow","noct_halo","noct_prism","noct_choir","noct_spark","noct_tide","noct_wire"];
 const LANTERN_INSTRUMENTS = ["lantern_felt","lantern_glass","lantern_reed","lantern_bloom"];
-const VOICE_MODES = ["mixed","night","choir","steelpan","lantern","noctilucent","gondwana"];
+// Order is the order of the dropdown, the keyboard cycle and the swipe, and
+// the first entry is what the instrument opens on. Gondwana leads from
+// 17 September 2026, at Lily's asking.
+const VOICE_MODES = ["gondwana","emergence","mixed","night","choir","steelpan","lantern","noctilucent"];
 // Families offered in the dropdown, keyboard cycling and swipes.
 // Families implemented and tested but not yet accepted by ear. A family leaves
 // this set only when Lily has heard it and said so — measurement never stands
@@ -2495,7 +2506,7 @@ const WITHHELD_VOICE_MODES = new Set(["noctilucent"]);
 let UNLOCKED_VOICE_MODE = null;
 try { const q = new URLSearchParams(location.search).get("family"); if(q && WITHHELD_VOICE_MODES.has(q)) UNLOCKED_VOICE_MODE = q; } catch(err){ UNLOCKED_VOICE_MODE = null; }
 const PUBLIC_VOICE_MODES = VOICE_MODES.filter(m => !WITHHELD_VOICE_MODES.has(m) || m === UNLOCKED_VOICE_MODE);
-const VOICE_MODE_LABELS = { mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies", lantern:"Lantern Glass", noctilucent:"Noctilucent", gondwana:"Gondwana" };
+const VOICE_MODE_LABELS = { gondwana:"Gondwana", emergence:"Emergence", mixed:"Moth Orchestra", night:"Boobook", choir:"Frog Yawn", steelpan:"Fireflies", lantern:"Lantern Glass", noctilucent:"Noctilucent" };
 
 /** ------------------------------ Audio engine ------------------------------ */
 let audioCtx = null;
@@ -6038,7 +6049,9 @@ const state = {
   nightKey: "",
   filterYear: "all",
   focus: false,
-  voiceMode: "mixed",
+  // Gondwana opens the instrument from 17 September 2026. Moth Orchestra
+  // remains exactly as it was and is two along in the list.
+  voiceMode: "gondwana",
   userAName: "",
   userBName: "",
   riffStartMin: 19*60,
@@ -7014,7 +7027,7 @@ function scheduleSelectionOverlay(e, tEvent){
 
 
 function pickSongInstrument(order, seed, obs){
-  if((!state.voiceMode || state.voiceMode === "mixed") && obs && obs.ranks){
+  if(isEmergence() && obs && obs.ranks){
     return mothCode(mothVoicing(obs, currentRankDepth(), seed));
   }
   // Voice mode override applies to Song mode too
@@ -7382,7 +7395,7 @@ function buildSongEvents(nightObs, countsByTaxon){
     // Song arranges the same evidence in musical time, so an arrival must sound
     // like the same creature it sounds like in Timeline. The pooled instrument
     // decided a register role; the lineage decides that for itself.
-    if((!state.voiceMode || state.voiceMode === "mixed") && o && o.ranks){
+    if(isEmergence() && o && o.ranks){
       instrument = mothCode(mothVoicing(o, currentRankDepth(), state.seed));
     }
     const ev = { kind:"obs", isSpecial:false, user:unit.user, userName:unit.userName||(o.userName||""), obs:o,
@@ -7582,10 +7595,10 @@ const user = observerRole(o);
       // real time cannot move a note off anything the record actually knows.
       // On a twelve-hour night at a nineteen-second loop that is ±13 ms.
       //
-      // Moth Orchestra only. Lantern Glass and Frog Yawn have been accepted by
-      // ear as they are, and a family that has been accepted does not get
-      // quietly rephrased because a different family wanted it.
-      ...((!state.voiceMode || state.voiceMode === "mixed") ? mothTouch(o, spanSec) : null)
+      // Emergence only. Every other family has been accepted by ear as it is,
+      // and a family that has been accepted does not get quietly rephrased
+      // because a different family wanted it.
+      ...(isEmergence() ? mothTouch(o, spanSec) : null)
     };
     // Gondwana is the one family that builds figures, and every pitch in a
     // figure is this record's own pitch transposed by whole scale steps. The
@@ -7729,10 +7742,10 @@ const user = observerRole(o);
     for(const pedal of gondwanaPedal(state.loopLen, state.keyName, state.scaleName, state.seed)) events.push(pedal);
   }
 
-  // The ground: Moth Orchestra's warm sustained background, voiced from the
-  // pitch classes this night's own taxa carry. Authorship, and marked the same
-  // way the pedal is — no glow, no thumbnail, no arrival.
-  if(!state.voiceMode || state.voiceMode === "mixed"){
+  // The ground: Emergence's warm sustained background, voiced from the pitch
+  // classes this night's own taxa carry. Authorship, and marked the same way
+  // the pedal is — no glow, no thumbnail, no arrival.
+  if(isEmergence()){
     for(const chord of mothGroundEvents(events, state.loopLen, state.keyName, state.scaleName)) events.push(chord);
   }
 
@@ -8036,9 +8049,9 @@ function startScheduler(resumeFromSec){
       }
 
       // The ground is room, not record: it sounds in every listen mode, carries
-      // no glow, and exists only while Moth Orchestra is the chosen family.
+      // no glow, and exists only while Emergence is the chosen family.
       if(e.kind === "moth_ground"){
-        if(!state.voiceMode || state.voiceMode === "mixed"){
+        if(isEmergence()){
           scheduleMothGround(audioCtx, e, tEvent, (e.velocity || MOTH_GROUND.level)*clamp(state.volume, 0, 1), masterGain || audioCtx.destination);
         }
         state.schedNextIndex += 1;
@@ -10436,7 +10449,7 @@ async function renderOfflineBuffer(minDuration, statusEl){
           continue;
         }
         if(e.kind === "moth_ground"){
-          if(!state.voiceMode || state.voiceMode === "mixed") scheduleMothGround(offCtx, e, offset + e.atSec, (e.velocity || MOTH_GROUND.level)*clamp(state.volume, 0, 1), offMaster);
+          if(isEmergence()) scheduleMothGround(offCtx, e, offset + e.atSec, (e.velocity || MOTH_GROUND.level)*clamp(state.volume, 0, 1), offMaster);
           continue;
         }
         // Respect listen mode

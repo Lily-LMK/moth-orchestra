@@ -16,7 +16,7 @@ const { settings } = require('./score.cjs');
 
 function nightOf(csv, key, extra = {}) {
   const c = loadAppWithDom();
-  Object.assign(c.state, settings, { spacingMode: 'timeline', voiceMode: 'mixed',
+  Object.assign(c.state, settings, { spacingMode: 'timeline', voiceMode: 'emergence',
     toneBy: 'taxon_species_name', filterYear: 'all', ...extra });
   c.importCSVData(csv);
   if (key) c.state.nightKey = key;
@@ -26,9 +26,10 @@ function nightOf(csv, key, extra = {}) {
 const ground = c => c.state.sequencer.events.filter(e => e.kind === 'moth_ground');
 const demo = extra => nightOf(loadApp().DEMO_CSV, null, extra);
 
-test('the ground sounds, and only for Moth Orchestra', () => {
-  assert.ok(ground(demo()).length > 0, 'Moth Orchestra lays a ground');
-  for (const voiceMode of ['gondwana', 'lantern', 'choir', 'steelpan', 'night'])
+test('the ground sounds, and only for Emergence', () => {
+  assert.ok(ground(demo()).length > 0, 'Emergence lays a ground');
+  // Moth Orchestra above all: Lily asked for it to be left exactly as it was.
+  for (const voiceMode of ['mixed', 'gondwana', 'lantern', 'choir', 'steelpan', 'night'])
     assert.equal(ground(demo({ voiceMode })).length, 0, `${voiceMode} does not`);
 });
 

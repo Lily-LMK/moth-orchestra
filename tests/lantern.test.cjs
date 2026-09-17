@@ -14,7 +14,9 @@ function app(mode, voiceMode = 'lantern') {
 
 test('Lantern Glass is an optional named family and existing families remain available', () => {
   const c = loadApp();
-  assert.equal(c.state.voiceMode, 'mixed');
+  // Gondwana leads the list and opens the instrument from 17 September 2026.
+  assert.equal(c.state.voiceMode, 'gondwana');
+  assert.equal(vm.runInContext('VOICE_MODES[0]', c), 'gondwana');
   for (const mode of ['mixed', 'night', 'choir', 'steelpan']) {
     assert.ok(vm.runInContext('Array.from(VOICE_MODES)', c).includes(mode), `retains ${mode}`);
   }

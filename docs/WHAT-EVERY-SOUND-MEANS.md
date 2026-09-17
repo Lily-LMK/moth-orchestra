@@ -22,7 +22,7 @@ this page current is cheap; not having it is what let a rule that fired on
 | `duet_echo` | both recorded the **same taxon** within 30 minutes | both identified the same species that night, close in time | **evidence** |
 | `accompaniment` | Song mode's composed rhythm, on non-matching slots | nothing — it is rhythm | **authorship**, and marked so |
 | `gond_pedal` | Gondwana's authored harmony on a slow clock | nothing — it is harmony | **authorship**, and marked so |
-| `moth_ground` | Moth Orchestra's sustained background, voiced from the night's own pitch classes | the pitch classes this night's taxa carry | **authorship**, on evidence |
+| `moth_ground` | Emergence's sustained background, voiced from the night's own pitch classes | the pitch classes this night's taxa carry | **authorship**, on evidence |
 | `duet_meeting` | the first shared minute of the night | **parked — does not sound** | authorship over evidence |
 
 ### `obs` — an arrival
@@ -30,11 +30,12 @@ this page current is cheap; not having it is what let a rule that fired on
 Pitch comes from the taxon, instrument from the voice family and the selected
 rank. One note per record, always. This is the instrument.
 
-**In Moth Orchestra the note is built from the record's own lineage.** Eight
-ranks each set one thing about the sound, so relatedness is audible: two
-species of one genus differ in one thing, a moth and a beetle differ in
-several, a bird and a moth differ in everything. See "The lineage is the
-instrument" below. Every other family picks one of its authored bodies by hash.
+**In Emergence the note is built from the record's own lineage.** Eight ranks
+each set one thing about the sound, so relatedness is audible: two species of
+one genus differ in one thing, a moth and a beetle differ in several, a bird
+and a moth differ in everything. See "The lineage is the instrument" below.
+Every other family, Moth Orchestra included, picks one of its authored bodies
+by hash.
 
 **Which octave it sounds in is the voice's, not the taxon's.** The taxon
 chooses a pitch between 147 Hz and 988 Hz, and every voice of a family is
@@ -52,6 +53,7 @@ sound a different note.
 | Gondwana | all seven, via `gondwanaVoicing` | 13 September 2026 |
 | Frog Yawn | bass_voice, tenor, alto — and **soprano** | soprano 17 September 2026 |
 | Lantern Glass | all four | 17 September 2026 |
+| Emergence | every voice, from the record's class | 17 September 2026 |
 | Moth Orchestra, Boobook, Fireflies | none | — |
 
 **Frog Yawn's soprano did not fold**, so it sat an octave above alto's ceiling
@@ -134,7 +136,7 @@ An authored pedal on a slow clock, so a fixed taxon pitch is a root in one
 phrase and a ninth in the next. No glow, no thumbnail, no arrival. Gondwana
 only. Authorship, and it says so.
 
-### `moth_ground` — the warm background Moth Orchestra sits in
+### `moth_ground` — the warm background Emergence sits in
 
 Built 17 September 2026. Lily, on what she meant by a touch of Gondwana: *"a
 warm sustained organ-like background, and barely audible wordless vocal
@@ -243,10 +245,17 @@ controlled nothing for some time — went with it.
 
 ---
 
-## The lineage is the instrument — Moth Orchestra only
+## The lineage is the instrument — Emergence only
 
 Built 17 September 2026, when Lily asked for the hero family to be *"the most
 strict when it comes to taxa sounding differently"*.
+
+**It is a family of its own, and Moth Orchestra is untouched.** Lily, the same
+day: *"I want to push it live as 'Emergence' and leave the original moth
+orchestra family intact for a while."* So this section describes **Emergence**;
+everything it replaced is still there, still selectable, and still identical to
+the original reference score note for note — `tests/musical-reference.test.cjs`
+holds Moth Orchestra against a fixture that has never been regenerated.
 
 ### What it replaced, and why
 
@@ -358,9 +367,9 @@ the record actually claims — on a twelve-hour night at a nineteen-second loop
 that is **±13 ms**, and it is capped at 30 ms absolutely so a narrow Riff
 window cannot magnify it. `touch` only ever takes weight away, never adds it.
 
-**Moth Orchestra only.** Lantern Glass and Frog Yawn have been accepted by ear
-as they are, and a family that has been accepted is not quietly rephrased
-because a different family wanted it.
+**Emergence only.** Every other family has been accepted by ear as it is, and
+a family that has been accepted is not quietly rephrased because a different
+one wanted it.
 
 **Song mode's composed rhythm keeps its own neutral voice.** The lineage voice
 is for evidence; accompaniment is authorship and must never be given a
@@ -398,14 +407,13 @@ comment says "capped at octave 4" and whose effect is that two different moths
 sound like the same moth. The fix is one entry in `VOICE_REGISTERS` and one
 call to `voicedFreq`, exactly as Lantern Glass now does.
 
-**Overtaken on 17 September 2026.** Moth Orchestra no longer picks `chime` for
-an arrival — the lineage builds the voice instead — so the clamp no longer
-reaches any evidence in the hero family. It survives in Song mode's pooled
-`lead` role, which is **authorship** and adds no taxon claim, and in the
-selection fallback. The defect is therefore no longer misdescribing a creature,
-and removing the last of it is tidying rather than a repair. Kept here because
-the measurement is the clearest example on this page of a rule whose comment
-and whose effect disagree.
+**It has deliberately not been changed, and it is still live.** A draft on
+17 September 2026 rebuilt Moth Orchestra around the lineage, which would have
+retired `chime` as an arrival voice; Lily asked for that to ship as a separate
+family, **Emergence**, and for Moth Orchestra to be left exactly as it was. So
+the clamp is still there, still reaching 166 of 526 chime notes, and still the
+clearest example on this page of a rule whose comment and whose effect
+disagree. The fix remains one entry in `VOICE_REGISTERS`. **Lily's call.**
 
 ## The rule this page exists to enforce
 

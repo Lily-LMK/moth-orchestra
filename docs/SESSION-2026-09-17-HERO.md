@@ -1,4 +1,16 @@
-# Session — Moth Orchestra, the hero family
+# Session — Emergence, the hero family
+
+> **Read this first.** The work below was built inside Moth Orchestra and then
+> split out. Lily, 17 September 2026: *"I want to push it live as 'Emergence'
+> and leave the original moth orchestra family intact for a while."* So
+> everything described here is **Emergence**, a seventh published family.
+> **Moth Orchestra is unchanged** and is held to the original reference score
+> note for note. Gondwana leads the list and opens the instrument.
+>
+> Emergence went live **before Lily was settled on it** — her words: "I'm not
+> entirely set just yet." That is the reason the original family stays.
+
+## The original brief
 
 17 September 2026, after the registers work was accepted by ear. Lily: *"It
 needs to be our hero model. I truly want it to be the most strict when it comes
@@ -213,3 +225,63 @@ exactly the slow harmonic frame a motif would vary against.
 - **Nothing is pushed.**
 - **The ground's level is a guess.** 0.115 against arrivals at 0.12–0.65,
   before the volume control. It is one number.
+
+
+---
+
+# Third pass — the split, and going live
+
+Lily: *"I'm not entirely set just yet but I want to push it live as 'Emergence'
+and leave the original moth orchestra family intact for a while. Let's make
+Gondwana the default family at the top."*
+
+## The split
+
+Everything the two passes above built moved out of `mixed` and into a new
+family, `emergence`. One predicate, `isEmergence()`, gates all eight places it
+applies — the two instrument pickers, Song's `emit`, the touch and lag fields,
+the ground's events, and the ground's two scheduling branches — so the family
+cannot half-apply.
+
+**The proof that Moth Orchestra is intact is the test that was failing before
+the split.** `tests/musical-reference.test.cjs` compares the score against a
+fixture that has never been regenerated, `instrument` names included. During
+the first two passes it had to be relaxed to exclude that field. It is now back
+to its original form and passes: every time, pitch, density, velocity, source
+identity **and instrument** is byte-identical to the original.
+
+Measured in a browser on 3 September, 136 arrivals:
+
+| family | distinct sounds | ground | pedal | touched | example voices |
+|---|---|---|---|---|---|
+| Gondwana | 77 | 0 | 6 | 0 | gond_rim, gond_column, gond_bronze |
+| Emergence | 118 | 4 | 0 | 136 | moth:2310121-, moth:23153000 |
+| **Moth Orchestra** | **88** | **0** | **0** | **0** | **ember, harp, chime, pad** |
+
+## Gondwana at the top
+
+`VOICE_MODES` is reordered — its order is the dropdown, the keyboard cycle and
+the swipe, and its first entry is what the instrument opens on. The default
+`state.voiceMode` is `"gondwana"`.
+
+Three test files asserted `mixed` as the default while really testing something
+else, and `tests/playback.test.cjs` was counting notes through a stub that
+Gondwana's own scheduling branch bypasses. Those now pin the family they mean
+rather than relying on the default, which they should have done anyway.
+
+## `chime` is live again, and still wrong
+
+The second pass recorded the clamp as "overtaken" because the lineage had
+retired `chime` as an arrival voice. The split puts Moth Orchestra back exactly
+as it was, so **the clamp is live**: 166 of 526 chime notes, 56 taxa given a
+pitch belonging to a different moth. `WHAT-EVERY-SOUND-MEANS.md` is corrected.
+Still one entry in `VOICE_REGISTERS`, still Lily's call.
+
+## What went live
+
+The first push of this session, carrying three separate pieces of work:
+
+1. **The registers** — Frog Yawn's soprano and Lantern Glass's consort. Built
+   and **accepted by ear** earlier the same day.
+2. **Emergence** — published deliberately unsettled.
+3. **Gondwana as the default.**

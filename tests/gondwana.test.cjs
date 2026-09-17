@@ -28,7 +28,9 @@ function app(mode, voiceMode = 'gondwana', toneBy = 'taxon_species_name') {
 
 test('Gondwana is a registered named family and every earlier family remains available', () => {
   const c = loadApp();
-  assert.equal(c.state.voiceMode, 'mixed');
+  // Gondwana leads the list and opens the instrument from 17 September 2026.
+  assert.equal(c.state.voiceMode, 'gondwana');
+  assert.equal(vm.runInContext('VOICE_MODES[0]', c), 'gondwana');
   for (const mode of ['mixed', 'night', 'choir', 'steelpan', 'lantern', 'noctilucent']) {
     assert.ok(vm.runInContext('Array.from(VOICE_MODES)', c).includes(mode), `retains ${mode}`);
   }
@@ -376,10 +378,14 @@ for (const instrument of family) {
 }
 
 // Accepted by ear, 14 September 2026, and published the same day.
-test('Gondwana is the published sixth family, and Noctilucent is still withheld', () => {
+test('Gondwana leads the published families, and Noctilucent is still withheld', () => {
   const c = loadApp();
   const published = plain(vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c));
-  assert.deepEqual(published, ['mixed', 'night', 'choir', 'steelpan', 'lantern', 'gondwana']);
+  // Order is the dropdown, the keyboard cycle and the swipe, and the first is
+  // what the instrument opens on. Gondwana leads from 17 September 2026, and
+  // Emergence was published beside it the same day — pushed live before it was
+  // settled, with Moth Orchestra left intact behind it, at Lily's asking.
+  assert.deepEqual(published, ['gondwana', 'emergence', 'mixed', 'night', 'choir', 'steelpan', 'lantern']);
   assert.ok(vm.runInContext('VOICE_MODES.includes("noctilucent")', c), 'Noctilucent stays registered');
   assert.ok(!published.includes('noctilucent'), 'but unheard, so unpublished');
   assert.equal(vm.runInContext('VOICE_MODE_LABELS.gondwana', c), 'Gondwana');

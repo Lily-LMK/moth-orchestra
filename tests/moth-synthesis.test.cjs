@@ -250,7 +250,7 @@ const { settings } = require('./score.cjs');
 
 function night() {
   const c = loadAppWithDom();
-  Object.assign(c.state, settings, { spacingMode: 'timeline', voiceMode: 'mixed' });
+  Object.assign(c.state, settings, { spacingMode: 'timeline', voiceMode: 'emergence' });
   c.importCSVData(c.DEMO_CSV);
   c.rebuildDerived();
   return { c, events: c.state.sequencer.events.filter(e => e.kind === 'obs') };
@@ -295,7 +295,7 @@ test('touch never makes a note louder than it was written, only softer', () => {
 
 test('a narrow Riff window magnifies real time and must not magnify the nudge', () => {
   const c = loadAppWithDom();
-  Object.assign(c.state, settings, { spacingMode: 'riff', voiceMode: 'mixed',
+  Object.assign(c.state, settings, { spacingMode: 'riff', voiceMode: 'emergence',
     riffStartMin: 1140, riffEndMin: 1180 });
   c.importCSVData(c.DEMO_CSV);
   c.rebuildDerived();

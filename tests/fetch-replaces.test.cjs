@@ -199,8 +199,11 @@ test('a single-observer fetch plays as a solo, with no duet gestures invented',(
  const seq=c.buildSequencer(c.state.nights.get(c.state.nightKey));
  assert.equal(seq.events.filter(e=>e.kind==='obs').length,12);
  assert.equal(seq.events.filter(e=>e.isSpecial).length,0);
- assert.equal(seq.events.filter(e=>e.kind!=='obs'&&e.kind!=='moth_ground').length,0,
-  'a solo invents no gesture; the ground is harmony and is not one');
+ // A family's own authored layer — Gondwana's pedal, Emergence's ground — is
+ // harmony, not a gesture: it belongs to no record and sounds in every listen
+ // mode. Excluded here rather than forbidden.
+ assert.equal(seq.events.filter(e=>e.kind!=='obs'&&e.kind!=='moth_ground'&&e.kind!=='gond_pedal').length,0,
+  'a solo invents no duet gesture');
  assert.deepEqual(Array.from(seq.meta.sharedMinutes),[]);
 });
 

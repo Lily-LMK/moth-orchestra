@@ -27,12 +27,15 @@ Read in this order:
 3. [SESSION-2026-09-17-CROSSING.md](SESSION-2026-09-17-CROSSING.md) and
    [SESSION-2026-09-16-FLOURISHES.md](SESSION-2026-09-16-FLOURISHES.md).
 
-### Waiting on Lily's ear — the `moth-orchestra-hero` branch
+### Live, and not yet settled — Emergence
 
-**The hero family, second pass.** Lily accepted the registers work by ear
-(*"Frog Yawn and Lantern glass sound better now"*) and it is merged to `main`,
-unpushed. Moth Orchestra was then rebuilt so the note is made from the record's
-own lineage — eight ranks, each sized by what it measurably tells apart on a
+**Published on 17 September 2026 while Lily was explicitly not settled on it:**
+*"I'm not entirely set just yet but I want to push it live as 'Emergence' and
+leave the original moth orchestra family intact for a while."* Moth Orchestra
+is therefore unchanged and still selectable, and Gondwana now leads the list
+and opens the instrument.
+
+Emergence makes the note from the record's own lineage — eight ranks, each sized by what it measurably tells apart on a
 real night. She heard the first draft and called it **nasal**, and named a
 specific loss: *"a sweet voice introduced at the genus or perhaps species level
 that gave tenderness."* That voice was `harp` and `bowl`, and the cause was
