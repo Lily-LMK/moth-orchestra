@@ -1338,7 +1338,9 @@ input[type="range"]::-moz-range-thumb{
       <details class="disclose">
         <summary>Emergence</summary>
         <div class="discloseBody">
-          <p class="discloseNote" id="emergenceNote">The room this night makes. It is authorship, not evidence: grown from how the night arrived, a claim about nothing.</p>
+          <p id="emergenceNote">The room the night makes. How often things arrived sets its pace; how many kinds of creature sets how wide it opens. Nothing in it marks a single sighting.</p>
+          <div class="spec"><span class="specK">Emergence</span><span class="specV">—</span>
+            <select id="emergenceOnSel" aria-label="Emergence on or off"><option value="on">On</option><option value="off">Off</option></select></div>
           <div class="spec specRange"><span class="specK"><label for="emergenceVol">Emergence level</label></span><span class="specV" id="emgVolPct">45%</span></div>
           <input id="emergenceVol" type="range" min="0" max="1" step="0.01" value="0.45"/>
         </div>
@@ -2693,7 +2695,6 @@ const EMERGENCE = {
   // three pitch classes states one tone; a night holding twelve states three.
   tonesMin: 1,
   tonesMax: 3,
-  tonesPerPitchClass: 2,
   toneLevel: 0.22,
 
   scheduleHorizonSec: 180,
@@ -2785,11 +2786,18 @@ function emergenceBand(shape){
 function emergenceTones(shape){
   const pcs = (shape && shape.pitchClasses) || [];
   if(!pcs.length) return [];
-  // Spread over the range the data actually has. The scale quantises the night
-  // to about five pitch classes, so a divisor of five gave every night one tone
-  // and the axis said nothing -- measured on both test nights before fixing.
-  const count = clamp(Math.round(EMERGENCE.tonesMin + (pcs.length - 1)/EMERGENCE.tonesPerPitchClass),
-                      EMERGENCE.tonesMin, EMERGENCE.tonesMax);
+  // How many notes the room holds is the night's **breadth of life**, not its
+  // count of pitch classes. Measured across the 144 offered nights: the scale
+  // is pentatonic and 140 of them use all five pitch classes, so that input
+  // carries no information at all. Keyed to it, this axis was first constant
+  // at 1 and then constant at 3 -- it looked like it varied on two nights and
+  // did not vary on the archive. Class count does: 64 nights hold one class,
+  // 33 two, 47 three or more.
+  //
+  // It is deliberately the same input the band uses. Breadth of life opens the
+  // room in two ways at once -- wider, and fuller -- which makes one real
+  // difference audible rather than spreading several thin.
+  const count = clamp((shape && shape.classCount) || 1, EMERGENCE.tonesMin, EMERGENCE.tonesMax);
   return pcs.slice(0, count);
 }
 
@@ -8971,6 +8979,8 @@ function initUI(){
     } else {
       stopEmergence();
     }
+    const sel = $("emergenceOnSel");
+    if(sel) sel.value = state.emergenceOn ? "on" : "off";
     updateCornerStatus();
   });
   if($("tExitFs")) $("tExitFs").addEventListener("click", ()=>{
@@ -9110,6 +9120,22 @@ function initUI(){
     resetPlaybackClock();
     if(state.isPlaying) startScheduler();
   });
+  // Emergence on/off. The toolbar glyph and the A key set the same state, so
+  // all three have to show it -- a control that lies about whether it is on is
+  // worse than no control.
+  const emgOnSel = $("emergenceOnSel");
+  if(emgOnSel){
+    emgOnSel.value = state.emergenceOn ? "on" : "off";
+    emgOnSel.addEventListener("change", async (e)=>{
+      state.emergenceOn = e.target.value === "on";
+      if(state.emergenceOn && state.isPlaying){
+        await ensureAudio();
+        setEmergence(true);
+      } else stopEmergence();
+      updateCornerStatus();
+    });
+  }
+
   // Emergence level
   const emgVol = $("emergenceVol");
   if(emgVol){
@@ -9139,6 +9165,8 @@ function initUI(){
     } else {
       stopEmergence();
     }
+    const sel = $("emergenceOnSel");
+    if(sel) sel.value = state.emergenceOn ? "on" : "off";
     updateCornerStatus();
   });
 

@@ -266,6 +266,42 @@ test('a fuller night carries more life than an empty one', () => {
             c.emergenceGrains(sparse(c), 1, 120).length);
 });
 
+test('how many notes the room holds is the breadth of life, and it actually varies', () => {
+  // Keyed to pitch-class count this axis was constant across all 144 offered
+  // nights -- the scale is pentatonic and 140 nights use all five. An axis that
+  // does not vary on real data is not an axis.
+  const c = loadApp();
+  const all = ['Insecta', 'Arachnida', 'Aves', 'Amphibia', 'Reptilia', 'Mammalia', 'Magnoliopsida'];
+  const counts = [];
+  for (let n = 1; n <= 7; n++)
+    counts.push(c.emergenceTones(c.emergenceNightShape(fakeNight(Array(14).fill(1), all.slice(0, n)), 19)).length);
+  assert.equal(counts[0], 1, 'a night of one class holds one note');
+  assert.ok(new Set(counts).size > 1, `it varies (${counts.join(',')})`);
+  for (let i = 1; i < counts.length; i++)
+    assert.ok(counts[i] >= counts[i - 1], 'and never shrinks as life broadens');
+});
+
+test('every axis varies across the real archive, not merely across two nights', { skip: !haveExport && 'export not present' }, () => {
+  // The check that would have caught the dead tones axis: measure the spread
+  // over every offered night, not over the two that get auditioned.
+  const c = nightOf(fs.readFileSync(csvPath, 'utf8'), null);
+  const keys = c.offerableNightKeys([...c.state.nights.keys()], c.state.nights, '');
+  const seen = { breath: new Set(), piano: new Set(), grain: new Set(), feedback: new Set(), band: new Set(), tones: new Set() };
+  for (const k of keys) {
+    c.state.nightKey = k; c.rebuildDerived();
+    const s = shapeOf(c);
+    if (!s.arrivals) continue;
+    seen.breath.add(c.emergenceBreathSec(s).toFixed(1));
+    seen.piano.add(c.emergencePianoNotes(s, 1, 600).length);
+    seen.grain.add(c.emergenceGrains(s, 1, 120).length);
+    seen.feedback.add(c.emergenceMemory(s).feedback.toFixed(2));
+    seen.band.add(Math.round(c.emergenceBand(s).highHz));
+    seen.tones.add(c.emergenceTones(s).length);
+  }
+  for (const [axis, values] of Object.entries(seen))
+    assert.ok(values.size > 1, `${axis} takes more than one value across the archive (${values.size})`);
+});
+
 test('the grain stays under the room it lives in', () => {
   const c = loadApp();
   assert.ok(c.EMERGENCE.grainLevel < c.EMERGENCE.pianoLevel * 0.5,
