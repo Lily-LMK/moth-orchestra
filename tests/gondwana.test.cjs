@@ -378,16 +378,21 @@ for (const instrument of family) {
 }
 
 // Accepted by ear, 14 September 2026, and published the same day.
-test('Gondwana leads the published families, and Noctilucent is still withheld', () => {
+test('Gondwana leads the published families; Noctilucent and Emergence are withheld', () => {
   const c = loadApp();
   const published = plain(vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c));
   // Order is the dropdown, the keyboard cycle and the swipe, and the first is
-  // what the instrument opens on. Gondwana leads from 17 September 2026, and
-  // Emergence was published beside it the same day — pushed live before it was
-  // settled, with Moth Orchestra left intact behind it, at Lily's asking.
-  assert.deepEqual(published, ['gondwana', 'emergence', 'mixed', 'night', 'choir', 'steelpan', 'lantern']);
-  assert.ok(vm.runInContext('VOICE_MODES.includes("noctilucent")', c), 'Noctilucent stays registered');
-  assert.ok(!published.includes('noctilucent'), 'but unheard, so unpublished');
+  // what the instrument opens on. Gondwana leads from 17 September 2026.
+  //
+  // Emergence was published beside it that day and withdrawn on 18 September,
+  // when Lily chose to spend the name on the gallery floor instead. Withdrawn,
+  // not deleted: the family and its eight-rank mapping stay registered and
+  // tested, and ?family=emergence still auditions it.
+  assert.deepEqual(published, ['gondwana', 'mixed', 'night', 'choir', 'steelpan', 'lantern']);
+  for (const withheld of ['noctilucent', 'emergence']) {
+    assert.ok(vm.runInContext(`VOICE_MODES.includes("${withheld}")`, c), `${withheld} stays registered`);
+    assert.ok(!published.includes(withheld), `${withheld} is not offered`);
+  }
   assert.equal(vm.runInContext('VOICE_MODE_LABELS.gondwana', c), 'Gondwana');
 });
 

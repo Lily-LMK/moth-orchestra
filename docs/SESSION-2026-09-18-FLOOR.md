@@ -1,214 +1,183 @@
 # Session — Emergence becomes the gallery floor
 
 18 September 2026. Branch `floor`, off `main` at `11265d1`. **Nothing merged,
-nothing pushed. Three spines are waiting for Lily's ear.**
+nothing pushed.** One room, withheld, waiting for Lily's ear.
 
 ---
 
-## What she asked for
+## How the day went
 
 Emergence shipped on 17 September as a seventh family, deliberately unsettled.
-She heard it live: *"a lesser Gondwana"*. Measurably true — 100% of its notes
-land inside Gondwana's central register, and all six structural ideas in its
-sound were Gondwana's first.
+She heard it live: *"a lesser Gondwana"* — measurably true, since 100% of its
+notes landed inside Gondwana's central register and all six structural ideas in
+its sound were Gondwana's first.
 
-Asked to reshape it, she redirected instead:
+Asked to reshape it, she redirected: make it the **gallery floor**. Three
+candidate rooms were built and auditioned. Then:
 
-> *"Let's make emergence the gallery floor. Forget everything we've ever made.
-> What I want you to consider is sounds of life, insect-sounds, wing-beats,
-> influences of East Forest and Thievery Corporation. Olafur. A woman who made
-> this believes in 'reverence for life'. She reads Mary Oliver. Precious life.
-> Rich life. Gallery floor. Opening, opening. And yet deep time and forest and
-> canopy."*
+> *"spine B is best, but the ambience track doesn't stop when the music stops.
+> It keeps playing in the background. On second thought, we drop all ambience
+> tracks. We make Emergence for the gallery floor. Start anew. Keep the best of
+> what we've learned and the direction I provided."*
 
-**Why this resolves the problem rather than patching it.** Gondwana is *figure*
-— it decides how much a record says. A floor is *ground* — it says nothing
-about any record and everything about the night entire. They cannot compete, so
-"a lesser Gondwana" becomes impossible by construction rather than by effort.
+Her direction, given at the outset: *"sounds of life, insect-sounds, wing-beats,
+influences of East Forest and Thievery Corporation. Olafur. A woman who made
+this believes in 'reverence for life'. She reads Mary Oliver. Precious life.
+Rich life. Gallery floor. Opening, opening. And yet deep time and forest and
+canopy."*
 
-It also fills the oldest unstarted gap in the project: **step 3 of
-PLAN-NEXT-FAMILY.md**, waiting since 13 September.
+**Why the floor resolves the problem rather than patching it.** Gondwana is
+*figure* — it decides how much a record says. A floor is *ground* — it says
+nothing about any record and everything about the night entire. They cannot
+compete, so "a lesser Gondwana" becomes impossible by construction. It also
+fills step 3 of `PLAN-NEXT-FAMILY.md`, unstarted since 13 September.
 
-Her words landed on this project's own vocabulary — floor, canopy, deep time
-are already the three strata in that document.
-
-### Decided by her this session
-
-1. The floor goes **under everything**, not just Gondwana. Emergence stops
-   being a selectable family.
-2. She **chooses the spine by ear**, from auditions, not from a description.
-3. The felt piano stays — *"it's the reverence"*.
-4. The five ambience presets are **retired**.
-
----
-
-## Two corrections made before any code
-
-### The 142-of-144 figure cannot check this work
-
-`PLAN-EMERGENCE.md` named it as the honest check to re-run after any reshape.
-It is not one. `mothCode` is a pure concatenation of the eight axis indices and
-`mothVoicing` reads only ranks, depth and seed. Neither touches a sonic table,
-so the figure — and "1,977 distinct sounds" — is a property of **the mapping
-alone** and reports identically however the instrument sounds.
-
-This is the fifth instance of the lesson `NEXT-SESSION.md` keeps recording: a
-number that fires on something real and describes itself as something else.
-
-### The offline renderer does not include ambience
-
-`PLAN-NEXT-FAMILY.md` §4 left this as an open measurement gap. It is now
-closed by reading: `renderOfflineBuffer` builds its own master chain and never
-creates an ambience bus or calls any ambience builder in the offline context.
-
-**That is the safety argument for a floor under every family.** Moth Orchestra
-and Gondwana render byte-for-byte what they rendered before, and
-`musical-reference.test.cjs` still holds against a fixture that has never been
-regenerated.
+**Her choice is the interesting part.** Spine B was the one *without* the
+8–60 Hz flutter and *without* added strata — the patient half of her own
+direction, East Forest and Ólafur rather than Thievery and insect-sound. It was
+also the spine that measured *worst* at telling two nights apart. Both facts
+shaped the rebuild.
 
 ---
 
 ## What was built
 
-`FLOOR`, `FLOOR_STRATA` and five functions in `index.html`, plus
-`tests/floor.test.cjs`. Four gestures, each driven by a different measured
-property of the night:
+### The bug she found by ear — fixed, and it was real
+
+`stopScheduler()` clears the note-scheduling interval. Every ambience preset ran
+on a graph of its own that **nothing ever told to stop**, so the sound outlived
+the music. Six code paths stop playback; only three stopped the sound.
+
+The first fix **passed every test and did not work.** Unit tests proved `stop()`
+releases its nodes; nothing proved anything *called* it on pause. Driving the
+real play button in a real browser caught it. All six paths now stop the room,
+and a browser check asserts it plays with the music and stops with it.
+
+This is the clearest instance yet of the standing rule: the tests are a gate,
+never evidence that a change is good.
+
+### All ambience retired
+
+Seven builders deleted — the five in the menu (Spore Cloud, Lumen strings, Silk
+thread, Firefly field, Pollen drift) and two, `buildRelaxingHum` and
+`buildCosmicBreath`, that were never reachable from the interface at all. With
+the select, the Spore Cloud breathing-circle visualisation and the dead state
+that fed it: **1,085 lines removed, 383 added.**
+
+### Emergence, the room
+
+Six gestures, each driven by a different measured property of the night:
 
 | gesture | what it is | driven by | influence |
 |---|---|---|---|
-| **breath** | the room swells and opens | median gap between arrivals | East Forest |
-| **memory** | long filtered feedback delay, each pass darker | elapsed time, free of the loop | Thievery |
-| **height** | one band of the room, or up to four | how many classes the night holds | forest, canopy |
-| **flutter** | amplitude modulation, 8–60 Hz | arrival density | insect-sound |
-| **felt piano** | one note every 15–25 s, all the room in the world | the night's own pitch classes | Ólafur |
+| **breath** | the room swells, and the band opens as it swells | median gap between arrivals | East Forest |
+| **memory** | long filtered feedback delay, each pass darker, free of the loop | density — a fuller night holds more of itself | Thievery |
+| **band** | how tall the room is, as *width* rather than layers | how many classes the night holds | forest, canopy |
+| **felt piano** | one note, all the room in the world around it | the night's pitch classes; spacing from density | Ólafur |
+| **grain** | short, quiet sounds of life, irregularly spaced | density | insect-sound |
+| **tones** | how much of the night's harmony is stated | how many pitch classes the night holds | — |
 
-### The three spines
+**The rejected gestures returned in her chosen spine's own language.** The
+flutter was a tremolo on the bus and she turned it down, so insect-sound came
+back as *grain* — irregular by construction, so it can never read as a pulse.
+The canopy came back as the band *opening* rather than as layers stacked on top.
 
-| | gestures | |
-|---|---|---|
-| **A** | breath + memory + height + flutter | the full proposal |
-| **B** | breath + memory, one stratum, no flutter | the lean one |
-| **C** | flutter-led, dry, no memory | the insect one |
+**And B's weakness was answered in the same language.** Where only the breath
+varied with the night before, the piano's spacing, the memory's length, the
+band's width, the grain's rate and the harmony's breadth all vary now.
 
-The felt piano is **constant across all three**, deliberately: she has settled
-it, so it is not the variable.
+### Emergence withdrawn as a family — withheld, not deleted
+
+The name is now the floor's, so the family left the published list. It stays
+registered, tested and auditionable with `?family=emergence`, because the
+eight-rank mapping it carries — `MOTH_AXES`, `mothVoicing`, sized by measured
+per-night entropy, 142 of 144 nights fully distinguishable — is the best design
+work in this repository and is what a future **canopy** family should be built
+on. Two tests that asserted the published list were updated to say so.
 
 ---
 
-## Measured, not guessed
+## Measured
 
-### The archive, 144 offered nights
+Across the 144 offered nights: median gaps 0.017–1.118 s, density 1.00–7.16/s,
+class counts of 1 (64 nights) through 7 (3 nights). Every constant is sized from
+those, and **the breath clamp never fires on real data** — a test holds it
+across the whole archive.
 
-| | p10 | median | p90 | range |
-|---|---|---|---|---|
-| median gap between arrivals | 0.026 s | 0.260 s | 0.713 s | 0.017–1.118 |
-| arrival density | 1.00 /s | 1.63 /s | 3.26 /s | 1.00–7.16 |
-
-Class count: **64 nights hold one class, 33 hold two, 23 three, 15 four, 2
-five, 4 six, 3 seven.** So 80 of 144 nights open a taller room and 24 open a
-tall one. That rarity is the point — class is worth 1.1 effective values on a
-median night, so when it differs it must be unmistakable.
-
-These numbers set every constant. The breath clamp is a **safety net that never
-fires on real data**: the whole archive lands at 5.4–29.6 s inside a 5–30 s
-range, and a test holds it to that across all 144 nights.
-
-### Levelling, against the presets it replaces
-
-Demo night, 10 s offline renders, through the real chain:
-
-| preset | peak | rms | | floor, raw | peak | rms |
-|---|---|---|---|---|---|---|
-| spore_cloud | 0.038 | 0.0065 | | spine A | 0.070 | 0.0195 |
-| quiet_beat | 0.011 | 0.0045 | | spine B | 0.060 | 0.0192 |
-| silk_thread | 0.046 | 0.0128 | | spine C | 0.073 | 0.0180 |
-| firefly_field | 0.044 | 0.0168 | | | | |
-| pollen_drift | 0.067 | 0.0135 | | | | |
-
-At the 0.22 every preset shares, the floor would have sat at rms 0.004 —
-quieter than four of the five things it replaces, and too quiet to judge.
-`FLOOR.busGain = 0.70` lands it at peak 0.040–0.051, rms ~0.0128, among them
-rather than above them.
-
-### The pass condition, on rendered audio
-
-`PLAN-NEXT-FAMILY.md` §6 step 3: *17 February and 3 September must not sound
-alike, and neither may sound like a preset.* Measured on 12 s renders in a real
-browser, app defaults:
+17 February against 3 September, rendered 40 s in a browser:
 
 | | 17 Feb (sparse) | 3 Sept (dense) |
 |---|---|---|
-| arrivals | 12 | 118 |
-| classes | Insecta | Arachnida, Insecta |
-| breath period | **24.4 s** | **9.2 s** |
-| flutter | **8 Hz** | **55.4 Hz** |
-| strata | trunk | trunk, canopy |
+| breath | 24.4 s | 9.2 s |
+| piano notes per 10 min | 22 | 56 |
+| grains per 2 min | 12 | 45 |
+| memory feedback | 0.50 | 0.70 |
+| band | 110–300 Hz | 101–402 Hz |
+| tones voiced | 2 | 3 |
+| peak / rms | 0.117 / 0.0149 | 0.122 / 0.0173 |
+| memory tail over 40 s | 0.86× | 1.02× — settles, no runaway |
 
-Spectral distance between the two nights, on the audio rather than on the
-parameters that made it:
+No non-finite samples. Levelled against the presets it replaced: they peaked
+0.011–0.067 at rms 0.0045–0.0168, and at the 0.22 gain they shared this room
+sat at rms 0.004 — quieter than four of the five. `EMERGENCE.busGain = 0.70`
+puts it among them.
 
-| spine | distance |
-|---|---|
-| A | **0.384** |
-| C | **0.344** |
-| B | **0.106** |
+### The measure that lied, recorded so nobody trusts it later
 
-**Spine B separates the two nights about 3.5× less than A or C.** With no
-flutter and a single stratum, the breath is the only thing that differs — and
-a 12 s render captures barely half a cycle of a 24 s breath, so the figure
-understates B somewhat. It remains the spine most at risk of the exact failure
-the presets were rejected for. Worth saying plainly rather than letting her
-discover it after choosing.
+A coarse spectral fingerprint rated the two nights **0.017** apart, against
+0.34–0.38 for the earlier, worse candidates. Making the harmony genuinely more
+night-dependent moved that number the **wrong way**.
 
-No non-finite samples in any render. Everything sits 25 dB below full scale.
+It measures long-term frequency balance — the one thing that *should* be similar,
+because two nights in the same family share a palette. Spines A and C scored
+well on it because flutter and strata changed the *timbre*; B keeps one palette
+and varies *what happens in it*. That is two nights in the same room rather than
+two different rooms, and it is the better kind of difference.
+
+The six axes above are the honest account. This is the sixth instance of the
+lesson this repository keeps recording: a number that fires on something real
+and describes itself as something else.
 
 ---
 
 ## What has NOT been verified
 
-- **Nothing has been heard by Lily.** Every number above is measurement, and
+- **Nothing has been heard by Lily.** Every figure above is measurement, and
   this project's record is that measurement repeatedly said a gesture was fine
-  when her ear said it was not.
-- **No gallery system, ever.** Every judgement in this project is headphones
-  and a laptop. The floor is the component most damaged by that gap, because
-  it is the one designed for a large room.
+  when her ear said otherwise.
+- **No gallery system, ever.** Every judgement in this project is headphones and
+  a laptop. A floor is the component most damaged by that gap, being the one
+  designed for a large room.
 - **No real-device test of anything.**
-- Whether a floor survives an hour in a gallery. These renders are seconds.
-- The flutter modulates the whole bus, so the piano flutters too. That is a
-  design choice, not an accident, and it is a question for her ear.
-
-## Deferred until she has chosen
-
-Retiring the five presets, removing Emergence from `VOICE_MODES`, and the
-release decision. **Emergence stays selectable and unchanged until the floor
-is accepted**, so nothing is lost in between.
-
-**Keep the eight-axis mapping when Emergence stops being a family.**
-`MOTH_AXES`, `mothVoicing`, `mothCode` and `tests/moth-voicing.test.cjs` — the
-entropy reasoning, 142 of 144 nights — will have nothing to play. It is the
-best design work in this project and it is what a future **canopy** family
-should be built on. Park it with its tests intact; do not delete it.
+- Whether a room survives an hour in a gallery. These renders are seconds.
+- Whether the grain reads as life or as noise. It is the newest gesture and the
+  one with no precedent in this instrument.
 
 ## How to hear it
-
-Serve `repository/` and open one spine at a time. The floor does not exist
-without the parameter.
 
 ```
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-- <http://127.0.0.1:8000/index.html?floor=A> — breath, memory, height, flutter
-- <http://127.0.0.1:8000/index.html?floor=B> — breath and memory only
-- <http://127.0.0.1:8000/index.html?floor=C> — flutter-led, dry
+<http://127.0.0.1:8000/index.html?emergence=1>
 
-It selects itself in the Ambience control. Switch nights with the date list —
-the room rebuilds from whichever night is loaded, which is the whole claim.
-Try both 17 February 2026 and 3 September 2026, and try it under Gondwana as
-well as alone.
+The room is under the **Emergence** control in the sidebar, with its own level.
+It sounds only while the music is playing — that is the fix. Switch nights with
+the date list and the room rebuilds from whichever night is loaded, which is the
+whole claim. Try 17 February 2026 against 3 September 2026.
+
+`?family=emergence` still auditions the withdrawn note-family, separately.
 
 ## Tests
 
-**462 tests, 453 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs — up
-from 443/434 with 19 new, and nothing broken. `musical-reference.test.cjs`
-holds Moth Orchestra to the original fixture, unregenerated.
+**462 tests, 453 pass, 0 fail**, 1 documented skip, 8 gap-remapping TODOs.
+`musical-reference.test.cjs` holds Moth Orchestra to the original fixture,
+which has never been regenerated.
+
+## Next
+
+- Her ear, on both nights. Then the release decision.
+- If accepted: `EMERGENCE.on` defaults true and the `?emergence=1` gate goes.
+- The `chime` clamp fix is still outstanding — decided, measured, one entry in a
+  table. See `NEXT-SESSION.md`.
+- The curated vernacular-name lookup remains build-ready and blocked on nothing.

@@ -22,7 +22,8 @@ this page current is cheap; not having it is what let a rule that fired on
 | `duet_echo` | both recorded the **same taxon** within 30 minutes | both identified the same species that night, close in time | **evidence** |
 | `accompaniment` | Song mode's composed rhythm, on non-matching slots | nothing — it is rhythm | **authorship**, and marked so |
 | `gond_pedal` | Gondwana's authored harmony on a slow clock | nothing — it is harmony | **authorship**, and marked so |
-| `moth_ground` | Emergence's sustained background, voiced from the night's own pitch classes | the pitch classes this night's taxa carry | **authorship**, on evidence |
+| `moth_ground` | the withheld Emergence *family*'s background, voiced from the night's own pitch classes | the pitch classes this night's taxa carry | **authorship**, on evidence |
+| `emergence` | the gallery floor, under every family — **withheld, `?emergence=1`** | nothing; it is the room the night is heard in | **authorship**, on evidence |
 | `duet_meeting` | the first shared minute of the night | **parked — does not sound** | authorship over evidence |
 
 ### `obs` — an arrival
@@ -136,7 +137,12 @@ An authored pedal on a slow clock, so a fixed taxon pitch is a root in one
 phrase and a ninth in the next. No glow, no thumbnail, no arrival. Gondwana
 only. Authorship, and it says so.
 
-### `moth_ground` — the warm background Emergence sits in
+### `moth_ground` — the warm background the Emergence *family* sits in
+
+> **Withheld since 18 September 2026.** The Emergence family left the published
+> list when Lily spent the name on the gallery floor. This sounds only under
+> `?family=emergence`. Kept whole, with its tests, because the eight-rank
+> mapping it belongs to is what a future canopy family should be built on.
 
 Built 17 September 2026. Lily, on what she meant by a touch of Gondwana: *"a
 warm sustained organ-like background, and barely audible wordless vocal
@@ -163,67 +169,106 @@ presets could not meet. A test holds 17 February against 3 September.
 
 Parked in one place if it is not wanted: `MOTH_GROUND.on = false`.
 
-### `floor` — the room the night is heard in (withheld, under audition)
+### `emergence` — the room the night is heard in (withheld, under audition)
 
-Built 18 September 2026. Lily: *"Let's make emergence the gallery floor. Sounds
-of life, insect-sounds, wing-beats, influences of East Forest and Thievery
-Corporation. Olafur. A woman who made this believes in 'reverence for life'.
-She reads Mary Oliver. Precious life. Rich life. Opening, opening. And yet deep
-time and forest and canopy."*
+Built 18 September 2026, after Lily heard three candidate rooms and chose the
+patient one:
+
+> *"spine B is best, but the ambience track doesn't stop when the music stops.
+> It keeps playing in the background. On second thought, we drop all ambience
+> tracks. We make Emergence for the gallery floor. Start anew. Keep the best of
+> what we've learned and the direction I provided."*
+
+Her direction: *"sounds of life, insect-sounds, wing-beats, influences of East
+Forest and Thievery Corporation. Olafur. A woman who made this believes in
+'reverence for life'. She reads Mary Oliver. Precious life. Rich life. Gallery
+floor. Opening, opening. And yet deep time and forest and canopy."*
 
 This is step 3 of `PLAN-NEXT-FAMILY.md`, unstarted since 13 September: the bed
-generated from the night's own shape that replaces the five ambience presets.
+generated from the night's own shape. It **replaced the five ambience presets**,
+which were decoration laid over a night rather than anything the night produced.
+They are gone, along with two more that were never reachable from the interface.
 
-**All of it is authorship.** The floor is grown *from* the night and is a claim
-about nothing. It carries no glow, no thumbnail and no arrival, and it never
-enters the score. It is **figure and ground, not two figures**: Gondwana decides
-how much a record says, the floor says nothing about any record and everything
-about the night entire, which is why it can sit under every family at once.
+**All of it is authorship.** Emergence is grown *from* the night and is a claim
+about nothing. No glow, no thumbnail, no arrival; it never enters the score; and
+it reads **arrivals only**, because a room grown from the authored layers
+beneath it would be decoration laid over decoration.
 
-It reads **arrivals only**. A floor grown from the authored layers beneath it
-would be decoration laid over decoration, which is what the presets were
-rejected for.
+It is **figure and ground, not two figures.** Gondwana decides how much a record
+says. Emergence says nothing about any record and everything about the night
+entire, which is why it sits under every family at once.
 
-Four gestures, each driven by a different measured property of the night:
+#### It stops when the music stops
+
+The defect Lily found by ear, and the first thing this room had to fix. Every
+preset had it: `stopScheduler()` clears the note-scheduling interval, but each
+preset ran on a graph of its own that nothing ever told to stop, so ambience
+outlived the music. Six code paths stop playback and only three stopped the
+sound. All six now stop the room.
+
+Unit tests could show that `stop()` releases its nodes; only pressing the real
+play button in a real browser showed that nothing was calling it. The first fix
+passed every test and did not work.
+
+#### Six gestures, each from a different measured property of the night
 
 | gesture | what it is | driven by |
 |---|---|---|
-| **breath** | the room swells and opens | the night's median gap between arrivals |
-| **memory** | a long filtered feedback delay, each pass darker | elapsed time, free of the loop |
-| **height** | one band of the room, or up to four | how many taxonomic classes the night holds |
-| **flutter** | amplitude modulation, 8–60 Hz | arrival density |
+| **breath** | the room swells, and the band opens as it swells | the night's median gap between arrivals |
+| **memory** | a long filtered feedback delay, each pass darker | arrival density — a fuller night holds more of itself |
+| **band** | how tall the room is, as width rather than layers | how many taxonomic classes the night holds |
+| **felt piano** | one note, given all the room in the world | the night's own pitch classes; spacing from density |
+| **grain** | short, quiet sounds of life | density, spaced irregularly |
+| **tones** | how much of the night's harmony is stated | how many pitch classes the night holds |
 
-**The flutter is not a wingbeat and must never be called one.** It sits on the
-boundary where a rhythm becomes a tone — at 8 Hz a flutter you feel, at 60 Hz
-nearly a note you hear — and the iNaturalist export carries **no wingbeat data
-at all**. Naming it a wingbeat would be precisely the failure this document
-exists to catch: a rule that fires on something real and describes itself as
-something else. It is called a flutter everywhere, in code and on screen.
+**The grain is not a wingbeat and must never be called one.** An earlier
+candidate put a 8–60 Hz tremolo on the bus — the boundary where a rhythm becomes
+a tone — and Lily turned it down. What remains is irregular by construction, so
+it can never read as a pulse. The export carries **no wingbeat data at all**;
+naming any of this a wingbeat would be exactly the failure this document exists
+to catch.
 
-**The felt piano** places one note every 15–25 seconds, drawn only from pitch
-classes the night itself holds, deterministic from the seed. It is the
-reverence, and it invents no pitch.
+**The band opens upward far more than downward**, deliberately. Lily judges on
+headphones, and a class that only added sub-bass would be a gesture she could
+not hear that would still measure as working.
 
-Measured across the 144 offered nights: median gaps run 0.017–1.118 s, which
-the constants carry to breath periods of 5.4–29.6 s, so the clamp is a safety
-net that **never fires on real data** — a test holds it to that. Density runs
-1.00–7.16 arrivals a second, which spans very nearly the whole flutter band.
-64 nights hold one class, 80 hold two or more, 24 hold four or more, up to
-seven; so the tall room is genuinely rare, which is the contrast class should
-buy, being worth only 1.1 effective values on a median night.
+#### Measured
 
-The room opens **upward before downward** on purpose. Lily judges on
-headphones, and a second class that only added sub-bass would be a gesture she
-could not hear that would still measure as working.
+Across the 144 offered nights: median gaps run 0.017–1.118 s, which the
+constants carry to breath periods of 5.4–29.6 s, so **the clamp is a safety net
+that never fires on real data** — a test holds it across the whole archive.
+Density runs 1.00–7.16 arrivals a second. 64 nights hold one class, 80 hold two
+or more, 24 hold four or more, up to seven.
 
-**Levelled against the five presets it replaces, not guessed.** Through the
-real chain on the demo night, the presets peak 0.011–0.067 at rms
-0.0045–0.0168; at the shared 0.22 gain the floor would have sat at rms 0.004,
-quieter than four of the five. `FLOOR.busGain = 0.70` puts it among them.
+17 February against 3 September, rendered 40 s in a browser:
 
-**Withheld.** `FLOOR.on` is false and the floor does not exist for anybody
-until `?floor=A`, `?floor=B` or `?floor=C` unlocks one spine, exactly as
-Gondwana and Noctilucent were withheld. Nothing here has been accepted by ear.
+| | 17 Feb (sparse) | 3 Sept (dense) |
+|---|---|---|
+| breath | 24.4 s | 9.2 s |
+| piano notes per 10 min | 22 | 56 |
+| grains per 2 min | 12 | 45 |
+| memory feedback | 0.50 | 0.70 |
+| band | 110–300 Hz | 101–402 Hz |
+| tones voiced | 2 | 3 |
+
+**A note on how that was checked, because the obvious measure lies.** A coarse
+spectral fingerprint put the two nights 0.017 apart and rated the earlier,
+worse-sounding candidates 0.34–0.38 apart. It is measuring long-term frequency
+balance, which is the one thing that *should* be similar: two nights in the
+same family share a palette. Making the harmony genuinely more night-dependent
+moved that number the wrong way. The six axes above are the honest account; the
+fingerprint is not, and is recorded here only so nobody trusts it later.
+
+**Levelled against the five presets it replaced, not guessed.** Through the real
+chain the presets peaked 0.011–0.067 at rms 0.0045–0.0168; at the 0.22 they
+shared, this room sat at rms 0.004, quieter than four of the five.
+`EMERGENCE.busGain = 0.70` puts it among them. Rendered 40 s: peak 0.12, rms
+0.015–0.017, no non-finite samples, and the memory tail settles rather than
+growing.
+
+**Withheld.** `EMERGENCE.on` is false and the room does not exist for anybody
+until `?emergence=1`, exactly as Gondwana and Noctilucent were withheld.
+Nothing here has been accepted by ear.
 
 ### `duet_meeting` — parked
 
