@@ -27,9 +27,41 @@ Read in this order:
 3. [SESSION-2026-09-17-CROSSING.md](SESSION-2026-09-17-CROSSING.md) and
    [SESSION-2026-09-16-FLOURISHES.md](SESSION-2026-09-16-FLOURISHES.md).
 
-### Waiting on Lily's ear — the `voice-registers` branch
+### Live, and not yet settled — Emergence
 
-Items 1 and 2 of the list below are **built**. Both were the same fault: pitch
+**Published on 17 September 2026 while Lily was explicitly not settled on it:**
+*"I'm not entirely set just yet but I want to push it live as 'Emergence' and
+leave the original moth orchestra family intact for a while."* Moth Orchestra
+is therefore unchanged and still selectable, and Gondwana now leads the list
+and opens the instrument.
+
+Emergence makes the note from the record's own lineage — eight ranks, each sized by what it measurably tells apart on a
+real night. She heard the first draft and called it **nasal**, and named a
+specific loss: *"a sweet voice introduced at the genus or perhaps species level
+that gave tenderness."* That voice was `harp` and `bowl`, and the cause was
+exact: they carry two or three partials behind a closing lowpass, and the draft
+had eight bare sine partials and no filter at all.
+
+The second pass adds the closing filter, natural variation in timing and touch
+bounded below the data's own precision, and **the ground** — a warm sustained
+organ background voiced from the night's own pitch classes. 143 distinct
+harmonies across 144 offered nights; a preset would give one.
+
+```sh
+cd sessions/2026-09-17/hero && python3 serve.py   # → listen.html
+```
+
+**Deliberately not built: the short melodic motif with subtle variations.** It
+is the largest authorship claim of what she asked for, Gondwana's figures
+already occupy that ground, and it is the item most likely to fail the way
+`duet_meeting` failed. The ground's four-section clock is the frame it would
+vary against. See
+[SESSION-2026-09-17-HERO.md](SESSION-2026-09-17-HERO.md).
+
+### Merged and accepted — the `voice-registers` work
+
+**Accepted by ear on 17 September 2026** and merged to `main`, unpushed.
+Items 1 and 2 of the list below are **built and accepted**. Both were the same fault: pitch
 comes from the taxon, so every voice of a family is handed the same 147–988 Hz,
 and nothing but the octave can separate four voices into a consort. Frog Yawn's
 soprano and all four Lantern voices were not folding. There is now one rule for

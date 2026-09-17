@@ -29,6 +29,45 @@ For a local preview, run `python3 -m http.server 8000 --bind 127.0.0.1` from thi
 - The five-second near-simultaneous pulse was **removed** on 16 September 2026. iNaturalist stores minute precision and 97.7% of records carry `:00`, so it had collapsed onto the shared-minute rule: it fired on 311 of 311 shared minutes at exactly the bell's instant. It was also asymmetric — it paired each A record to its nearest B record, and A is whoever appears first in the file, so it fired on 25 minutes with one observer as A and would have fired on 103 different ones with the other.
 - Solo playback contains only that observer's notes, with no duet gestures. Switching players rebuilds sound, visual events and evidence together.
 
+## The families
+
+Seven are published. The order below is the dropdown, the keyboard cycle and
+the swipe, and the first is what the instrument opens on.
+
+| | what it is |
+|---|---|
+| **Gondwana** | Nine authored bodies in a large room, and the one family that decides *how much* a record says: repeated sightings arpeggiate. **The default since 17 September 2026.** |
+| **Emergence** | The note is built from the record's own **lineage**. Eight ranks each set one thing, so relatedness is audible. Published 17 September 2026 before it was settled, at Lily's asking, with Moth Orchestra left intact behind it. |
+| **Moth Orchestra** | The original. Eleven instruments, chosen by hashing the value of whichever rank Tone by is set to. **Unchanged**, and held to the original reference score note for note by `tests/musical-reference.test.cjs`. |
+| **Boobook** | Night-animal voices. |
+| **Frog Yawn** | A four-part choir. Soprano folds into C4–E5 since 17 September 2026. |
+| **Fireflies** | Steelpans. |
+| **Lantern Glass** | Four resonant voices, a consort in thirds since 17 September 2026. |
+
+**Noctilucent** is built, tested and **withheld** — it has never been heard, and
+a family leaves that set only when Lily has listened and said so. Audition it
+with `?family=noctilucent`.
+
+### Emergence, and why its rules are shaped the way they are
+
+The obvious mapping is one rank per axis, coarse to fine. It is wrong on this
+data and measurably so. The **effective** number of values each rank shows on a
+median night — exp(Shannon entropy), so a rank that is 99% one value scores
+about 1.0 — is kingdom 1.0, class 1.1, order 3.1, superfamily 9.2, family 14.4,
+subfamily 18.6, tribe 14.0, **genus 25.0**, species 21.0. A median night holds
+30 distinct taxa, so genus alone separates 25 of them and kingdom separates
+none; the export is 90.6% Insecta and 57.8% Lepidoptera.
+
+Each axis is therefore sized by what its rank actually tells apart, and the
+most audible axis — how long a note lasts — goes to genus. On the offered
+nights that takes the count of nights where **every** taxon is distinguishable
+from 17 of 144 to 142 of 144.
+
+A rank a record does not carry stays dark and nothing is invented to fill it,
+so **how well a specimen is identified is audible**. Tone by sets how much of
+the lineage is heard, never what it says. The full table, and what each sound
+claims, is in `docs/WHAT-EVERY-SOUND-MEANS.md`.
+
 ## What a status line says
 
 > A status line reports what you now have and can play. Not the archive it came from, not what was skipped.

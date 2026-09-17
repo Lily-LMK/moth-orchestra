@@ -133,7 +133,10 @@ test('with no shared night at all, the fetch still opens on the newest night it 
  solo.push(apiObs({id:610,login:'lily_kumpe',iso:'2026-09-11T03:00:00Z'}));
  applyFetch(c,solo);
  assert.equal(c.state.nightKey,'2026-09-11');
- assert.equal(c.buildSequencer(c.state.nights.get('2026-09-11')).events.length,1);
+ // Arrivals, not events: Moth Orchestra also lays a harmonic ground, which is
+ // authorship and belongs to no record.
+ assert.equal(c.buildSequencer(c.state.nights.get('2026-09-11')).events
+   .filter(e=>e.kind==='obs').length,1);
 });
 
 test('the shared-date rule needs both a second observer and twenty records',()=>{
@@ -194,8 +197,13 @@ test('a single-observer fetch plays as a solo, with no duet gestures invented',(
  assert.equal(c.state.userBName,'');
  c.state.spacingMode='timeline';
  const seq=c.buildSequencer(c.state.nights.get(c.state.nightKey));
- assert.equal(seq.events.length,12);
+ assert.equal(seq.events.filter(e=>e.kind==='obs').length,12);
  assert.equal(seq.events.filter(e=>e.isSpecial).length,0);
+ // A family's own authored layer — Gondwana's pedal, Emergence's ground — is
+ // harmony, not a gesture: it belongs to no record and sounds in every listen
+ // mode. Excluded here rather than forbidden.
+ assert.equal(seq.events.filter(e=>e.kind!=='obs'&&e.kind!=='moth_ground'&&e.kind!=='gond_pedal').length,0,
+  'a solo invents no duet gesture');
  assert.deepEqual(Array.from(seq.meta.sharedMinutes),[]);
 });
 

@@ -27,7 +27,10 @@ for (const mode of ['timeline','riff','song']) {
     c.softRebuild();
     c.setListenMode('A');
     assert.equal(c.state.sequencer.meta.sharedMinutes.length,0);
-    assert.ok(c.state.sequencer.events.every(e=>!e.isSpecial && e.user === 'A'));
+    // The ground is harmony, not a record: it belongs to no observer and
+    // sounds in every listen mode, like Gondwana's pedal.
+    const arrivals = es => es.filter(e=>e.kind !== 'moth_ground' && e.kind !== 'gond_pedal');
+    assert.ok(arrivals(c.state.sequencer.events).every(e=>!e.isSpecial && e.user === 'A'));
     c.softRebuild();
     c.setListenMode('both');
     assert.equal(c.state.sequencer.meta.sharedMinutes.length,8);

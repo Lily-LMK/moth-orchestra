@@ -21,6 +21,10 @@ function playback(times = [0, 2]) {
   c.performance.now = () => clock.currentTime * 1000;
   c.testAudio = clock;
   vm.runInContext('audioCtx = testAudio; masterGain = {gain:{setTargetAtTime() {}}};', c);
+  // These tests are about the scheduler, not about a family, and Gondwana —
+  // the default since 17 September 2026 — takes its own scheduling branch.
+  // Pin the family so the stub below is the path under test.
+  c.state.voiceMode = 'mixed';
   c.scheduleInstrument = (ctx, instrument, when, freq, velocity) => notes.push({ when, freq, velocity });
   c.scheduleThumbGlow = (event, when) => glows.push({ event, when });
   c.scheduleSelectionOverlay = (event, when) => overlays.push({ event, when });

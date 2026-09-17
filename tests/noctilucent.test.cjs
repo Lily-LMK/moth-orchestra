@@ -14,7 +14,9 @@ function app(mode, voiceMode = 'noctilucent') {
 
 test('Noctilucent is an optional named family and existing families remain available', () => {
   const c = loadApp();
-  assert.equal(c.state.voiceMode, 'mixed');
+  // Gondwana leads the list and opens the instrument from 17 September 2026.
+  assert.equal(c.state.voiceMode, 'gondwana');
+  assert.equal(vm.runInContext('VOICE_MODES[0]', c), 'gondwana');
   for (const mode of ['mixed', 'night', 'choir', 'steelpan', 'lantern']) {
     assert.ok(vm.runInContext('Array.from(VOICE_MODES)', c).includes(mode), `retains ${mode}`);
   }
@@ -42,13 +44,17 @@ for (const mode of ['timeline', 'riff']) {
     const baseline = c.buildSequencer(c.state.obs);
     c.state.voiceMode = 'noctilucent';
     const candidate = c.buildSequencer(c.state.obs);
-    const identity = seq => plain(seq.events.filter(e => e.kind === 'obs').map(({ instrument, ...e }) => e));
+    // `lag` and `touch` are Moth Orchestra's own, and are absent from every
+    // other family because a family Lily has accepted is not rephrased behind
+    // her. They are not part of the written score either way.
+    const identity = seq => plain(seq.events.filter(e => e.kind === 'obs')
+      .map(({ instrument, lag, touch, ...e }) => e));
     assert.deepEqual(identity(candidate), identity(baseline));
     assert.ok(candidate.events.filter(e => e.kind === 'obs').every(e => family.includes(e.instrument)));
     assert.deepEqual(plain(candidate.events), plain(c.buildSequencer(c.state.obs).events));
     assert.deepEqual(plain(candidate.meta.sharedMinutes), plain(baseline.meta.sharedMinutes));
-    assert.deepEqual(plain(candidate.events.filter(e => e.kind !== 'obs')),
-      plain(baseline.events.filter(e => e.kind !== 'obs')), 'all special gestures and source matches are preserved');
+    assert.deepEqual(plain(candidate.events.filter(e => e.kind !== 'obs' && e.kind !== 'moth_ground')),
+      plain(baseline.events.filter(e => e.kind !== 'obs' && e.kind !== 'moth_ground')), 'all special gestures and source matches are preserved');
   });
 }
 
@@ -191,8 +197,9 @@ test('Noctilucent is built but withheld from the user-facing family list', () =>
   const published = vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c);
   assert.ok(!published.includes('noctilucent'), 'not offered to the listener');
   assert.ok(vm.runInContext('VOICE_MODES.includes("noctilucent")', c), 'still registered');
-  assert.deepEqual(plain(published), ['mixed', 'night', 'choir', 'steelpan', 'lantern', 'gondwana']);
-  // Gondwana was accepted by ear and published on 14 September 2026; this
-  // family has still not been heard, so it stays out regardless.
-  assert.equal(vm.runInContext('VOICE_MODE_LABELS[PUBLIC_VOICE_MODES.at(-1)]', c), 'Gondwana');
+  assert.deepEqual(plain(published), ['gondwana', 'emergence', 'mixed', 'night', 'choir', 'steelpan', 'lantern']);
+  // Gondwana was accepted by ear and published on 14 September 2026, and leads
+  // the list from 17 September; this family has still not been heard at all,
+  // so it stays out regardless.
+  assert.equal(vm.runInContext('VOICE_MODE_LABELS[PUBLIC_VOICE_MODES[0]]', c), 'Gondwana');
 });

@@ -22,12 +22,20 @@ this page current is cheap; not having it is what let a rule that fired on
 | `duet_echo` | both recorded the **same taxon** within 30 minutes | both identified the same species that night, close in time | **evidence** |
 | `accompaniment` | Song mode's composed rhythm, on non-matching slots | nothing — it is rhythm | **authorship**, and marked so |
 | `gond_pedal` | Gondwana's authored harmony on a slow clock | nothing — it is harmony | **authorship**, and marked so |
+| `moth_ground` | Emergence's sustained background, voiced from the night's own pitch classes | the pitch classes this night's taxa carry | **authorship**, on evidence |
 | `duet_meeting` | the first shared minute of the night | **parked — does not sound** | authorship over evidence |
 
 ### `obs` — an arrival
 
 Pitch comes from the taxon, instrument from the voice family and the selected
 rank. One note per record, always. This is the instrument.
+
+**In Emergence the note is built from the record's own lineage.** Eight ranks
+each set one thing about the sound, so relatedness is audible: two species of
+one genus differ in one thing, a moth and a beetle differ in several, a bird
+and a moth differ in everything. See "The lineage is the instrument" below.
+Every other family, Moth Orchestra included, picks one of its authored bodies
+by hash.
 
 **Which octave it sounds in is the voice's, not the taxon's.** The taxon
 chooses a pitch between 147 Hz and 988 Hz, and every voice of a family is
@@ -45,6 +53,7 @@ sound a different note.
 | Gondwana | all seven, via `gondwanaVoicing` | 13 September 2026 |
 | Frog Yawn | bass_voice, tenor, alto — and **soprano** | soprano 17 September 2026 |
 | Lantern Glass | all four | 17 September 2026 |
+| Emergence | every voice, from the record's class | 17 September 2026 |
 | Moth Orchestra, Boobook, Fireflies | none | — |
 
 **Frog Yawn's soprano did not fold**, so it sat an octave above alto's ceiling
@@ -126,6 +135,33 @@ never evidence of synchrony. Authorship, and it says so.
 An authored pedal on a slow clock, so a fixed taxon pitch is a root in one
 phrase and a ninth in the next. No glow, no thumbnail, no arrival. Gondwana
 only. Authorship, and it says so.
+
+### `moth_ground` — the warm background Emergence sits in
+
+Built 17 September 2026. Lily, on what she meant by a touch of Gondwana: *"a
+warm sustained organ-like background, and barely audible wordless vocal
+textures. Maybe slow harmonic movement, open chord voicings, lingering
+notes."*
+
+An organ registration and a quiet wordless texture an octave above it, holding
+a chord that changes about every five seconds. **It is harmony, so it is
+authorship** — no glow, no thumbnail, no arrival, exactly as `gond_pedal` is.
+
+**But it is not a preset, and that distinction is the whole point.** This
+project has five ambience presets and has wanted them gone for weeks, because
+they are decoration laid over a night rather than anything the night produced.
+The ground's harmony is **the night's own pitches**: the loop is cut into four
+sections and each is voiced from the pitch classes the taxa sounding in it
+actually carry, in open voicing, in the register below the arrivals. A night of
+few taxa gets a near-static harmony; a night of many gets a harmony that moves.
+A chord identical to the one before it is **held**, not restruck, because a
+swell where the night has no change is a swell about nothing.
+
+Two nights cannot sound alike unless they hold the same creatures — the
+condition `PLAN-NEXT-FAMILY.md` set for the gallery floor and the one the
+presets could not meet. A test holds 17 February against 3 September.
+
+Parked in one place if it is not wanted: `MOTH_GROUND.on = false`.
 
 ### `duet_meeting` — parked
 
@@ -209,6 +245,138 @@ controlled nothing for some time — went with it.
 
 ---
 
+## The lineage is the instrument — Emergence only
+
+Built 17 September 2026, when Lily asked for the hero family to be *"the most
+strict when it comes to taxa sounding differently"*.
+
+**It is a family of its own, and Moth Orchestra is untouched.** Lily, the same
+day: *"I want to push it live as 'Emergence' and leave the original moth
+orchestra family intact for a while."* So this section describes **Emergence**;
+everything it replaced is still there, still selectable, and still identical to
+the original reference score note for note — `tests/musical-reference.test.cjs`
+holds Moth Orchestra against a fixture that has never been regenerated.
+
+### What it replaced, and why
+
+The timbre used to be `hash(the value of whichever rank Tone by is set to)`.
+Measured on the two-backyards export, that had two consequences:
+
+1. **Relatedness was inaudible.** Five species of *Idaea*, one genus of
+   geometer moths, were given bell, creek, creek, pad and ember. Five
+   *Polyrhachis* ants were given pluck, creek, hat, creek, ember. Two of each
+   pair collided outright, and nothing in either set said they were relatives.
+2. **The timbre was not a property of the animal.** Changing Tone by from
+   species to genus moved *Nyctemera amicus* from a bell to a pad. The moth had
+   not changed; a dropdown had. That is this page's recurring defect in new
+   clothes — a sound that claims to be about the night and is about something
+   else.
+
+The ceiling was 11 instruments × 15 pitches = **165 possible sounds for 2,338
+distinct taxa**.
+
+### How the axes were chosen — measured, not assumed
+
+The obvious design is one rank per axis, coarse to fine. It is wrong here, and
+measurably so. Across the 144 offered nights, the **effective** number of
+values each rank shows on a median night — exp(Shannon entropy), so a rank that
+is 99% one value scores about 1.0 — is:
+
+| kingdom | phylum | class | order | superfamily | family | subfamily | tribe | genus | species |
+|---|---|---|---|---|---|---|---|---|---|
+| 1.0 | 1.0 | 1.1 | 3.1 | 9.2 | 14.4 | 18.6 | 14.0 | **25.0** | 21.0 |
+
+A median night holds 30 distinct taxa. **Genus alone separates 25 of them.**
+Kingdom separates none. Spending the largest axis on kingdom would waste it on
+a constant — which is how the old model came to spend its only timbre axis on a
+rank worth 3.1.
+
+So each axis is sized by what its rank actually tells apart:
+
+| rank | sets | why that rank |
+|---|---|---|
+| class | **material and register** — what the note is made of, and the octaves it speaks in | 1.1/night: rare, so it gets the largest contrast. A bird among moths must be unmistakable. |
+| order | **stretch** — how far the partials run sharp of a pure series | 3.1/night |
+| superfamily | **body** — how many partials | 9.2/night |
+| family | **tilt** — brightness | 14.4/night |
+| subfamily | **attack** | 18.6/night |
+| tribe | **late bloom** — the upper partials arriving after the strike | 14.0/night, 59% filled |
+| genus | **decay** — how long the note lasts | 25.0/night: the best rank gets the most audible axis |
+| species | **shimmer** — a detuned twin, beating | 21.0/night |
+
+### What it achieves, measured
+
+| | before | after |
+|---|---|---|
+| nights where **every** taxon is distinguishable | 17 of 144 | **142 of 144** |
+| distinct sounds across the archive | 165 | 1,977 |
+| sounding pitch, min / median / max | 147 / 370 / 988 Hz | 123 / 294 / 880 Hz |
+| note length | 0.25–0.9 s, fixed per instrument | 0.4–4.3 s, median 1.35 s |
+
+Two things measurement threw out along the way, both worth keeping written
+down because both looked right on paper:
+
+- **Order held a register shift first.** Folding moves by whole octaves, so a
+  shift smaller than an octave changes the note only when the written pitch
+  happens to straddle the moved edge. The axis was silent for most notes.
+  Stretch replaced it and is audible on every one.
+- **Each class had a one-octave band first.** The written score spans
+  147–988 Hz, so a one-octave band left nine records in ten sharing five
+  pitches. The instrument told taxa apart beautifully and had stopped having a
+  melody. The bands are about two octaves.
+
+### What it claims
+
+| Sound | Claims | Evidence or authorship |
+|---|---|---|
+| the material and register | this record is in this class | **evidence** — which class it is |
+| which material a class gets | nothing about the animal | **authorship**, and it says so |
+| stretch, body, tilt, attack, late, decay, shimmer | this record carries these ranks, and these values | **evidence** |
+| the lag and weight of each arrival | nothing — it is touch | **authorship**, bounded below the data's precision |
+| how much of the note is elaborated | **how well this specimen is identified** | **evidence** |
+
+That last row is a real claim and it is deliberate. A rank the record does not
+carry stays dark and nothing is invented to fill it, so an undetermined moth
+sounds like a plain member of whatever it *is* known to be, and a specimen
+identified to species sounds fully elaborated. **You can hear how well a
+specimen is determined.** The Now playing card says the same thing in words:
+*"Stretched, mid · lineage 8 of 8"*.
+
+Which material and octave a class receives is **authored** — it is not a claim
+that a bird sounds breathy or a spider sounds damped, the same rule every
+family in this file follows. The seven named classes cover 99.1% of the export
+and Insecta alone is 90.6%, so the dominant sound of the hero family is written
+down rather than left to whatever a hash returned.
+
+**Tone by sets how much of the lineage is heard, never what it says.** At class
+rank only the material sounds, so every insect is one voice — which is what
+"Class voices: 1" has always meant. At species rank the whole lineage sounds.
+An axis that is lit says the same thing at every depth, which is exactly the
+defect above, fixed.
+
+### Touch and timing
+
+Lily asked for *"natural variations in timing and touch"*. Each arrival carries
+a `lag` and a `touch`, both derived from **the record's own id**, so the same
+record is always played the same way and the variation is explicable rather
+than noise.
+
+`lag` is bounded by the data's own precision. iNaturalist stores minutes, so a
+nudge smaller than half a minute of real time cannot move a note off anything
+the record actually claims — on a twelve-hour night at a nineteen-second loop
+that is **±13 ms**, and it is capped at 30 ms absolutely so a narrow Riff
+window cannot magnify it. `touch` only ever takes weight away, never adds it.
+
+**Emergence only.** Every other family has been accepted by ear as it is, and
+a family that has been accepted is not quietly rephrased because a different
+one wanted it.
+
+**Song mode's composed rhythm keeps its own neutral voice.** The lineage voice
+is for evidence; accompaniment is authorship and must never be given a
+creature's voice. A test holds this.
+
+---
+
 ## Known, measured, and deliberately not changed
 
 ### `chime` clamps instead of folding — the written score is altered
@@ -239,10 +407,13 @@ comment says "capped at octave 4" and whose effect is that two different moths
 sound like the same moth. The fix is one entry in `VOICE_REGISTERS` and one
 call to `voicedFreq`, exactly as Lantern Glass now does.
 
-**It has deliberately not been changed.** `chime` is in the family Lily hears
-most, the change would alter the default sound of the instrument, and it is
-outside what this session was asked to do. It is written down here so it is not
-rediscovered a fourth time. Her call.
+**It has deliberately not been changed, and it is still live.** A draft on
+17 September 2026 rebuilt Moth Orchestra around the lineage, which would have
+retired `chime` as an arrival voice; Lily asked for that to ship as a separate
+family, **Emergence**, and for Moth Orchestra to be left exactly as it was. So
+the clamp is still there, still reaching 166 of 526 chime notes, and still the
+clearest example on this page of a rule whose comment and whose effect
+disagree. The fix remains one entry in `VOICE_REGISTERS`. **Lily's call.**
 
 ## The rule this page exists to enforce
 
@@ -259,3 +430,8 @@ Two tests that hold this, and should not be deleted:
   the registers refactor compared against the three inline folds it replaced,
   note for note, because a sound Lily has accepted must not move
 - `folding moves by whole octaves only, so the pitch class is never altered`
+- `relatedness is audible: the closer the lineage, the fewer the differences`
+- `the sound is a property of the animal, not of the Tone by dropdown`
+- `a rank the record does not carry stays dark; nothing is invented to fill it`
+- `the only thing Moth Orchestra changed is which voice speaks` — the baseline
+  reference score, held field by field, so the written score is provably intact
