@@ -163,6 +163,68 @@ presets could not meet. A test holds 17 February against 3 September.
 
 Parked in one place if it is not wanted: `MOTH_GROUND.on = false`.
 
+### `floor` — the room the night is heard in (withheld, under audition)
+
+Built 18 September 2026. Lily: *"Let's make emergence the gallery floor. Sounds
+of life, insect-sounds, wing-beats, influences of East Forest and Thievery
+Corporation. Olafur. A woman who made this believes in 'reverence for life'.
+She reads Mary Oliver. Precious life. Rich life. Opening, opening. And yet deep
+time and forest and canopy."*
+
+This is step 3 of `PLAN-NEXT-FAMILY.md`, unstarted since 13 September: the bed
+generated from the night's own shape that replaces the five ambience presets.
+
+**All of it is authorship.** The floor is grown *from* the night and is a claim
+about nothing. It carries no glow, no thumbnail and no arrival, and it never
+enters the score. It is **figure and ground, not two figures**: Gondwana decides
+how much a record says, the floor says nothing about any record and everything
+about the night entire, which is why it can sit under every family at once.
+
+It reads **arrivals only**. A floor grown from the authored layers beneath it
+would be decoration laid over decoration, which is what the presets were
+rejected for.
+
+Four gestures, each driven by a different measured property of the night:
+
+| gesture | what it is | driven by |
+|---|---|---|
+| **breath** | the room swells and opens | the night's median gap between arrivals |
+| **memory** | a long filtered feedback delay, each pass darker | elapsed time, free of the loop |
+| **height** | one band of the room, or up to four | how many taxonomic classes the night holds |
+| **flutter** | amplitude modulation, 8–60 Hz | arrival density |
+
+**The flutter is not a wingbeat and must never be called one.** It sits on the
+boundary where a rhythm becomes a tone — at 8 Hz a flutter you feel, at 60 Hz
+nearly a note you hear — and the iNaturalist export carries **no wingbeat data
+at all**. Naming it a wingbeat would be precisely the failure this document
+exists to catch: a rule that fires on something real and describes itself as
+something else. It is called a flutter everywhere, in code and on screen.
+
+**The felt piano** places one note every 15–25 seconds, drawn only from pitch
+classes the night itself holds, deterministic from the seed. It is the
+reverence, and it invents no pitch.
+
+Measured across the 144 offered nights: median gaps run 0.017–1.118 s, which
+the constants carry to breath periods of 5.4–29.6 s, so the clamp is a safety
+net that **never fires on real data** — a test holds it to that. Density runs
+1.00–7.16 arrivals a second, which spans very nearly the whole flutter band.
+64 nights hold one class, 80 hold two or more, 24 hold four or more, up to
+seven; so the tall room is genuinely rare, which is the contrast class should
+buy, being worth only 1.1 effective values on a median night.
+
+The room opens **upward before downward** on purpose. Lily judges on
+headphones, and a second class that only added sub-bass would be a gesture she
+could not hear that would still measure as working.
+
+**Levelled against the five presets it replaces, not guessed.** Through the
+real chain on the demo night, the presets peak 0.011–0.067 at rms
+0.0045–0.0168; at the shared 0.22 gain the floor would have sat at rms 0.004,
+quieter than four of the five. `FLOOR.busGain = 0.70` puts it among them.
+
+**Withheld.** `FLOOR.on` is false and the floor does not exist for anybody
+until `?floor=A`, `?floor=B` or `?floor=C` unlocks one spine, exactly as
+Gondwana and Noctilucent were withheld. Nothing here has been accepted by ear.
+
 ### `duet_meeting` — parked
 
 The first shared minute of each night, voiced by **the ground**: a long swell

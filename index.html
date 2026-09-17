@@ -3348,6 +3348,324 @@ function buildCosmicBreath(ctx, outGain, key, scaleName){
 }
 
 
+// ── The gallery floor: the room a night is heard in ─────────────────────────
+// Lily, 18 September 2026: *"Let's make emergence the gallery floor. Sounds of
+// life, insect-sounds, wing-beats, influences of East Forest and Thievery
+// Corporation. Olafur. A woman who made this believes in 'reverence for life'.
+// She reads Mary Oliver. Precious life. Rich life. Opening, opening. And yet
+// deep time and forest and canopy."*
+//
+// This is step 3 of PLAN-NEXT-FAMILY.md, which has wanted the five ambience
+// presets replaced since 13 September: they "add nothing because they are
+// decoration laid over the night rather than anything the night produced."
+//
+// **The floor is authorship and it says so.** It is grown *from* the night's
+// shape and is a claim about nothing — no wingbeat here is any animal's real
+// wingbeat, which is why the gesture is called a flutter and never a wingbeat.
+// The export carries no wingbeat data and inventing one would be exactly the
+// failure this project keeps catching: a rule that fires on something real and
+// describes itself as something else.
+//
+// It is also **figure and ground, not two figures.** Gondwana decides how much
+// a record says; the floor says nothing about any record and everything about
+// the night entire. That is why it can sit under every family at once.
+const FLOOR = {
+  on: false,          // she listens before anything ships; nothing on my judgement
+  spine: "A",         // A breath+memory+height · B breath+memory · C flutter-led
+  level: 0.30,
+
+  // Breath — the period is the night's own median gap between arrivals, so a
+  // sparse February night breathes slowly and a heaving September night
+  // breathes fast. Measured over all 144 offered nights: median gaps run
+  // 0.017 to 1.118 s, which these constants carry to 5.4-29.6 s. The clamp is
+  // a safety net that never fires on real data, and a test holds it to that.
+  breathBaseSec: 5,
+  breathPerGapSec: 22,
+  breathMinSec: 5,
+  breathMaxSec: 30,
+  breathDepth: 0.55,      // how much of the level the swell actually moves
+  breathFilterOctaves: 1.7,
+
+  // Flutter — amplitude modulation on the boundary where a rhythm becomes a
+  // tone. At 8 Hz it is a flutter you feel; at 60 Hz it is nearly a note you
+  // hear. Arrival density drives it, and across the archive (1.00 to 7.16
+  // arrivals a second) it spans very nearly the whole band: 17 February sits
+  // at 8 Hz and 3 September at 59 Hz, the two ends of the same idea.
+  flutterBaseHz: 8,
+  flutterPerOctaveHz: 18,
+  flutterMinHz: 8,
+  flutterMaxHz: 60,
+  flutterDepth: 0.30,     // spine C foregrounds this; A uses it as a texture
+  flutterDepthLed: 0.72,
+
+  // Memory — Thievery's dub, and this family's deep time. A long filtered
+  // feedback delay, each pass darker than the last, so material from minutes
+  // ago is still in the room. 7.1 s is deliberately incommensurate with every
+  // loop length this instrument uses, because PLAN-NEXT-FAMILY.md section 4
+  // warns that material repeating inside the loop will never feel old.
+  memorySec: 7.1,
+  memoryFeedback: 0.62,
+  memoryDampHz: 2200,
+  memoryWet: 0.45,
+
+  // The felt piano — Olafur, and the reverence. One note, given all the room
+  // in the world, drawn from pitch classes the night itself holds.
+  pianoMinGapSec: 15,
+  pianoMaxGapSec: 25,
+  pianoLowMidi: 48,       // C3, and whole octaves up, so the pitch class is exact
+  pianoOctaves: 3,
+  pianoLevel: 0.20,
+  pianoDecaySec: 6.5,
+
+  airLiftPerClass: 1.18,  // beyond four classes the room keeps opening upward
+  scheduleHorizonSec: 180,
+
+  // How loud the room is, in place of the 0.22 every preset shares. Levelled
+  // against the five presets it replaces rather than guessed, measured through
+  // the real chain on the demo night, 10 s offline renders:
+  //
+  //   preset        peak     rms          floor, raw   peak    rms
+  //   spore_cloud   0.038    0.0065       spine A      0.070   0.0195
+  //   quiet_beat    0.011    0.0045       spine B      0.060   0.0192
+  //   silk_thread   0.046    0.0128       spine C      0.073   0.0180
+  //   firefly_field 0.044    0.0168
+  //   pollen_drift  0.067    0.0135
+  //
+  // At 0.22 the floor would sit at rms 0.004 -- quieter than four of the five
+  // things it replaces, and too quiet for Lily to judge. 0.70 puts it among
+  // them on rms rather than above them, which is what a floor should be.
+  busGain: 0.70
+};
+
+// The room's height, lowest band first in pitch but *opened* in the order
+// below. It opens upward before it opens downward on purpose: Lily judges on
+// headphones, and a second class that only added sub-bass would be a gesture
+// she could not hear and that would still measure as working.
+const FLOOR_STRATA = [
+  { name:"trunk",  lowHz:  90, highHz:  300 },
+  { name:"canopy", lowHz: 300, highHz: 1200 },
+  { name:"roots",  lowHz:  40, highHz:   90 },
+  { name:"air",    lowHz:1200, highHz: 5000 }
+];
+
+// The floor is withheld exactly the way Gondwana and Noctilucent were, and for
+// the same reason: nothing here is published on my judgement. `?floor=A`,
+// `?floor=B` or `?floor=C` unlocks one spine for audition. Without it the floor
+// does not exist for anybody, so `main` stays what Lily has already accepted.
+try {
+  const q = (new URLSearchParams(location.search).get("floor") || "").toUpperCase();
+  if(q === "A" || q === "B" || q === "C"){ FLOOR.on = true; FLOOR.spine = q; }
+} catch(err){ FLOOR.on = false; }
+
+// What the night is, as the floor needs to know it. Arrivals only: a floor
+// grown from the authored layers underneath it would be decoration laid over
+// decoration, which is the thing the presets were rejected for.
+function floorNightShape(events, loopLen){
+  const span = Math.max(1, Number.isFinite(loopLen) ? loopLen : 19);
+  const arrivals = [];
+  for(const e of (events || [])){
+    if(!e || e.kind !== "obs" || e.isSpecial) continue;
+    if(!Number.isFinite(e.atSec)) continue;
+    arrivals.push(e);
+  }
+  arrivals.sort((a, b) => a.atSec - b.atSec);
+  const gaps = [];
+  for(let i=1; i<arrivals.length; i++) gaps.push(arrivals[i].atSec - arrivals[i-1].atSec);
+  gaps.sort((a, b) => a - b);
+  const half = gaps.length >> 1;
+  const medianGapSec = !gaps.length ? 0
+    : (gaps.length % 2 ? gaps[half] : (gaps[half-1] + gaps[half]) / 2);
+  const classes = new Set();
+  for(const e of arrivals){
+    const name = e.obs && e.obs.ranks && e.obs.ranks.taxon_class_name;
+    if(typeof name === "string" && name.trim()) classes.add(name.trim());
+  }
+  return {
+    arrivals: arrivals.length,
+    medianGapSec,
+    density: arrivals.length / span,
+    classCount: classes.size,
+    classes: Array.from(classes).sort(),
+    pitchClasses: mothGroundPitchClasses(arrivals, -Infinity, Infinity),
+    loopLen: span
+  };
+}
+
+// How slowly the room breathes. East Forest's patience, at the night's rate.
+function floorBreathSec(shape){
+  const gap = shape && Number.isFinite(shape.medianGapSec) ? shape.medianGapSec : 0;
+  return clamp(FLOOR.breathBaseSec + FLOOR.breathPerGapSec*gap,
+               FLOOR.breathMinSec, FLOOR.breathMaxSec);
+}
+
+// Where on the pulse/pitch boundary this night sits. Log, because density is
+// skewed: most nights sit near 1.6 arrivals a second and a few sit at seven.
+function floorFlutterHz(shape){
+  const density = Math.max(1, (shape && shape.density) || 0);
+  return clamp(FLOOR.flutterBaseHz + FLOOR.flutterPerOctaveHz*Math.log2(density),
+               FLOOR.flutterMinHz, FLOOR.flutterMaxHz);
+}
+
+// How tall the room is. 64 of 144 offered nights hold one class, 80 hold two
+// or more, and 24 hold four or more — up to seven. So the tall room is rare,
+// which is exactly the contrast class should buy: it is worth 1.1 effective
+// values on a median night, so when it does differ it must be unmistakable.
+function floorStrata(shape){
+  const n = Math.max(0, (shape && shape.classCount) || 0);
+  if(!n) return [];
+  const out = FLOOR_STRATA.slice(0, Math.min(FLOOR_STRATA.length, n)).map(s => ({ ...s }));
+  const air = out.find(s => s.name === "air");
+  if(air && n > FLOOR_STRATA.length)
+    air.highHz = Math.min(12000, air.highHz*Math.pow(FLOOR.airLiftPerClass, n - FLOOR_STRATA.length));
+  return out.sort((a, b) => a.lowHz - b.lowHz);
+}
+
+// The felt piano's notes. Deterministic from the seed, so the same night is
+// always tended the same way, and drawn only from pitch classes the night
+// actually holds — it invents no pitch, the way nothing else here does.
+function floorPianoNotes(shape, seed, durationSec){
+  const pcs = (shape && shape.pitchClasses) || [];
+  const total = Math.max(0, Number.isFinite(durationSec) ? durationSec : 0);
+  if(!pcs.length || !total) return [];
+  const random = mulberry32(hash32(`floor::piano::${seed}`));
+  const spread = FLOOR.pianoMaxGapSec - FLOOR.pianoMinGapSec;
+  const out = [];
+  let at = 0;
+  for(let guard=0; guard<512; guard++){
+    at += FLOOR.pianoMinGapSec + random()*spread;
+    if(at > total) break;
+    const pc = pcs[Math.min(pcs.length-1, Math.floor(random()*pcs.length))];
+    const base = FLOOR.pianoLowMidi + 12*Math.min(FLOOR.pianoOctaves-1, Math.floor(random()*FLOOR.pianoOctaves));
+    out.push({ atSec: at, midi: base + ((((pc - base) % 12) + 12) % 12) });
+  }
+  return out;
+}
+
+// The room itself. Free-running rather than loop-locked: it is room, not
+// evidence, so nothing here is scheduled against the loop and the breath, the
+// flutter and the memory all run at periods the loop never divides.
+function buildFloor(ctx, outGain, shape, spine, seed){
+  if(!ctx || !shape || !shape.arrivals) return null;
+  const mode = (spine === "B" || spine === "C") ? spine : "A";
+  const now = ctx.currentTime || 0;
+  const made = [];
+  const sources = [];
+  const keep = node => { made.push(node); return node; };
+
+  const bus = keep(ctx.createGain());
+  bus.gain.setValueAtTime(FLOOR.level, now);
+
+  // ── Memory: the room remembers. Spines A and B only; C is dry and present.
+  let entry = bus;
+  if(mode !== "C"){
+    const delay = keep(ctx.createDelay(Math.max(1, FLOOR.memorySec + 1)));
+    delay.delayTime.setValueAtTime(FLOOR.memorySec, now);
+    const feedback = keep(ctx.createGain());
+    feedback.gain.setValueAtTime(FLOOR.memoryFeedback, now);
+    const damp = keep(ctx.createBiquadFilter());
+    damp.type = "lowpass";
+    damp.frequency.setValueAtTime(FLOOR.memoryDampHz, now);
+    const wet = keep(ctx.createGain());
+    wet.gain.setValueAtTime(FLOOR.memoryWet, now);
+    bus.connect(delay); delay.connect(damp); damp.connect(feedback);
+    feedback.connect(delay); damp.connect(wet);
+    if(outGain) wet.connect(outGain);
+  }
+  if(outGain) bus.connect(outGain);
+
+  // ── Breath: the whole room swells at the rate the night arrived.
+  const breathSec = floorBreathSec(shape);
+  const breathDepth = mode === "C" ? FLOOR.breathDepth*0.45 : FLOOR.breathDepth;
+  const breath = keep(ctx.createOscillator());
+  breath.type = "sine";
+  breath.frequency.setValueAtTime(1/breathSec, now);
+  const breathDepthGain = keep(ctx.createGain());
+  breathDepthGain.gain.setValueAtTime(FLOOR.level*breathDepth, now);
+  breath.connect(breathDepthGain);
+  if(bus.gain) breathDepthGain.connect(bus.gain);
+  breath.start(now);
+  sources.push(breath);
+
+  // ── Height: one band for a night of one class, four for a night of many.
+  const strata = mode === "B" ? floorStrata(shape).slice(0, 1) : floorStrata(shape);
+  const noise = createNoiseBuffer(ctx, 2.0);
+  const pcs = shape.pitchClasses || [];
+  strata.forEach((band, i) => {
+    const src = keep(ctx.createBufferSource());
+    src.buffer = noise; src.loop = true;
+    const shaped = keep(ctx.createBiquadFilter());
+    shaped.type = "bandpass";
+    shaped.frequency.setValueAtTime(Math.sqrt(band.lowHz*band.highHz), now);
+    shaped.Q.setValueAtTime(0.7, now);
+    const level = keep(ctx.createGain());
+    // Higher strata sit further back, so the room reads as height rather than
+    // as a chord: the canopy is always quieter than the trunk under it.
+    level.gain.setValueAtTime(FLOOR.level*Math.pow(0.62, i), now);
+    src.connect(shaped); shaped.connect(level); level.connect(bus);
+    src.start(now);
+    sources.push(src);
+
+    // A sustained tone in each band, on a pitch class the night holds, so the
+    // room has a note in it rather than only weather.
+    if(pcs.length){
+      const pc = pcs[i % pcs.length];
+      const tone = keep(ctx.createOscillator());
+      tone.type = "sine";
+      let hz = midiToFreq(12*2 + pc);
+      while(hz < band.lowHz) hz *= 2;
+      while(hz > band.highHz && hz/2 >= band.lowHz) hz /= 2;
+      tone.frequency.setValueAtTime(hz, now);
+      const toneLevel = keep(ctx.createGain());
+      toneLevel.gain.setValueAtTime(FLOOR.level*0.22*Math.pow(0.62, i), now);
+      tone.connect(toneLevel); toneLevel.connect(bus);
+      tone.start(now);
+      sources.push(tone);
+    }
+  });
+
+  // ── Flutter: the wingbeat idea, which is authorship and not a wingbeat.
+  if(mode !== "B"){
+    const hz = floorFlutterHz(shape);
+    const flutter = keep(ctx.createOscillator());
+    flutter.type = "sine";
+    flutter.frequency.setValueAtTime(hz, now);
+    const depth = keep(ctx.createGain());
+    depth.gain.setValueAtTime(FLOOR.level*(mode === "C" ? FLOOR.flutterDepthLed : FLOOR.flutterDepth), now);
+    flutter.connect(depth);
+    if(bus.gain) depth.connect(bus.gain);
+    flutter.start(now);
+    sources.push(flutter);
+  }
+
+  // ── The felt piano: one note, and all the room in the world around it.
+  for(const note of floorPianoNotes(shape, seed, FLOOR.scheduleHorizonSec)){
+    const when = now + note.atSec;
+    const osc = keep(ctx.createOscillator());
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(midiToFreq(note.midi), when);
+    const felt = keep(ctx.createBiquadFilter());
+    felt.type = "lowpass";
+    felt.frequency.setValueAtTime(1400, when);
+    felt.frequency.exponentialRampToValueAtTime(420, when + FLOOR.pianoDecaySec);
+    const env = keep(ctx.createGain());
+    env.gain.setValueAtTime(0, when);
+    env.gain.linearRampToValueAtTime(FLOOR.pianoLevel, when + 0.035);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + FLOOR.pianoDecaySec);
+    osc.connect(felt); felt.connect(env); env.connect(bus);
+    osc.start(when); osc.stop(when + FLOOR.pianoDecaySec + 0.05);
+    sources.push(osc);
+  }
+
+  return {
+    gain: bus,
+    breathSec, flutterHz: floorFlutterHz(shape), strata: strata.map(s => s.name),
+    stop(){
+      for(const s of sources){ try{ s.stop(); }catch(e){} }
+      for(const n of made){ try{ n.disconnect(); }catch(e){} }
+    }
+  };
+}
+
 async function setAmbience(name){
   // Ambience should be able to start even if notes aren't playing yet.
   if(!audioCtx || !masterGain){
@@ -3382,7 +3700,16 @@ async function setAmbience(name){
   const key = state.keyName;
   const scaleName = state.scaleName;
 
-  if(name==="spore_cloud"){
+  if(name==="floor"){
+    // The room the night makes. It reads the score that is currently built, so
+    // changing the night changes the room -- which is the whole claim.
+    const shape = floorNightShape(state.sequencer && state.sequencer.events, state.loopLen);
+    ambienceNodes = buildFloor(audioCtx, g, shape, FLOOR.spine, state.seed);
+    if(!ambienceNodes){ try{ g.disconnect(); }catch(e){} return; }
+    // The floor is the room, not a subtle preset, so it takes its own level in
+    // place of the 0.22 the presets share. Gain-matched -- see FLOOR.busGain.
+    g.gain.setTargetAtTime(FLOOR.busGain, now+0.02, 0.18);
+  } else if(name==="spore_cloud"){
     ambienceNodes = buildSporeCloud(audioCtx, g, key, scaleName);
   } else if(name==="quiet_beat"){
     ambienceNodes = buildQuietBeat(audioCtx, g);
@@ -9518,6 +9845,15 @@ function initUI(){
   });
   // ambience
   const ambSel = $("ambienceSelect");
+  // The floor joins the list only when a spine has been unlocked for audition,
+  // and selects itself, because that is the whole reason the URL was opened.
+  if(FLOOR.on){
+    const opt = document.createElement("option");
+    opt.value = "floor";
+    opt.textContent = `Floor · spine ${FLOOR.spine}`;
+    ambSel.insertBefore(opt, ambSel.firstChild ? ambSel.firstChild.nextSibling : null);
+    state.ambience = "floor";
+  }
   ambSel.value = state.ambience;
   ambSel.addEventListener("change", async (e)=>{
     state.ambience = e.target.value;
