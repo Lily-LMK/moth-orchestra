@@ -1,328 +1,229 @@
 # Next session
 
-The roadmap asks that this file be updated in place rather than accumulating
-opening instructions. It had grown three competing "Start here" sections. This
-one has one, decided by Lily on 16 September 2026.
-
-Note that "family" means two different things below. The vernacular-name
-section concerns **taxonomic** families; everything from "A new instrument
-family" onward concerns **instrument** families — voices. Unrelated work.
+One "Start here", updated in place. This file had grown three competing ones
+by 16 September 2026; if it grows a second again, that is the bug.
 
 ---
 
-## Standing state — 17 September 2026, later
+## Standing state — 17 September 2026, end of day
 
-`main` is published at <https://lily-lmk.github.io/moth-orchestra/> and is
-**unchanged**. Two pieces of work sit on the `voice-registers` branch, built and
-tested, **not heard and not pushed**. Suite: **400 tests, 391 pass, 0 fail**, 1
-documented skip, 8 gap-remapping TODOs.
+`main` is **published** at <https://lily-lmk.github.io/moth-orchestra/> and
+verified by SHA against the file that was tested. Suite: **443 tests, 434 pass,
+0 fail**, 1 documented skip, 8 gap-remapping TODOs.
+
+Three things went live today, in one push:
+
+1. **The registers** — Frog Yawn's soprano folds into C4–E5; Lantern Glass is a
+   consort in thirds. Built, measured, and **accepted by ear**: *"Frog Yawn and
+   Lantern glass sound better now."*
+2. **Emergence**, a seventh published family, whose note is built from the
+   record's own lineage. Published **deliberately unsettled** — *"I'm not
+   entirely set just yet."*
+3. **Gondwana is the default** and leads the family list.
+
+**Moth Orchestra is unchanged** and is held to the original reference score
+note for note, instrument names included, by a fixture that has never been
+regenerated.
 
 Read in this order:
 
 1. **[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md)** — every sound the
    instrument makes, what fires it, what it claims, evidence or authorship.
    Keep it current; it is the cheapest defence this project has.
-2. [SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md) — the
-   branch waiting on Lily's ear, below.
-3. [SESSION-2026-09-17-CROSSING.md](SESSION-2026-09-17-CROSSING.md) and
-   [SESSION-2026-09-16-FLOURISHES.md](SESSION-2026-09-16-FLOURISHES.md).
-
-### Live, and not yet settled — Emergence
-
-**Published on 17 September 2026 while Lily was explicitly not settled on it:**
-*"I'm not entirely set just yet but I want to push it live as 'Emergence' and
-leave the original moth orchestra family intact for a while."* Moth Orchestra
-is therefore unchanged and still selectable, and Gondwana now leads the list
-and opens the instrument.
-
-Emergence makes the note from the record's own lineage — eight ranks, each sized by what it measurably tells apart on a
-real night. She heard the first draft and called it **nasal**, and named a
-specific loss: *"a sweet voice introduced at the genus or perhaps species level
-that gave tenderness."* That voice was `harp` and `bowl`, and the cause was
-exact: they carry two or three partials behind a closing lowpass, and the draft
-had eight bare sine partials and no filter at all.
-
-The second pass adds the closing filter, natural variation in timing and touch
-bounded below the data's own precision, and **the ground** — a warm sustained
-organ background voiced from the night's own pitch classes. 143 distinct
-harmonies across 144 offered nights; a preset would give one.
-
-```sh
-cd sessions/2026-09-17/hero && python3 serve.py   # → listen.html
-```
-
-**Deliberately not built: the short melodic motif with subtle variations.** It
-is the largest authorship claim of what she asked for, Gondwana's figures
-already occupy that ground, and it is the item most likely to fail the way
-`duet_meeting` failed. The ground's four-section clock is the frame it would
-vary against. See
-[SESSION-2026-09-17-HERO.md](SESSION-2026-09-17-HERO.md).
-
-### Merged and accepted — the `voice-registers` work
-
-**Accepted by ear on 17 September 2026** and merged to `main`, unpushed.
-Items 1 and 2 of the list below are **built and accepted**. Both were the same fault: pitch
-comes from the taxon, so every voice of a family is handed the same 147–988 Hz,
-and nothing but the octave can separate four voices into a consort. Frog Yawn's
-soprano and all four Lantern voices were not folding. There is now one rule for
-all of them — `VOICE_REGISTERS` and `voicedFreq` — and a test proves the three
-choir voices Lily has already accepted sound note for note identical.
-
-```sh
-cd sessions/2026-09-17/registers && python3 serve.py   # → listen.html
-```
-
-Eight rendered excerpts, before and after, dense night and sparse, both
-families; plus `before.html` and `after.html`, the whole instrument either side.
-
-**The one question for her ear:** Lantern Glass now spans 146–493 Hz where it
-spanned 146–988. That is deliberately a large move, because "too high pitched"
-was the complaint. If it is too far, the family widens by changing four floors.
-
-**Part 2 of PLAN-SYNCHRONY-AND-TRUTH is also on that branch and is done** — see
-item 4 below, now struck through. Its strings have **not been read on screen**,
-which the plan asked for and which is the only check that catches the next one.
-
-### Found and deliberately not changed: `chime` clamps
-
-`chime`, in **Moth Orchestra — the default family** — does
-`Math.min(freq, 494)`. A clamp is not a fold: it collapses every pitch above B4
-onto B4, so two different moths sound like the same moth at a pitch neither was
-given. **166 of 526 chime notes (32%), 56 taxa.** One entry in
-`VOICE_REGISTERS` fixes it. Not done, because it changes the default sound of
-the instrument and was not asked for. The measurement is in
-WHAT-EVERY-SOUND-MEANS.md. **Lily's call.**
-
-**Heard and accepted by Lily:** the crossing, the echo, the photographs, the
-gallery, the left column, the rewritten explainer.
-
-**Parked by Lily:** the meeting and the ground beneath it, behind
-`DUET_GESTURES.meeting`. When it returns it needs a different *kind* of sound,
-not a quieter one — a gesture heard once in a nineteen-second loop is heard
-against nothing.
-
-**Still unheard:** `GROUND.mixes.gallery`, which needs a room; and the whole
-`voice-registers` branch. **No real-device test of anything.**
-
-### The lesson that keeps recurring
-
-Three gestures have now been wrong in the same way: a rule that fires on
-something real but describes itself as something else. V2's pulse claimed
-seconds and measured loop position. `duet_sync` claimed rarity and fired on
-every shared minute. The meeting claimed a moment and delivered a volume.
-
-**Before adding a gesture, measure how often it fires on real data, and check
-that the thing it fires on is the thing its name says.**
+2. **[PLAN-EMERGENCE.md](PLAN-EMERGENCE.md)** — the brief for the main task
+   below.
+3. [SESSION-2026-09-17-HERO.md](SESSION-2026-09-17-HERO.md) and
+   [SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md).
 
 ---
 
-## Ready and diagnosed, not built
+# Start here
 
-Everything here has a measured cause. Roughly in the order that would help most.
+Two tasks, both set by Lily on 17 September 2026. Do the first one first: it is
+small, she has decided it, and it has been outstanding for two sessions. It
+carries **one question for her** — flagged below — which is worth asking before
+building rather than after.
 
-### ~~1. Lantern Glass is too high pitched~~ — built, on `voice-registers`, unheard
+## 1. Fix the `chime` clamp — decided, measured, one entry in a table
 
-The diagnosis was right and its suggested ceilings are the ones shipped. One
-thing it missed, which measurement caught: **ceilings alone are not enough**. A
-fold only ever comes down, so every voice keeps resting on the score's own
-147 Hz floor — all four would still share a bottom, and bloom would be squeezed
-into 147–247 Hz, under a sixth. Each voice therefore has a floor an octave
-below its ceiling.
+> *"I want what you discovered about moth orchestra to get fixed."*
 
-Now: bloom 146–246, felt 184–329, reed 220–369, glass 293–493. The top partial
-falls from 3,951 Hz to 1,975. See
-[SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md).
+`chime`, in **Moth Orchestra**, is the one place in this instrument where a note
+is moved to a pitch the taxon was never given:
 
-### ~~2. Frog Yawn needs work~~ — built, on `voice-registers`, unheard
+```js
+const cappedFreq = Math.min(freq, midiToFreq(12*(4+1) + 11)); // cap at B4
+```
 
-Soprano now folds into 262–660 Hz — C4 to E5, a fifth above alto — and sounds
-293 … 440 … 659 where it sounded 147 … 330 … 988. The other three are
-**note-for-note identical**, proved by a test that runs the deleted inline code
-beside the shared rule that replaced it. Whether this alone fixes the family is
-still a question for Lily's ear, exactly as the diagnosis said.
+`Math.min` is a clamp, not a fold. It does not preserve the pitch class — it
+collapses everything above B4 onto B4 itself, so two different moths sound like
+the same moth, at a pitch belonging to neither.
 
-The original diagnosis, kept:
+**Measured across the 144 offered nights:** 526 chime notes, of which **166
+(32%) are clamped**, flattening five distinct written pitches into one and
+giving **56 taxa a pitch that is not their own**.
 
-Three of the four choir voices fold into a range. **Soprano does not fold at
-all.**
+| written | the clamp gives | folding would give |
+|---|---|---|
+| 587 Hz | 494 | 293 |
+| 659 Hz | 494 | 329 |
+| 740 Hz | 494 | 370 |
+| 880 Hz | 494 | 440 |
+| 988 Hz | 494 | 494 |
 
-| Voice | Folded into | Sounding median | Max |
-|---|---|---|---|
-| bass_voice | 65–200 Hz | 147 | 185 |
-| tenor | 120–350 Hz | 247 | 330 |
-| alto | 165–440 Hz | 294 | 440 |
-| **soprano** | **not folded** | **440** | **988** |
+**The fix** is one entry in `VOICE_REGISTERS` and one call to `voicedFreq`,
+exactly as Lantern Glass and Frog Yawn already do — the machinery is built,
+released and accepted.
 
-Measured across 40 nights: 377 soprano notes, sitting an octave above alto's
-ceiling. In a four-part choir one singer is unanchored. The fix is one line
-matching what the other three already do — but verify by ear whether that alone
-fixes the family, or whether it needs more.
+**Which register, measured, so this is not left as a guess.** 526 chime notes,
+written 147 … 330 … 988 Hz:
 
-### 3. The gallery family's floor — step 3 of PLAN-NEXT-FAMILY.md
+| register | sounding min/med/max | distinct pitches | notes moved | notes at the ceiling |
+|---|---|---|---|---|
+| the clamp today | 147 / 330 / 494 | 10 | 166 | **199** |
+| 247–494 | 294 / 370 / 494 | 5 | 354 | 77 |
+| **220–494** | **220 / 330 / 494** | **7** | **268** | **41** |
+| 165–330 | 185 / 247 / 330 | 5 | 325 | 77 |
 
+**220–494 is the one to start from**, not the 247 a first pass assumed: it keeps
+seven distinct pitches rather than five, moves fewer notes, and leaves the
+median exactly where it is today.
+
+**And there is a real trade-off to put to Lily rather than decide.** The clamp
+produces *ten* distinct sounding pitches — more than any fold — because it
+leaves everything below B4 untouched and piles everything above it onto one
+note. 199 of 526 chime notes, 38%, sit on that single pile. Folding trades
+three of those distinct pitches for the guarantee that **no note is ever given
+a pitch its taxon did not have**. That is the right trade on this project's own
+terms, and it is still a trade; say so rather than presenting it as free.
+
+`chime` is scheduled at 2× and 3× the fundamental and never sounds the
+fundamental itself, so a 494 Hz ceiling puts its top partial at 1,482 Hz.
+
+**It changes the sound of the default-until-today family, so it needs her ear
+before it is pushed.** Build it on a branch, render before/after on 3 September
+and 17 February, and follow the rhythm. `tests/musical-reference.test.cjs`
+holds Moth Orchestra against the original fixture and **will fail** when this
+lands — that is correct, and the fixture must not be regenerated to silence it;
+hold every other field and assert this one change, the way the Emergence seam
+test does.
+
+Two smaller questions to settle while in there: whether the Song-mode pooled
+`lead` role should use the folded chime too (it is authorship, so it may not
+matter), and whether any other instrument clamps — nothing else measured as
+doing so, but nothing has looked since.
+
+## 2. Reshape Emergence into something of its own
+
+> *"Emergence is fantastic but it's a lesser Gondwana so I think we should
+> reshape it into something of its own. I'll leave it for you to brainstorm and
+> plan in the next session."*
+
+**Read [PLAN-EMERGENCE.md](PLAN-EMERGENCE.md).** It carries the measured
+diagnosis, why it happened, what must be protected, four directions to react
+to, and the five questions only Lily can answer.
+
+The diagnosis in one line: **100% of Emergence's notes land inside Gondwana's
+central register**, and all six structural ideas in its sound were Gondwana's
+first — the room, the folding, the additive partials, the late arrivals, the
+authored harmonic layer, and long tails as the dominant gesture. She asked for
+*"a touch of Gondwana"*, which described a **mood**, and it was implemented as
+an **architecture**.
+
+The thing to protect: **the mapping is the idea and it is untouched by any of
+this.** Eight ranks, each sized by what it measurably tells apart. Keep the
+mapping, replace the sound world.
+
+**This is a brainstorm with her, not a build.** Bring the directions, ask the
+five questions, and do not start until she has answered — the last two sessions
+both improved by measuring first and both went wrong where they guessed.
+
+---
+
+## Still open, in rough order of value
+
+### Part 1 of PLAN-SYNCHRONY-AND-TRUTH — something beautiful in each family
+Unstarted and still fully specified. Four of seven published families play a
+generic `creek`/`pad` for their flourishes, and Gondwana plays one timbre for
+*both* layers where every other family plays two. Read
+[PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md); Part 2 is done.
+
+### Read the status lines on screen
+Part 2 shipped and its strings are tested, but **nobody has read them on a
+screen**. The plan asked for it explicitly, and the failure being fixed was a
+true sentence that told Lily the wrong thing — only reading one catches the
+next. One judgement inside the plan's latitude is most likely to want changing:
+the omitted-row count is kept but only when non-zero, and that is one `if`.
+
+### The gallery family's floor — step 3 of PLAN-NEXT-FAMILY.md
 The room generated from the night's own shape, replacing the five ambience
-presets that are decoration laid over the night rather than anything the night
-produced. The **ground** (step 2) is built but parked, so its bus, limiter and
-parameter block are already in place and tested — the floor can reuse them.
+presets. **Emergence's `moth_ground` is now a worked example of exactly this
+idea** — harmony grown from the night's own pitch classes, 143 distinct
+harmonies across 144 nights where a preset gives one — so the floor has a
+pattern to follow and a tested one. The parked ground's bus and limiter are
+still in place.
 
-Pass condition from the plan: 17 February 2026 (sparse, one shared minute) and
-3 September 2026 (dense, 22 shared minutes) must not sound alike, and neither
-may sound like a preset.
-
-### ~~4. Three status lines describe an archive~~ — built, on `voice-registers`
-
-There were **four**. The fourth is the one Lily watches while a fetch runs:
-`Fetched 412 of ~24,000 observations…`, counting against the archive for the
-whole run on its way to stopping at 1,000. It now counts against the cap.
-
-All four come from `loadedSentence` over `loadedSummary`, and the offered count
-comes from `offerableNightKeys` — the same function that builds the date list —
-so the sentence cannot drift from the list on screen. `state.offeredNightKeys`
-now exists, as the plan said it must.
-
-**Still owed: read the strings on screen.** The plan asked for it, and the
-failure being fixed here was a true sentence that told Lily the wrong thing —
-only reading one catches the next. Three judgements were made inside the plan's
-latitude and are listed in
-[SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md); the
-omitted-row count is the one most likely to want changing, and it is one `if`.
-
-### 5. The curated vernacular-name lookup
-
-Unchanged and ready; the rule and the measured coverage are below.
+### Noctilucent has never been heard
+Built, tested, withheld. Audition with `?family=noctilucent`, or at
+`../../sessions/2026-09-13/noctilucent-warm/listen.html`. It leaves
+`WITHHELD_VOICE_MODES` only when Lily has listened and said so.
 
 ### Smaller, and worth doing when nearby
-
 - **The date diamond** still means "both observed on this date", not shared
   minutes, and still reads as though it means the latter.
 - **"Class voices: 1"** still tells a viewer nothing.
 - **Present/demo mode and the gallery fullscreen view** have not been
   re-examined since the September interface rebuild.
-- **Photo preload on a slow connection** — it has not been watched from a cold
-  cache on anything but a fast link. `PLAN-PHOTOS.md` lists the two open
-  questions: whether Play should ever wait, and how much to hold on a phone.
-
-## Done — rules for which nights are worth offering
-
-Settled and built on 16 September 2026. Read
-[SESSION-2026-09-16-NIGHTS.md](SESSION-2026-09-16-NIGHTS.md); the rule itself is
-in the README under "Which nights are offered".
-
-Lily decided: **more than fifteen records**, and **hidden rather than set
-aside**. She chose hiding against the recommendation, with the cost stated
-twice — 284 of 428 dates leave the list, and every night of 2020–2023 leaves the
-instrument entirely, because no night in those four years reaches sixteen
-records. That is her decision and it is implemented as she asked.
-
-The rule is one constant and two functions used in exactly one place. Two
-exceptions stop it recreating the bug it follows: the **selected** night is
-always offered (Top up lands on a night that may hold three records), and a rule
-that would silence every date does not apply (a capped fetch, judged within the
-year filter).
-
-Measured once so it is not re-guessed: a **time-spread** rule is unnecessary.
-All 92 zero-span nights hold exactly one record. Do not add a second axis
-without re-measuring.
-
-### What this left open
-
-1. **Released.** Committed as `bd88553` and live.
-2. **Answered.** The "across 428 nights" line was flagged for Lily's judgement;
-   she has ruled on it and it is Part 2 of
-   [PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md).
-3. **The threshold lands as intended.** Lily, on the loss of 2020-2023: the
-   instrument is mostly used to hear the current or past week, and she would
-   rather a dozen wonderful nights appeared than scroll years of unknown quality
-   guessing which ones play. It is still one constant if that ever changes.
+- **Photo preload on a slow connection** — never watched from a cold cache on
+  anything but a fast link. See [PLAN-PHOTOS.md](PLAN-PHOTOS.md).
+- **Emergence's ground level** is 0.115 against arrivals at 0.12–0.65, and it
+  was a guess. One number.
 
 ---
 
-## Start here — hear the branch, then Part 1 of the flourishes
+## Standing obligations
 
-**First: listen.** The `voice-registers` branch holds two built, tested,
-unheard changes — the octave each voice sings in, and the four status lines.
-`cd sessions/2026-09-17/registers && python3 serve.py`. Nothing merges to
-`main` until Lily has heard it, and the status strings still need reading on
-screen. That is the whole of the next session's opening.
+**No real-device test of anything, ever.** Every judgement to date is
+headphones and a laptop. Say so rather than implying otherwise.
 
-**Then: Part 1 below, which is unchanged and still the brief.** Part 2 of
-PLAN-SYNCHRONY-AND-TRUTH is done; Part 1 is not started. The section below
-predates both and describes Part 2 as outstanding — read it for Part 1.
+**Emergence is live and not settled.** That is Lily's decision, taken
+explicitly, with Moth Orchestra left intact as the safeguard. Do not treat it
+as accepted.
 
----
+Observer sound identity (Milestone 2), composition save/reopen (Milestone 4)
+and gap shortening (Milestone 5) are unstarted.
 
-## Carried — the flourishes, and telling the truth about what is loaded
+### The lesson that keeps recurring
 
-Read **[PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md)**. It carries
-the measured diagnosis, the candidate rules with their firing rates, the
-per-family gap, and a suggested order. Set by Lily on 16 September 2026.
+Four gestures have now been wrong in the same way: **a rule that fires on
+something real but describes itself as something else.** V2's pulse claimed
+seconds and measured loop position. `duet_sync` claimed rarity and fired on
+every shared minute. The meeting claimed a moment and delivered a volume.
+`chime` says "capped at octave 4" and changes which moth you are hearing.
 
-Two pieces of work.
+> Before adding a gesture, measure how often it fires on real data, and check
+> that the thing it fires on is the thing its name says.
 
-**One of the flourish layers fires on a rule that means nothing.** The two duet
-gestures now always coincide — iNaturalist stores minute precision, so the
-five-second window can only be satisfied inside a shared minute — and together
-they make a two-layer composite, a low bell with a pad, on every shared minute.
-**That composite is the sound Lily likes and the rate is right; neither may
-change.** The defect is that 25 of 311 shared minutes get a *second* pad, and
-which ones depends on an arbitrary internal labelling: A is whoever appears
-first in the file. With Chris as A it fires on 25 minutes; with Lily as A it
-would fire on 103 different ones. The fix is not to delete the second pad but to
-give it a reason: change the condition from "A holds 2+ records" to "the minute
-holds 3+ records". Measured, this loses nothing at all — all 25 currently-doubled
-minutes hold 3+ records, so the current set is a strict *subset*. **Zero minutes
-lose the fuller sound; 97 gain it**, and duet nights get richer rather than
-thinner. A first draft proposed making the flourishes rarer and is withdrawn;
-read the plan for why. Then: four of six published families play a generic
-`creek`/`pad`, and Gondwana plays one timbre for *both* layers where every other
-family plays two.
+A fifth, from this session, worth adding beside it:
 
-**Three status lines describe an archive instead of what is loaded.** A fetch
-capped at 1,000 reports the API's `total_results` — "the most recent 1,000 of
-24,000" — and the line above it says "across 428 nights" when 144 are offered.
-Lily: *"I'd like it to say the truth of what it is presenting and what it is
-fetching. I don't need a count of what was there and skipped."* This also
-settles the open question left by the night-display work.
-
-~~**Do Part 2 first.**~~ Part 2 was done on 17 September 2026 and is on the
-`voice-registers` branch. Part 1 is what remains of this section.
-
-The measure of success for Part 1's first step: **nothing is lost, nothing
-sounds unfamiliar, and more minutes carry a sound that already exists.** No
-minute goes quiet, no new timbre appears, and every sound becomes explicable.
-If a duet night sounds thinner after the change, the change is wrong.
+> Measure where a new family sits **relative to the families that already
+> exist**, not only against its own intentions. Emergence measured beautifully
+> on every axis it was designed against, and was still a lesser Gondwana.
 
 ---
 
-## Corrected on 16 September 2026 — Gondwana is live
+## Ready and fully specified — the curated vernacular-name lookup
 
-Earlier versions of this file said Gondwana was withheld and unheard. **That was
-wrong**, and it was wrong in the file rather than in the code: `ca1b258`
-released Gondwana as the sixth published family, and `WITHHELD_VOICE_MODES`
-holds only `noctilucent`. Lily has listened to Gondwana many times and it sounds
-beautiful.
+Agreed with Lily on 16 September 2026 after the import repair
+([SESSION-2026-09-16-IMPORT.md](SESSION-2026-09-16-IMPORT.md)), refined by her
+the same day, and deferred by her so the night-display rules could go first.
+Those are done. **This is build-ready and blocked on nothing** — it is below
+the two tasks above only because she set those, not because it is less
+finished. It is an afternoon of careful naming and no new machinery.
 
-The carried-forward section below still describes the pre-release state. It is
-kept for the design reasoning, which remains the best record of why the first
-palette failed, but its "nothing has been judged by ear" framing no longer
-applies to Gondwana.
-
-**Noctilucent is the one that is withheld and genuinely unheard.** Lily has not
-listened to it, so nothing is known about it. Audition at
-`../../sessions/2026-09-13/noctilucent-warm/listen.html`, or in the app with
-`?family=noctilucent`. It stays withheld until it has been accepted by ear —
-and Part 1 gives it a flourish voice only if it is released.
-
----
-
-## A future session — a curated vernacular-name lookup
-
-Agreed with Lily on 16 September 2026 and deferred by her the same day so the
-night-display rules could go first. Those are now done, so this is the ready
-build task — but see "the oldest debt" above before starting it. Agreed after
-the import repair
-([SESSION-2026-09-16-IMPORT.md](SESSION-2026-09-16-IMPORT.md)), and refined by
-her the same day.
+It is also the only outstanding task in this file that touches **words rather
+than sound**, which makes it the natural one to pick up when her ear is not
+available.
 
 Common names now come from iNaturalist alone. The third-party enrichment that
 used to fill the gaps was removed: it cost about 65 minutes per import and
@@ -412,12 +313,14 @@ stands alone, as now.
 
 ---
 
+
+---
+
 # Carried forward
 
-Everything below predates 16 September 2026 and is **not** this session's brief.
-It is kept because it records decisions and unjudged work that would otherwise
-be lost, not because it is next. Nothing here has been re-verified against the
-released build.
+Everything below predates 17 September 2026 and is **not** a brief. It is kept
+because it records decisions and reasoning that would otherwise be lost.
+Nothing here has been re-verified against the released build.
 
 ## Carried forward — a new instrument family for the gallery
 
@@ -514,7 +417,7 @@ the reasoning. Show her the circle before building anything on top of it.
 Then: the gallery and Present mode were not re-examined under the new design
 layer, and "Class voices: 1" still tells a viewer nothing.
 
-## Standing obligations
+## Carried forward — standing obligations, as written before 17 September
 
 **Settled.** The precision question is closed and acted on. 97.7% of records
 carry `:00` seconds (6,636 of 6,794), so the five-second near-simultaneous rule
