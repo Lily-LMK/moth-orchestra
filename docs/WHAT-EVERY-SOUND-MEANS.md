@@ -22,6 +22,7 @@ this page current is cheap; not having it is what let a rule that fired on
 | `duet_echo` | both recorded the **same taxon** within 30 minutes | both identified the same species that night, close in time | **evidence** |
 | `accompaniment` | Song mode's composed rhythm, on non-matching slots | nothing — it is rhythm | **authorship**, and marked so |
 | `gond_pedal` | Gondwana's authored harmony on a slow clock | nothing — it is harmony | **authorship**, and marked so |
+| `moth_ground` | Moth Orchestra's sustained background, voiced from the night's own pitch classes | the pitch classes this night's taxa carry | **authorship**, on evidence |
 | `duet_meeting` | the first shared minute of the night | **parked — does not sound** | authorship over evidence |
 
 ### `obs` — an arrival
@@ -132,6 +133,33 @@ never evidence of synchrony. Authorship, and it says so.
 An authored pedal on a slow clock, so a fixed taxon pitch is a root in one
 phrase and a ninth in the next. No glow, no thumbnail, no arrival. Gondwana
 only. Authorship, and it says so.
+
+### `moth_ground` — the warm background Moth Orchestra sits in
+
+Built 17 September 2026. Lily, on what she meant by a touch of Gondwana: *"a
+warm sustained organ-like background, and barely audible wordless vocal
+textures. Maybe slow harmonic movement, open chord voicings, lingering
+notes."*
+
+An organ registration and a quiet wordless texture an octave above it, holding
+a chord that changes about every five seconds. **It is harmony, so it is
+authorship** — no glow, no thumbnail, no arrival, exactly as `gond_pedal` is.
+
+**But it is not a preset, and that distinction is the whole point.** This
+project has five ambience presets and has wanted them gone for weeks, because
+they are decoration laid over a night rather than anything the night produced.
+The ground's harmony is **the night's own pitches**: the loop is cut into four
+sections and each is voiced from the pitch classes the taxa sounding in it
+actually carry, in open voicing, in the register below the arrivals. A night of
+few taxa gets a near-static harmony; a night of many gets a harmony that moves.
+A chord identical to the one before it is **held**, not restruck, because a
+swell where the night has no change is a swell about nothing.
+
+Two nights cannot sound alike unless they hold the same creatures — the
+condition `PLAN-NEXT-FAMILY.md` set for the gallery floor and the one the
+presets could not meet. A test holds 17 February against 3 September.
+
+Parked in one place if it is not wanted: `MOTH_GROUND.on = false`.
 
 ### `duet_meeting` — parked
 
@@ -295,6 +323,7 @@ down because both looked right on paper:
 | the material and register | this record is in this class | **evidence** — which class it is |
 | which material a class gets | nothing about the animal | **authorship**, and it says so |
 | stretch, body, tilt, attack, late, decay, shimmer | this record carries these ranks, and these values | **evidence** |
+| the lag and weight of each arrival | nothing — it is touch | **authorship**, bounded below the data's precision |
 | how much of the note is elaborated | **how well this specimen is identified** | **evidence** |
 
 That last row is a real claim and it is deliberate. A rank the record does not
@@ -315,6 +344,23 @@ rank only the material sounds, so every insect is one voice — which is what
 "Class voices: 1" has always meant. At species rank the whole lineage sounds.
 An axis that is lit says the same thing at every depth, which is exactly the
 defect above, fixed.
+
+### Touch and timing
+
+Lily asked for *"natural variations in timing and touch"*. Each arrival carries
+a `lag` and a `touch`, both derived from **the record's own id**, so the same
+record is always played the same way and the variation is explicable rather
+than noise.
+
+`lag` is bounded by the data's own precision. iNaturalist stores minutes, so a
+nudge smaller than half a minute of real time cannot move a note off anything
+the record actually claims — on a twelve-hour night at a nineteen-second loop
+that is **±13 ms**, and it is capped at 30 ms absolutely so a narrow Riff
+window cannot magnify it. `touch` only ever takes weight away, never adds it.
+
+**Moth Orchestra only.** Lantern Glass and Frog Yawn have been accepted by ear
+as they are, and a family that has been accepted is not quietly rephrased
+because a different family wanted it.
 
 **Song mode's composed rhythm keeps its own neutral voice.** The lineage voice
 is for evidence; accompaniment is authorship and must never be given a

@@ -114,3 +114,102 @@ lineage voice is for evidence only.
 
 Whether 118 genuinely different sounds in one loop reads as **an orchestra** or
 as **a heap**. Measurement cannot answer that.
+
+
+---
+
+# Second pass — the nasality, the sweetness, and the ground
+
+Lily heard the first draft: *"The new set sounds nasal. Perhaps too different —
+although the rules and differentiations are certainly improved. There was a
+sweet voice introduced at the genus or perhaps species level that gave
+tenderness to Moth Orchestra and that is now lost."*
+
+**The rules are unchanged.** Everything above about the eight axes and the
+entropy measurement stands. This pass is entirely about the sound they make.
+
+## The nasality had an exact cause
+
+The sweet voice Lily remembered is real and I can name it: **`harp`**, which
+the old family unlocked at genus rank, and **`bowl`**, at species rank. Both
+carry two or three partials behind a **closing lowpass** — `harp` sweeps
+3,000 Hz down to 1,200 Hz over 0.35 s, which is the entire reason it sounds
+tender.
+
+The first draft carried **up to eight bare sine partials, no filter at all**,
+and a stretch that ran them sharp. At the brightest tilt, partial eight was
+still at a third of full weight on every note. That is a reed.
+
+| | draft | now |
+|---|---|---|
+| partials | 3–8 | 2–6 |
+| roll-off exponent | 0.55–2.35 | 1.00–2.62 |
+| weight in the top half of the spectrum, worst case | 35% | 25% |
+| filter | none | opens 1,250–3,200 Hz, closes to 450–1,050 |
+| sharpest attack | 2 ms | 5 ms |
+| stretch, worst case | 0.0030 | 0.0014 |
+
+The axes still tell taxa apart — the 142-of-144 figure is unchanged, because
+none of the rules moved. They now tell them apart between shades of a tender
+voice rather than between sweet and nasal.
+
+## Touch and timing
+
+*"Soft piano phrases with natural variations in timing and touch."* Each
+arrival carries a `lag` and a `touch` derived from **the record's own id**, so
+the same record is always played the same way.
+
+`lag` is bounded by the data's own precision: iNaturalist stores minutes, so a
+nudge under half a minute of real time cannot move a note off anything the
+record claims. On a twelve-hour night at a nineteen-second loop that is
+**±13 ms**, capped at 30 ms absolutely so a narrow Riff window cannot magnify
+it. `touch` only ever takes weight away.
+
+**Moth Orchestra only.** Lantern Glass and Frog Yawn were accepted by ear as
+they are, and an accepted family is not quietly rephrased because a different
+one wanted it. A test holds that.
+
+## The ground — `MOTH_GROUND`
+
+*"A warm sustained organ-like background, and barely audible wordless vocal
+textures. Maybe slow harmonic movement, open chord voicings, lingering
+notes."*
+
+An organ registration with a quiet wordless texture an octave above it, holding
+a chord that changes about every five seconds. It is **authorship** — no glow,
+no thumbnail, no arrival, exactly as `gond_pedal` is.
+
+**But it is not a preset, and that is the whole point.** The harmony is the
+night's own pitches: the loop is cut into four sections and each is voiced from
+the pitch classes the taxa sounding in it actually carry, in open voicing (a
+fifth minimum between neighbours), in the register below the arrivals. A chord
+identical to the one before it is **held**, not restruck — a swell where the
+night has no change is a swell about nothing.
+
+Two nights cannot sound alike unless they hold the same creatures. That is the
+condition `PLAN-NEXT-FAMILY.md` set for the gallery floor, and the one the five
+ambience presets could not meet; a test holds 17 February against 3 September.
+
+Parked in one place if it is not wanted: `MOTH_GROUND.on = false`.
+
+## What I did not build, and why
+
+**The short melodic motif with subtle variations.** Lily listed it last and
+said "might". It is the largest authorship claim of everything asked for — a
+composed melody in an instrument whose rule is that every sound is explicable
+by the night — and Gondwana's figures already occupy that ground. It is also
+the item most likely to be wrong in the way the parked `duet_meeting` was
+wrong: an authored gesture that overwhelms what it sits on.
+
+With "perhaps too different" live feedback on the table, adding one more new
+voice before she has heard the ground seemed like the wrong order. **It is the
+natural next step and nothing blocks it** — the ground's section clock is
+exactly the slow harmonic frame a motif would vary against.
+
+## Not done
+
+- **Nothing has been heard.** 431 tests, 422 passing, 0 failing.
+- **No real-device test.**
+- **Nothing is pushed.**
+- **The ground's level is a guess.** 0.115 against arrivals at 0.12–0.65,
+  before the volume control. It is one number.

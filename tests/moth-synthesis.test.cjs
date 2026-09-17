@@ -26,6 +26,10 @@ function audioProbe(sampleRate = 48000) {
       frequency: param('frequency'), detune: param('detune'),
       start(t) { this.started = t; }, stop(t) { this.stopped = t; } }),
     createDelay: () => node({ delayTime: param('delayTime') }),
+    // Its frequency param is named apart from an oscillator's, so a filter
+    // sweep can never be counted as a partial.
+    createBiquadFilter: () => node({ type: '', frequency: param('cutoff'), Q: param('cutoffQ'),
+      gain: param('filterGain'), detune: param('filterDetune') }),
     createConvolver: () => node({ buffer: null }),
     createDynamicsCompressor: () => node({ threshold: param('threshold'), knee: param('knee'),
       ratio: param('ratio'), attack: param('attack'), release: param('release') }),
@@ -153,7 +157,8 @@ test('an undetermined record is a plain member of what it is known to be', () =>
     'with no more elaboration than a fully determined relative');
   // Nothing is invented: the unlit axes take the plain default, so the note is
   // simpler rather than differently wrong.
-  assert.equal(new Set(partials(plain)).size, 3, 'three partials, the plainest body');
+  assert.equal(new Set(partials(plain)).size, c.MOTH_BODY_PARTIALS[0],
+    'the plainest body, which is the fewest partials there are');
 });
 
 test('the room is the family\'s own, with its own limiter', () => {
@@ -187,4 +192,113 @@ test('every oscillator ends, and the graph it built is disconnected', () => {
   assert.equal(second, true);
   for (const s of ctx.nodes.filter(n => n.source && !n.ended)) { s.ended = true; if (s.onended) s.onended(); }
   assert.equal(live(), afterFirst, 'a finished note leaves nothing connected behind it');
+});
+
+// ── The sweetness, which was lost and had to be put back ────────────────────
+// Lily, 17 September 2026: "The new set sounds nasal … There was a sweet voice
+// introduced at the genus or perhaps species level that gave tenderness to
+// Moth Orchestra and that is now lost." That voice was `harp`, unlocked at
+// genus rank, and `bowl`, unlocked at species rank. Both carry two or three
+// partials behind a closing lowpass. The first draft of this family carried up
+// to eight bare sine partials and no filter at all.
+
+test('every note closes as it decays, which is what made harp sweet', () => {
+  const c = app();
+  const ctx = play(c, mid(c));
+  const filters = ctx.nodes.filter(n => n.type === 'lowpass');
+  assert.equal(filters.length, 1, 'one tone filter on the note');
+  const cuts = ctx.automation.filter(a => a.name === 'cutoff');
+  const open = cuts.find(a => a.kind === 'set');
+  const close = cuts.find(a => a.kind === 'exp');
+  assert.ok(open && close, 'it is set, then swept');
+  assert.ok(close.value < open.value,
+    `it opens at ${open.value} Hz and closes to ${close.value} Hz`);
+  assert.ok(close.at > open.at, 'over the life of the note');
+});
+
+test('nothing is as bright as the draft Lily called nasal', () => {
+  const c = app();
+  // The draft opened its brightest voice with partial 8 at 8^-0.55 = 0.32 of
+  // full weight, unfiltered. Both halves of that are now bounded.
+  assert.ok(Math.max(...c.MOTH_BODY_PARTIALS) <= 6, 'six partials at the most');
+  assert.ok(Math.min(...c.MOTH_TILT) >= 1.0, 'and they roll off from the start');
+  assert.ok(Math.max(...c.MOTH_FILTER_OPEN) <= 3400, 'the filter never opens past a harp');
+  for (let i = 0; i < c.MOTH_FILTER_OPEN.length; i++)
+    assert.ok(c.MOTH_FILTER_CLOSE[i] < c.MOTH_FILTER_OPEN[i], `voice ${i} closes`);
+  // Weight in the top half of the spectrum, worst case, against the old harp,
+  // whose third partial sat at 0.12 of the first.
+  const tilt = Math.min(...c.MOTH_TILT);
+  const n = Math.max(...c.MOTH_BODY_PARTIALS);
+  const weights = Array.from({ length: n }, (_, k) => Math.pow(k + 1, -tilt));
+  const top = weights.slice(Math.ceil(n / 2)).reduce((a, b) => a + b, 0) / weights.reduce((a, b) => a + b, 0);
+  // The draft's brightest voice — eight partials at tilt 0.55 — put 35% of its
+  // weight in the top half and had no filter behind it. This is the raw
+  // spectrum only; the closing filter takes most of what is left.
+  assert.ok(top < 0.28, `the top half of the spectrum carries ${(top * 100).toFixed(0)}% of the weight`);
+});
+
+test('nothing clicks: no attack is instantaneous', () => {
+  const c = app();
+  assert.ok(Math.min(...c.MOTH_ATTACK) >= 0.004, 'the sharpest attack is still rounded');
+});
+
+// ── Touch and timing ────────────────────────────────────────────────────────
+// Lily asked for "natural variations in timing and touch". A player that lands
+// every note dead on the grid at one weight is the absence she is describing.
+const { loadAppWithDom } = require('./harness.cjs');
+const { settings } = require('./score.cjs');
+
+function night() {
+  const c = loadAppWithDom();
+  Object.assign(c.state, settings, { spacingMode: 'timeline', voiceMode: 'mixed' });
+  c.importCSVData(c.DEMO_CSV);
+  c.rebuildDerived();
+  return { c, events: c.state.sequencer.events.filter(e => e.kind === 'obs') };
+}
+
+test('every arrival carries its own touch and its own lag', () => {
+  const { events } = night();
+  assert.ok(events.length > 4);
+  for (const e of events) {
+    assert.ok(Number.isFinite(e.lag), 'a lag');
+    assert.ok(Number.isFinite(e.touch) && e.touch > 0 && e.touch <= 1, 'and a touch');
+  }
+  assert.ok(new Set(events.map(e => e.touch)).size > 1, 'and they are not all the same');
+  assert.ok(new Set(events.map(e => e.lag)).size > 1);
+});
+
+test('the same record is always played the same way', () => {
+  const a = night(), b = night();
+  // Two loads are two VM realms, so compare the data rather than the arrays.
+  const shape = x => JSON.stringify(x.events.map(e => [e.obs.id, e.lag, e.touch]));
+  assert.equal(shape(a), shape(b));
+});
+
+test('the nudge is smaller than the precision of the data it moves', () => {
+  const { c, events } = night();
+  // iNaturalist stores minutes. A nudge under half a minute of real time
+  // cannot move a note off anything the record actually claims. On a
+  // twelve-hour night at a nineteen-second loop that is 13 ms.
+  const span = c.state.sequencer.meta.spanSec;
+  const halfMinuteInLoop = 0.5 * 60 * c.state.loopLen / span;
+  const bound = Math.min(0.030, halfMinuteInLoop);
+  for (const e of events)
+    assert.ok(Math.abs(e.lag) <= bound + 1e-12,
+      `${e.lag} is within ±${bound.toFixed(4)}s`);
+});
+
+test('touch never makes a note louder than it was written, only softer', () => {
+  const { events } = night();
+  for (const e of events) assert.ok(e.touch <= 1, 'touch only takes away');
+  assert.ok(Math.min(...events.map(e => e.touch)) >= 0.75, 'and never by much');
+});
+
+test('a narrow Riff window magnifies real time and must not magnify the nudge', () => {
+  const c = loadAppWithDom();
+  Object.assign(c.state, settings, { spacingMode: 'riff', voiceMode: 'mixed',
+    riffStartMin: 1140, riffEndMin: 1180 });
+  c.importCSVData(c.DEMO_CSV);
+  c.rebuildDerived();
+  for (const e of c.state.sequencer.events.filter(e => e.kind === 'obs'))
+    assert.ok(Math.abs(e.lag) <= 0.030 + 1e-12, `${e.lag} is capped absolutely`);
 });

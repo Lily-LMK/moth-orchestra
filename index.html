@@ -3524,6 +3524,203 @@ function mothVoicing(o, depth, seed){
   return out;
 }
 
+// ── The ground: a warm sustained background, grown from the night ───────────
+// Lily, 17 September 2026, on what she meant by a touch of Gondwana:
+// *"a warm sustained organ-like background, and barely audible wordless vocal
+// textures. Maybe slow harmonic movement, open chord voicings, lingering
+// notes."*
+//
+// **It is authorship, and it says so** — it is harmony, not evidence. It
+// carries no glow, no thumbnail and no arrival, exactly as `gond_pedal` does,
+// and it is listed as authorship in docs/WHAT-EVERY-SOUND-MEANS.md.
+//
+// But it is not a preset. The five ambience presets this project already has
+// are decoration laid over the night rather than anything the night produced,
+// and the roadmap has wanted them replaced for weeks. **The harmony is the
+// night's own pitches**: the loop is cut into a few sections, and each section
+// is voiced from the pitch classes the taxa sounding in it actually carry. A
+// night of few taxa gets a simple, near-static harmony; a night of many gets a
+// harmony that moves. Two different nights cannot sound alike unless they hold
+// the same creatures, which is the condition PLAN-NEXT-FAMILY.md set for the
+// gallery floor and the reason presets failed it.
+//
+// Parked in one place if it is not wanted: `MOTH_GROUND.on = false`.
+const MOTH_GROUND = {
+  on: true,
+  sections: 4,        // slow harmonic movement: about five seconds a chord
+  level: 0.115,       // background, and it must stay background
+  voice: 0.055,       // the wordless texture, an octave up and barely there
+  attackSec: 1.25,    // it arrives the way a swell arrives, never struck
+  releaseSec: 2.60,   // and lingers into the chord that follows it
+  lowMidi: 36,        // C2 — under the arrivals, which sit from about A2 up
+  // Two and a half octaves. At two, an open voicing with a fifth between
+  // neighbours could not always fit three notes and the chord fell to one —
+  // which is a failure of the voicing, not a truth about the night.
+  spanMidi: 31,
+  minGapSemitones: 7  // open voicings: nothing closer than a fifth
+};
+
+// The pitch classes a stretch of the loop actually contains, commonest first.
+function mothGroundPitchClasses(events, from, to){
+  const weight = new Map();
+  for(const e of events){
+    if(!e || e.kind !== "obs" || !Number.isFinite(e.midi)) continue;
+    if(e.atSec < from || e.atSec >= to) continue;
+    const pc = ((e.midi % 12) + 12) % 12;
+    weight.set(pc, (weight.get(pc) || 0) + (Number.isFinite(e.density) ? e.density : 1));
+  }
+  return Array.from(weight.entries()).sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([pc]) => pc);
+}
+
+// Open voicing. Each note is pushed up by octaves until it clears the one
+// below it by at least a fifth, so the chord is spread rather than stacked —
+// which is the difference between an organ and a cluster.
+function mothGroundVoicing(pcs){
+  const out = [];
+  for(const pc of pcs){
+    let midi = MOTH_GROUND.lowMidi + (((pc - (MOTH_GROUND.lowMidi % 12)) % 12) + 12) % 12;
+    while(out.length && midi < out[out.length - 1] + MOTH_GROUND.minGapSemitones) midi += 12;
+    if(midi > MOTH_GROUND.lowMidi + MOTH_GROUND.spanMidi) continue;
+    out.push(midi);
+  }
+  return out;
+}
+
+// The chords, as events, so they travel through the player and the offline
+// renderer on the same path everything else does.
+function mothGroundEvents(events, loopLen, key, scaleName){
+  if(!MOTH_GROUND.on) return [];
+  const span = Math.max(1, Number.isFinite(loopLen) ? loopLen : 19);
+  const sections = Math.max(1, MOTH_GROUND.sections | 0);
+  const whole = mothGroundPitchClasses(events, -Infinity, Infinity);
+  if(!whole.length) return [];
+  // A night too thin to state three pitch classes borrows the rest from the
+  // whole night before it borrows anything from the key: the night first.
+  const scale = (typeof SCALES !== "undefined" && SCALES[scaleName]) ? SCALES[scaleName] : [0,2,4,7,9];
+  const root = (typeof KEY_TO_SEMITONE !== "undefined" ? (KEY_TO_SEMITONE[key] ?? 0) : 0);
+  const fallback = scale.map(d => ((root + d) % 12 + 12) % 12);
+  const out = [];
+  for(let i = 0; i < sections; i++){
+    const from = (i / sections) * span, to = ((i + 1) / sections) * span;
+    const here = mothGroundPitchClasses(events, from, to);
+    const pcs = [];
+    for(const source of [here, whole, fallback]){
+      for(const pc of source){ if(pcs.length >= 3) break; if(!pcs.includes(pc)) pcs.push(pc); }
+      if(pcs.length >= 3) break;
+    }
+    const midis = mothGroundVoicing(pcs);
+    if(!midis.length) continue;
+    // A chord that repeats the one before it is not a change, and re-striking
+    // it would put a swell where the night has no event. It simply holds.
+    const previous = out.length ? out[out.length - 1] : null;
+    if(previous && previous.groundMidis.join(",") === midis.join(",")){
+      previous.holdSec = to - previous.atSec;
+      continue;
+    }
+    out.push({
+      kind:"moth_ground", derived:true, isSpecial:false, isEcho:false,
+      user:"AB", userName:"", obs:null, match:null,
+      atSec: from, holdSec: to - from,
+      taxon:"Ground", order:"__MOTH__", family:"", voiceKey:"__MOTH_GROUND__",
+      voiceLabel:"Ground", instrument:"moth_ground",
+      groundMidis: midis, midi: midis[0], freq: midiToFreq(midis[0]),
+      density:1, count:1, velocity: MOTH_GROUND.level,
+      color:"rgba(120,140,160,0.30)"
+    });
+  }
+  return out;
+}
+
+// Organ, and a wordless texture above it. Steady, slow in and slow out: the
+// gesture is pressure rather than impact, which is what keeps it behind the
+// arrivals instead of competing with them.
+function scheduleMothGround(ctx, event, when, velocity, out){
+  if(!event || event.kind !== "moth_ground") return false;
+  const midis = Array.isArray(event.groundMidis) ? event.groundMidis : [];
+  if(!midis.length || !Number.isFinite(velocity) || velocity <= 0 ||
+     !Number.isFinite(when) || !Number.isFinite(ctx.sampleRate) || ctx.sampleRate <= 0) return true;
+  const limit = ctx.sampleRate * .45;
+  when = Math.max(when, ctx.currentTime + .002);
+  const hold = Math.max(.4, Number.isFinite(event.holdSec) ? event.holdSec : 4);
+  const attack = Math.min(MOTH_GROUND.attackSec, hold * .55);
+  const release = MOTH_GROUND.releaseSec;
+  const end = when + hold + release;
+  const space = mothSpace(ctx);
+  const bus = ctx.createGain();
+  bus.gain.setValueAtTime(0.0001, when);
+  bus.gain.linearRampToValueAtTime(Math.min(1, velocity), when + attack);
+  bus.gain.setValueAtTime(Math.min(1, velocity), when + hold);
+  bus.gain.exponentialRampToValueAtTime(0.0001, end);
+  bus.gain.linearRampToValueAtTime(0, end + .05);
+  bus.connect(space.input);
+  const temporary = [bus];
+  let active = 0;
+  const done = () => { if(--active === 0) for(const n of temporary) try{ n.disconnect(); }catch(e){} };
+  const start = (node) => { active++; node.onended = () => { try{ node.disconnect(); }catch(e){} done(); };
+    node.start(when); node.stop(end + .06); };
+
+  for(let i = 0; i < midis.length; i++){
+    const base = midiToFreq(midis[i]);
+    if(!(base > 0) || base >= limit) continue;
+    // Organ registration: a drawbar stack, gently detuned so it breathes.
+    const stack = [[1, .60], [2, .26], [3, .12], [4, .06]];
+    const rank = ctx.createGain();
+    rank.gain.value = 1 / Math.max(1, midis.length);
+    rank.connect(bus); temporary.push(rank);
+    for(const [ratio, weight] of stack){
+      const hz = base * ratio;
+      if(hz >= limit) continue;
+      const osc = ctx.createOscillator(); osc.type = "sine";
+      osc.frequency.setValueAtTime(hz, when);
+      if(osc.detune) osc.detune.setValueAtTime((i % 2 ? 1 : -1) * (1.4 + ratio * .5), when);
+      const g = ctx.createGain(); g.gain.value = weight;
+      osc.connect(g); g.connect(rank); temporary.push(g);
+      start(osc);
+    }
+    // The wordless texture: the same chord an octave up, through two vowel
+    // formants, at a level that is meant to be noticed only when it stops.
+    const vhz = base * 2;
+    if(vhz < limit){
+      const osc = ctx.createOscillator(); osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(vhz, when);
+      const vib = ctx.createOscillator(); vib.type = "sine";
+      vib.frequency.setValueAtTime(4.6 + i * .3, when);
+      const vibG = ctx.createGain(); vibG.gain.setValueAtTime(0, when);
+      vibG.gain.linearRampToValueAtTime(2.4, when + attack);
+      vib.connect(vibG); if(osc.detune) vibG.connect(osc.detune);
+      const f1 = ctx.createBiquadFilter(); f1.type = "peaking";
+      f1.frequency.setValueAtTime(420, when); f1.Q.setValueAtTime(3.2, when); f1.gain.setValueAtTime(11, when);
+      const f2 = ctx.createBiquadFilter(); f2.type = "peaking";
+      f2.frequency.setValueAtTime(980, when); f2.Q.setValueAtTime(4.0, when); f2.gain.setValueAtTime(7, when);
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+      lp.frequency.setValueAtTime(1500, when); lp.Q.setValueAtTime(.4, when);
+      const g = ctx.createGain(); g.gain.value = MOTH_GROUND.voice / Math.max(1, midis.length);
+      osc.connect(f1); f1.connect(f2); f2.connect(lp); lp.connect(g); g.connect(bus);
+      temporary.push(f1, f2, lp, g, vibG);
+      start(osc); start(vib);
+    }
+  }
+  if(!active){ try{ bus.disconnect(); }catch(e){} }
+  return true;
+}
+
+// Touch and timing, from the record's own id. Deterministic, so the same record
+// is always played the same way; bounded by the timestamps' own precision, so
+// it can never move a note off something the data actually claims.
+function mothTouch(o, spanSec){
+  const id = (o && o.id != null) ? String(o.id) : "";
+  const h = hash32(`${id}::${state.seed}::touch`);
+  const loopLen = Number.isFinite(state.loopLen) && state.loopLen > 0 ? state.loopLen : 19;
+  const span = Number.isFinite(spanSec) && spanSec > 0 ? spanSec : 43200;
+  // Half a minute of real time, in loop seconds, and never more than 30 ms —
+  // a narrow Riff window magnifies real time and must not magnify this.
+  const bound = Math.min(.030, .5*60*loopLen/span);
+  return {
+    lag: (((h & 0xFFFF)/0xFFFF)*2 - 1) * bound,
+    touch: 0.80 + ((h >>> 16)/0xFFFF)*0.20
+  };
+}
+
 // The voicing travels as the instrument name. Seven places schedule a note and
 // all of them pass `ev.instrument` through unchanged, so encoding the voicing
 // there means every path — timeline, song, preview, the offline renderer —
@@ -3578,10 +3775,28 @@ const MOTH_SPECTRA = [
 // changes the note when the written pitch happens to straddle the moved edge,
 // and the axis was silent for most notes. Stretch is audible on every note,
 // and pairs with the material class already chose.
-const MOTH_STRETCH = [0, 0.0003, 0.0008, 0.0016, 0.0030];
-const MOTH_BODY_PARTIALS  = [3, 4, 6, 8];
-const MOTH_TILT           = [0.55, 0.85, 1.15, 1.45, 1.75, 2.05, 2.35];
-const MOTH_ATTACK         = [0.002, 0.006, 0.014, 0.034, 0.075, 0.160];
+const MOTH_STRETCH = [0, 0.00014, 0.00038, 0.00075, 0.00140];
+// Lily, 17 September 2026: *"The new set sounds nasal."* It was, and the cause
+// was exact. `harp` and `bowl` — the two sweet voices the old family unlocked
+// at genus and species rank — each carry two or three partials behind a
+// **closing lowpass**, and the first draft of this family carried up to eight
+// bare sine partials with no filter at all and a stretch that ran them sharp.
+// Partial eight at the brightest tilt was still at a third of full weight, on
+// every note. That is a reed, not a moth.
+//
+// Fewer partials, a steeper roll-off, a gentler stretch, and the harp's own
+// filter gesture below. The axes still tell taxa apart; they now tell them
+// apart between shades of a tender voice rather than between sweet and nasal.
+const MOTH_BODY_PARTIALS  = [2, 3, 4, 6];
+const MOTH_TILT           = [1.00, 1.27, 1.54, 1.81, 2.08, 2.35, 2.62];
+// Nothing clicks: even the sharpest attack is rounded a little.
+const MOTH_ATTACK         = [0.005, 0.009, 0.018, 0.038, 0.080, 0.165];
+// The harp's signature, and the thing that made it sweet: the note opens
+// bright and closes dark, the way a plucked string does. Family chooses where
+// it opens, so brightness is still what family says — but the top of the range
+// sits a long way below where the first draft put it.
+const MOTH_FILTER_OPEN    = [3200, 2800, 2400, 2050, 1750, 1500, 1250];
+const MOTH_FILTER_CLOSE   = [1050,  920,  810,  700,  600,  520,  450];
 const MOTH_LATE           = [0, 0.05, 0.13, 0.28];
 // Lily, 17 September 2026: "all notes seem to be short." They were: every
 // instrument in the old family decayed in 0.25 s to 0.9 s. Length is now what
@@ -3674,7 +3889,8 @@ function scheduleMothVoice(ctx, code, when, freq, velocity, out){
   const ratios = MOTH_SPECTRA[cls.spectrum] || MOTH_SPECTRA[0];
   const stretch = MOTH_STRETCH[at("stretch")] || 0;
   const count = MOTH_BODY_PARTIALS[at("body")] || 3;
-  const tilt = MOTH_TILT[at("tilt")];
+  const tiltIndex = at("tilt");
+  const tilt = MOTH_TILT[tiltIndex];
   const attack = MOTH_ATTACK[at("attack")];
   const late = MOTH_LATE[at("late")];
   const decay = MOTH_DECAY[at("decay")];
@@ -3704,6 +3920,18 @@ function scheduleMothVoice(ctx, code, when, freq, velocity, out){
 
   const space = mothSpace(ctx);
   const bus = ctx.createGain();
+  // The closing filter. Every partial passes through it, so the whole note
+  // darkens together rather than the top simply being absent — which is the
+  // difference between a sweet voice and a muffled one.
+  const tone = ctx.createBiquadFilter ? ctx.createBiquadFilter() : null;
+  if(tone){
+    tone.type = "lowpass";
+    tone.Q.setValueAtTime(0.55, when);
+    const open = Math.min(MOTH_FILTER_OPEN[tiltIndex], ctx.sampleRate*.4);
+    const close = Math.min(MOTH_FILTER_CLOSE[tiltIndex], open);
+    tone.frequency.setValueAtTime(open, when);
+    tone.frequency.exponentialRampToValueAtTime(close, when + Math.max(.12, Math.min(1.4, decay*.45)));
+  }
   // Longer notes overlap more, so level falls as the tail grows; and a low
   // fundamental carries more energy than a high one at the same amplitude.
   // Levelled against the family it replaces rather than guessed: the old
@@ -3711,9 +3939,10 @@ function scheduleMothVoice(ctx, code, when, freq, velocity, out){
   // and an additive voice whose partials do not peak together lands well under
   // that at the same nominal gain.
   bus.gain.setValueAtTime(level*.92*Math.pow(1.1/(1.1 + decay), .30)*Math.pow(220/Math.max(160, sounding), .18), when);
-  bus.connect(space.input);
+  if(tone){ bus.connect(tone); tone.connect(space.input); }
+  else bus.connect(space.input);
 
-  const temporary = [bus];
+  const temporary = tone ? [bus, tone] : [bus];
   let active = 0;
   const done = () => { if(--active === 0) for(const node of temporary) try{ node.disconnect(); }catch(e){} };
   for(const p of partials){
@@ -7341,7 +7570,22 @@ const user = observerRole(o);
       user,
       userName: o.userName || "",
       obs:o, atSec, taxon:o.taxon, order:o.order, family:o.family, voiceKey, voiceLabel,
-      instrument, midi:pitch.midi, freq:pitch.freq, density, count, color, isEcho:false
+      instrument, midi:pitch.midi, freq:pitch.freq, density, count, color, isEcho:false,
+      // Touch and timing. Lily asked for "natural variations in timing and
+      // touch", and a player that lands every note dead on the grid at one
+      // weight is the thing she is describing the absence of.
+      //
+      // Both are derived from the record's own id, so they are the same every
+      // time that record plays and are part of what can be explained rather
+      // than noise. And `lag` is bounded by the data's own precision:
+      // iNaturalist stores minutes, so a nudge smaller than half a minute of
+      // real time cannot move a note off anything the record actually knows.
+      // On a twelve-hour night at a nineteen-second loop that is ±13 ms.
+      //
+      // Moth Orchestra only. Lantern Glass and Frog Yawn have been accepted by
+      // ear as they are, and a family that has been accepted does not get
+      // quietly rephrased because a different family wanted it.
+      ...((!state.voiceMode || state.voiceMode === "mixed") ? mothTouch(o, spanSec) : null)
     };
     // Gondwana is the one family that builds figures, and every pitch in a
     // figure is this record's own pitch transposed by whole scale steps. The
@@ -7483,6 +7727,13 @@ const user = observerRole(o);
   // no glow, no thumbnail, no arrival. Gondwana only.
   if(state.voiceMode === "gondwana"){
     for(const pedal of gondwanaPedal(state.loopLen, state.keyName, state.scaleName, state.seed)) events.push(pedal);
+  }
+
+  // The ground: Moth Orchestra's warm sustained background, voiced from the
+  // pitch classes this night's own taxa carry. Authorship, and marked the same
+  // way the pedal is — no glow, no thumbnail, no arrival.
+  if(!state.voiceMode || state.voiceMode === "mixed"){
+    for(const chord of mothGroundEvents(events, state.loopLen, state.keyName, state.scaleName)) events.push(chord);
   }
 
   events.sort((a,b)=>a.atSec-b.atSec);
@@ -7784,6 +8035,17 @@ function startScheduler(resumeFromSec){
         continue;
       }
 
+      // The ground is room, not record: it sounds in every listen mode, carries
+      // no glow, and exists only while Moth Orchestra is the chosen family.
+      if(e.kind === "moth_ground"){
+        if(!state.voiceMode || state.voiceMode === "mixed"){
+          scheduleMothGround(audioCtx, e, tEvent, (e.velocity || MOTH_GROUND.level)*clamp(state.volume, 0, 1), masterGain || audioCtx.destination);
+        }
+        state.schedNextIndex += 1;
+        if(state.schedNextIndex >= events.length){ state.schedNextIndex = 0; state.schedCycle += 1; }
+        continue;
+      }
+
 // In solo mode, duet-only rings (special events) should remain silent.
 if(state.listenMode !== "both" && e.isSpecial){
   state.schedNextIndex += 1;
@@ -7815,7 +8077,7 @@ if(state.listenMode !== "both" && e.isSpecial){
       if(state.voiceMode === "gondwana" && !e.isSpecial){
         scheduleGondwanaEvent(audioCtx, e, tEvent, vel, state.schedCycle, masterGain || audioCtx.destination);
       } else {
-        scheduleInstrument(audioCtx, e.instrument, tEvent, e.freq, vel);
+        scheduleInstrument(audioCtx, e.instrument, tEvent + (e.lag || 0), e.freq, vel * (e.touch || 1));
       }
       scheduleThumbGlow(e, tEvent);
       scheduleSelectionOverlay(e, tEvent);
@@ -10173,6 +10435,10 @@ async function renderOfflineBuffer(minDuration, statusEl){
           if(state.voiceMode === "gondwana") scheduleGondwana(offCtx, e.instrument, offset + e.atSec, e.freq, (e.velocity || .26)*clamp(state.volume, 0, 1), offMaster);
           continue;
         }
+        if(e.kind === "moth_ground"){
+          if(!state.voiceMode || state.voiceMode === "mixed") scheduleMothGround(offCtx, e, offset + e.atSec, (e.velocity || MOTH_GROUND.level)*clamp(state.volume, 0, 1), offMaster);
+          continue;
+        }
         // Respect listen mode
         if(state.listenMode !== "both" && e.isSpecial) continue;
         if(state.listenMode === "A" && e.user !== "A") continue;
@@ -10188,7 +10454,9 @@ async function renderOfflineBuffer(minDuration, statusEl){
         if(state.voiceMode === "gondwana" && !e.isSpecial){
           scheduleGondwanaEvent(offCtx, e, when, vel, loop, offMaster);
         } else {
-          scheduleInstrument(offCtx, e.instrument, when, e.freq, vel);
+          // The renderer plays what the player plays, touch and timing included,
+          // or an exported WAV is not what anybody heard.
+          scheduleInstrument(offCtx, e.instrument, when + (e.lag || 0), e.freq, vel * (e.touch || 1));
         }
       }
     }

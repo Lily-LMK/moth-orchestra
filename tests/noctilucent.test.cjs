@@ -42,13 +42,17 @@ for (const mode of ['timeline', 'riff']) {
     const baseline = c.buildSequencer(c.state.obs);
     c.state.voiceMode = 'noctilucent';
     const candidate = c.buildSequencer(c.state.obs);
-    const identity = seq => plain(seq.events.filter(e => e.kind === 'obs').map(({ instrument, ...e }) => e));
+    // `lag` and `touch` are Moth Orchestra's own, and are absent from every
+    // other family because a family Lily has accepted is not rephrased behind
+    // her. They are not part of the written score either way.
+    const identity = seq => plain(seq.events.filter(e => e.kind === 'obs')
+      .map(({ instrument, lag, touch, ...e }) => e));
     assert.deepEqual(identity(candidate), identity(baseline));
     assert.ok(candidate.events.filter(e => e.kind === 'obs').every(e => family.includes(e.instrument)));
     assert.deepEqual(plain(candidate.events), plain(c.buildSequencer(c.state.obs).events));
     assert.deepEqual(plain(candidate.meta.sharedMinutes), plain(baseline.meta.sharedMinutes));
-    assert.deepEqual(plain(candidate.events.filter(e => e.kind !== 'obs')),
-      plain(baseline.events.filter(e => e.kind !== 'obs')), 'all special gestures and source matches are preserved');
+    assert.deepEqual(plain(candidate.events.filter(e => e.kind !== 'obs' && e.kind !== 'moth_ground')),
+      plain(baseline.events.filter(e => e.kind !== 'obs' && e.kind !== 'moth_ground')), 'all special gestures and source matches are preserved');
   });
 }
 

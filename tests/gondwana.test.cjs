@@ -14,7 +14,10 @@ const { settings } = require('./score.cjs');
 
 const family = ['gond_felt', 'gond_heartwood', 'gond_bronze', 'gond_bowed', 'gond_column', 'gond_membrane', 'gond_rim', 'gond_drone', 'gond_pulse'];
 const CEILINGS = { gond_felt: 523, gond_heartwood: 110, gond_bronze: 220, gond_bowed: 330, gond_column: 330, gond_membrane: 165, gond_drone: 110, gond_pulse: 220 };
-const DERIVED = ['gondMidis', 'gondShape', 'gondResolution'];
+// Fields a family attaches to an arrival of its own accord. `lag` and
+// `touch` are Moth Orchestra's, and are absent from every other family
+// because a family Lily has accepted is not rephrased behind her.
+const DERIVED = ['gondMidis', 'gondShape', 'gondResolution', 'lag', 'touch'];
 const plain = value => JSON.parse(JSON.stringify(value));
 
 function app(mode, voiceMode = 'gondwana', toneBy = 'taxon_species_name') {
@@ -135,7 +138,7 @@ for (const mode of ['timeline', 'riff']) {
     assert.deepEqual(plain(candidate.meta.sharedMinutes), plain(baseline.meta.sharedMinutes));
     // The duet gestures keep their timing, their pitch and their source
     // evidence; only which body sounds them changes, the same as an arrival.
-    const gestures = seq => plain(seq.events.filter(e => e.kind !== 'obs' && e.kind !== 'gond_pedal')
+    const gestures = seq => plain(seq.events.filter(e => e.kind !== 'obs' && e.kind !== 'gond_pedal' && e.kind !== 'moth_ground')
       .map(({ instrument, ...e }) => e));
     assert.deepEqual(gestures(candidate), gestures(baseline), 'all special gestures and source matches are preserved');
     // Every gesture is voiced by a Gondwana body. The shared minute is

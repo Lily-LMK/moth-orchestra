@@ -54,7 +54,13 @@ for (const mode of modes) {
     const seq = c.buildSequencer([obs(c, 'a', 'A', '2026-01-28T09:00:00Z'), obs(c, 'b', 'B', '2026-01-28T09:00:00Z')]);
     assert.equal(shared(seq).length, 0);
     assert.ok(seq.events.length > 0);
-    assert.ok(seq.events.every(e => !e.isSpecial && e.obs && e.obs.userName === user));
+    // Solo must invent no duet gesture and must play nobody else's records.
+    // A family's own authored layer — Gondwana's pedal, Moth Orchestra's
+    // ground — is neither: it is harmony, it carries no observation, and it
+    // sounds in every listen mode. It is excluded here rather than forbidden.
+    const arrivals = seq.events.filter(e => e.kind !== 'gond_pedal' && e.kind !== 'moth_ground');
+    assert.ok(arrivals.length > 0);
+    assert.ok(arrivals.every(e => !e.isSpecial && e.obs && e.obs.userName === user));
   });
   test(`${mode}: empty and missing selected observer inputs are valid and have no matches`, () => {
     const c = app(mode);
@@ -62,6 +68,8 @@ for (const mode of modes) {
       const seq = c.buildSequencer(rows);
       assert.equal(shared(seq).length, 0);
       assert.ok(seq.events.every(e => !e.isSpecial));
+      assert.ok(seq.events.every(e => e.kind !== 'moth_ground' || (e.groundMidis || []).length),
+        'a ground with nothing to voice is not emitted at all');
     }
   });
   test(`${mode}: duplicate records do not inflate shared minutes or their evidence`, () => {
