@@ -2627,6 +2627,7 @@ await audioCtx.resume();
 const EMERGENCE = {
   on: false,              // she listens before anything ships, every time
   level: 0.30,
+  solo: null,             // null, or one of 'bed'|'tones'|'piano'|'grain' — see buildEmergence
 
   // Breath — the period is the night's own median gap between arrivals.
   // Measured over all 144 offered nights: median gaps run 0.017 to 1.118 s,
@@ -2863,6 +2864,15 @@ function buildEmergence(ctx, outGain, shape, seed){
   const made = [], sources = [];
   const keep = node => { made.push(node); return node; };
 
+  // EMERGENCE.solo isolates one of the room's four parts — 'bed', 'tones',
+  // 'piano' or 'grain' — for audition and for the explainer workbook, which
+  // must let each be heard alone (see PLAN-WORKBOOK.md: the arrivals sit
+  // 17-27 dB over these parts, so "listen to the mix" cannot demonstrate any
+  // of them). null plays all four, as normal. Breath and memory are not parts
+  // of their own — breath modulates the whole bus and memory is the bus's own
+  // feedback tail — so soloing any part still breathes and still echoes.
+  const allow = part => !EMERGENCE.solo || EMERGENCE.solo === part;
+
   const bus = keep(ctx.createGain());
   bus.gain.setValueAtTime(EMERGENCE.level, now);
 
@@ -2894,7 +2904,7 @@ function buildEmergence(ctx, outGain, shape, seed){
   bedBand.frequency.setValueAtTime(centreHz, now);
   bedBand.Q.setValueAtTime(0.7, now);
   const bedLevel = keep(ctx.createGain());
-  bedLevel.gain.setValueAtTime(EMERGENCE.level, now);
+  bedLevel.gain.setValueAtTime(allow('bed') ? EMERGENCE.level : 0, now);
   bed.connect(bedBand); bedBand.connect(bedLevel); bedLevel.connect(bus);
   bed.start(now);
   sources.push(bed);
@@ -2924,7 +2934,7 @@ function buildEmergence(ctx, outGain, shape, seed){
     while(hz > band.highHz && hz/2 >= band.lowHz) hz /= 2;
     tone.frequency.setValueAtTime(hz, now);
     const level = keep(ctx.createGain());
-    level.gain.setValueAtTime(EMERGENCE.level*EMERGENCE.toneLevel*Math.pow(0.66, i), now);
+    level.gain.setValueAtTime(allow('tones') ? EMERGENCE.level*EMERGENCE.toneLevel*Math.pow(0.66, i) : 0, now);
     tone.connect(level); level.connect(bus);
     tone.start(now);
     sources.push(tone);
@@ -2942,8 +2952,13 @@ function buildEmergence(ctx, outGain, shape, seed){
     felt.frequency.exponentialRampToValueAtTime(420, when + EMERGENCE.pianoDecaySec);
     const env = keep(ctx.createGain());
     env.gain.setValueAtTime(0, when);
-    env.gain.linearRampToValueAtTime(EMERGENCE.pianoLevel, when + 0.035);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + EMERGENCE.pianoDecaySec);
+    // Gate by skipping the rise+decay ramp entirely when muted, not by
+    // ramping its target to 0 — an exponential ramp starting or ending at 0
+    // is invalid per the Web Audio spec and throws in a real browser.
+    if(allow('piano')){
+      env.gain.linearRampToValueAtTime(EMERGENCE.pianoLevel, when + 0.035);
+      env.gain.exponentialRampToValueAtTime(0.0001, when + EMERGENCE.pianoDecaySec);
+    }
     osc.connect(felt); felt.connect(env); env.connect(bus);
     osc.start(when); osc.stop(when + EMERGENCE.pianoDecaySec + 0.05);
     sources.push(osc);
@@ -2960,8 +2975,11 @@ function buildEmergence(ctx, outGain, shape, seed){
     shaped.Q.setValueAtTime(7, when);
     const env = keep(ctx.createGain());
     env.gain.setValueAtTime(0, when);
-    env.gain.linearRampToValueAtTime(EMERGENCE.grainLevel, when + grain.lengthSec*0.35);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + grain.lengthSec);
+    // Same reason as the piano envelope above: skip the ramp, don't zero its target.
+    if(allow('grain')){
+      env.gain.linearRampToValueAtTime(EMERGENCE.grainLevel, when + grain.lengthSec*0.35);
+      env.gain.exponentialRampToValueAtTime(0.0001, when + grain.lengthSec);
+    }
     src.connect(shaped); shaped.connect(env);
     if(ctx.createStereoPanner){
       const pan = keep(ctx.createStereoPanner());

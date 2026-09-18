@@ -308,6 +308,71 @@ test('the grain stays under the room it lives in', () => {
     'sounds of life, not a field recording laid on top');
 });
 
+// ── Solo, for the ear and for the workbook ──────────────────────────────────
+// PLAN-WORKBOOK.md: the whole room renders 26.6 dB under the arrivals, and
+// grain and tones sit around -17 dB even measured generously. The workbook
+// cannot demonstrate a part nobody can hear inside the mix, so each of the
+// four parts must be soloable on its own. These tests read the automation a
+// real AudioContext would receive, not the audio itself.
+
+function soloedShape(c) {
+  // Multiple classes, so tones has more than the single note a one-class
+  // night would give it, and enough arrivals for piano notes and grains.
+  return c.emergenceNightShape(fakeNight(Array(130).fill(0.14), ['Insecta', 'Aves']), 19);
+}
+
+test('solo null plays all four parts, as before', () => {
+  const c = loadApp();
+  const ctx = audioProbe();
+  c.buildEmergence(ctx, ctx.createGain(), soloedShape(c), 1);
+  const values = ctx.automation.map(a => a.value);
+  assert.ok(values.includes(c.EMERGENCE.level), 'bed sounds');
+  assert.ok(values.includes(c.EMERGENCE.level * c.EMERGENCE.toneLevel), 'tones sound');
+  assert.ok(values.includes(c.EMERGENCE.pianoLevel), 'piano sounds');
+  assert.ok(values.includes(c.EMERGENCE.grainLevel), 'grain sounds');
+});
+
+for (const part of ['bed', 'tones', 'piano', 'grain']) {
+  test(`solo '${part}' mutes the other three parts`, () => {
+    const c = loadApp();
+    const ctx = audioProbe();
+    c.EMERGENCE.solo = part;
+    try {
+      c.buildEmergence(ctx, ctx.createGain(), soloedShape(c), 1);
+    } finally {
+      c.EMERGENCE.solo = null; // never leak into another test
+    }
+    const values = ctx.automation.map(a => a.value);
+    const heard = {
+      bed: values.filter(v => v === c.EMERGENCE.level).length === 2, // bus + bedLevel
+      tones: values.includes(c.EMERGENCE.level * c.EMERGENCE.toneLevel),
+      piano: values.includes(c.EMERGENCE.pianoLevel),
+      grain: values.includes(c.EMERGENCE.grainLevel)
+    };
+    for (const other of ['bed', 'tones', 'piano', 'grain'])
+      assert.equal(heard[other], other === part, `${other} ${other === part ? 'should sound' : 'should be silent'}`);
+  });
+}
+
+test('a muted piano note never asks for an exponential ramp from zero', () => {
+  // Web Audio throws a RangeError if exponentialRampToValueAtTime runs from
+  // (or to) 0 — an earlier version of this gate zeroed the ramp's *target*
+  // instead of skipping the ramp, which would crash in a real browser the
+  // first time a muted note played. Soloing 'bed' mutes both piano and grain,
+  // the only two sources of a gain ramp in this graph, so no ramp of any kind
+  // should be scheduled at all.
+  const c = loadApp();
+  const ctx = audioProbe();
+  c.EMERGENCE.solo = 'bed';
+  try {
+    c.buildEmergence(ctx, ctx.createGain(), soloedShape(c), 1);
+  } finally {
+    c.EMERGENCE.solo = null;
+  }
+  assert.ok(!ctx.automation.some(a => a.kind === 'lin' || (a.kind === 'exp' && a.value === 0.0001)),
+    'no gain ramp fired for a muted part');
+});
+
 // ── The rules this project does not break ──────────────────────────────────
 
 test('Emergence invents no record: it never enters the score', () => {
