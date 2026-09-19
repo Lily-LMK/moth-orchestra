@@ -1197,7 +1197,7 @@ input[type="range"]::-moz-range-thumb{
   <button class="tBtn" id="tRemix" title="Remix">⟳</button>
   <button class="tBtn" id="tVoice" title="Cycle voice">♫</button>
   <button class="tBtn tPlay" id="tPlay" title="Play / Pause">▶</button>
-  <button class="tBtn" id="tAmbience" title="Ambience">✦</button>
+  <button class="tBtn" id="tEmergence" title="Emergence">✦</button>
   <button class="tBtn" id="tExitFs" title="Exit">✕</button>
 </div>
 
@@ -1228,7 +1228,7 @@ input[type="range"]::-moz-range-thumb{
         <div class="helpRow"><span class="kbd">← →</span> Voice family</div>
         <div class="helpRow"><span class="kbd">↑ ↓</span> Taxonomic rank</div>
         <div class="helpRow"><span class="kbd">R</span> Remix</div>
-        <div class="helpRow"><span class="kbd">A</span> Ambience on/off</div>
+        <div class="helpRow"><span class="kbd">A</span> Emergence on/off</div>
         <div class="helpRow"><span class="kbd">H</span> Hide / show controls</div>
         <div class="helpRow"><span class="kbd">C</span> Now playing card on / off</div>
         <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:10px;">
@@ -1336,12 +1336,13 @@ input[type="range"]::-moz-range-thumb{
       <div class="spec specRange"><span class="specK"><label for="loopLen">Loop</label></span><span class="specV" id="loopLenPct">19s</span></div>
       <input id="loopLen" type="range" min="2" max="60" step="1" value="19"/>
       <details class="disclose">
-        <summary>Ambience</summary>
+        <summary>Emergence</summary>
         <div class="discloseBody">
-          <div class="spec"><span class="specK">Ambience</span><span class="specV">—</span>
-            <select id="ambienceSelect" aria-label="Ambience"><option value="none">None</option><option value="spore_cloud">Spore Cloud</option><option value="quiet_beat">Lumen strings</option><option value="silk_thread">Silk thread</option><option value="firefly_field">Firefly field</option><option value="pollen_drift">Pollen drift</option></select></div>
-          <div class="spec specRange"><span class="specK"><label for="ambienceVol">Ambience level</label></span><span class="specV" id="ambVolPct">45%</span></div>
-          <input id="ambienceVol" type="range" min="0" max="1" step="0.01" value="0.45"/>
+          <p id="emergenceNote">The room the night makes. How often things arrived sets its pace; how many kinds of creature sets how wide it opens. Nothing in it marks a single sighting.</p>
+          <div class="spec"><span class="specK">Emergence</span><span class="specV">—</span>
+            <select id="emergenceOnSel" aria-label="Emergence on or off"><option value="on">On</option><option value="off">Off</option></select></div>
+          <div class="spec specRange"><span class="specK"><label for="emergenceVol">Emergence level</label></span><span class="specV" id="emgVolPct">45%</span></div>
+          <input id="emergenceVol" type="range" min="0" max="1" step="0.01" value="0.45"/>
         </div>
       </details>
 
@@ -1676,7 +1677,6 @@ function showModeToast(text){
 }
 
 function updateCornerStatus(){
-  const ambOn = !!state.ambienceOn && state.ambience !== "none";
 
   // Toggle play spotlight on thumbnail grid
   const grid = $("thumbGrid");
@@ -1685,9 +1685,7 @@ function updateCornerStatus(){
     else grid.classList.remove("playSpotlight");
   }
 
-  const label = state.isPlaying
-    ? "Listening"
-    : (ambOn ? "Ambience" : "Paused");
+  const label = state.isPlaying ? "Listening" : "Paused";
 
   const toneLabel = toneByLabel();
   const toneCount = Array.isArray(state.availableVoices) ? state.availableVoices.length : 0;
@@ -2498,7 +2496,14 @@ const VOICE_MODES = ["gondwana","emergence","mixed","night","choir","steelpan","
 // Families implemented and tested but not yet accepted by ear. A family leaves
 // this set only when Lily has heard it and said so — measurement never stands
 // in for that. Gondwana left it on 14 September 2026.
-const WITHHELD_VOICE_MODES = new Set(["noctilucent"]);
+// `emergence` was withdrawn on 18 September 2026, not deleted. Lily heard it
+// live -- "Emergence is fantastic but it's a lesser Gondwana" -- and then chose
+// to spend the name on the gallery floor instead. The family stays here whole,
+// with its tests, because the eight-rank mapping it carries (MOTH_AXES,
+// mothVoicing, sized by measured per-night entropy, 142 of 144 nights fully
+// distinguishable) is the best design work in this repository and is what a
+// future canopy family should be built on. Audition it with ?family=emergence.
+const WITHHELD_VOICE_MODES = new Set(["noctilucent", "emergence"]);
 // A withheld family can be auditioned with ?family=noctilucent. It stays out of
 // the published list, the dropdown and the swipe cycle for everyone else until
 // it has been accepted by ear. Gondwana was withheld this way and released as
@@ -2512,8 +2517,10 @@ const VOICE_MODE_LABELS = { gondwana:"Gondwana", emergence:"Emergence", mixed:"M
 let audioCtx = null;
 let noiseBuf = null;
 let masterGain = null;
-let ambienceBus = null;
-let ambienceLimiter = null;
+let emergenceBus = null;
+// The one room that is playing, or null. There is never more than one.
+let emergenceRoom = null;
+let emergenceLimiter = null;
 let delaySend = null;
 let compressor = null;
 let limiter = null;
@@ -2535,20 +2542,21 @@ async function ensureAudio(){
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 1.0;
 
-  ambienceBus = audioCtx.createGain();
-  ambienceBus.gain.value = state.ambienceVol;
-// Allow up to 200% ambience volume without harsh clipping.
-  ambienceLimiter = audioCtx.createDynamicsCompressor();
-  ambienceLimiter.threshold.value = -14;
-  ambienceLimiter.knee.value = 18;
-  ambienceLimiter.ratio.value = 4;
-  ambienceLimiter.attack.value = 0.02;
-  ambienceLimiter.release.value = 0.25;
+  emergenceBus = audioCtx.createGain();
+  emergenceBus.gain.value = state.emergenceLevel;
+  // Emergence has its own bus and its own limiter, so the room's headroom is
+  // its own and no master limiter is needed -- PLAN-NEXT-FAMILY.md section 4.
+  emergenceLimiter = audioCtx.createDynamicsCompressor();
+  emergenceLimiter.threshold.value = -14;
+  emergenceLimiter.knee.value = 18;
+  emergenceLimiter.ratio.value = 4;
+  emergenceLimiter.attack.value = 0.02;
+  emergenceLimiter.release.value = 0.25;
 
-  ambienceBus.connect(ambienceLimiter);
-ambienceLimiter.connect(masterGain);
+  emergenceBus.connect(emergenceLimiter);
+emergenceLimiter.connect(masterGain);
 
-  // Gentle ambience: a short, warm delay send.
+  // A short, warm delay send on the shared chain.
   const dry = audioCtx.createGain();
   dry.gain.value = 0.85;
 
@@ -2580,824 +2588,465 @@ await audioCtx.resume();
   return audioCtx;
 }
 
-/** ------------------------------ Ambience presets ------------------------------ */
-let ambienceNodes = null;
+/** ------------------------------ Emergence: the gallery floor ------------------------------ */
+// The room a night is heard in.
+//
+// Lily, 18 September 2026, after hearing three spines: *"spine B is best, but
+// the ambience track doesn't stop when the music stops. On second thought, we
+// drop all ambience tracks. We make Emergence for the gallery floor. Start
+// anew. Keep the best of what we've learned and the direction I provided."*
+//
+// Her direction: *"sounds of life, insect-sounds, wing-beats, influences of
+// East Forest and Thievery Corporation. Olafur. A woman who made this believes
+// in 'reverence for life'. She reads Mary Oliver. Precious life. Rich life.
+// Gallery floor. Opening, opening. And yet deep time and forest and canopy."*
+//
+// **She chose the patient spine** — the one without the flutter on the bus and
+// without added strata. So the rest of her direction returns in that spine's
+// own language rather than being bolted back on:
+//
+//   - **insect-sound** as *grain*: irregular, quiet, at the edge of hearing.
+//     Never periodic, because a periodic one is the pulse she turned down.
+//   - **canopy** as the band *opening* rather than as layers stacked on top.
+//
+// And the weakness that spine had — it told two nights apart about three and a
+// half times less than the others — is answered by making its own gestures
+// night-driven: the piano's spacing, the memory's length, the band's width and
+// the grain's rate all come from the night now, where before only the breath
+// did.
+//
+// **This is authorship.** Emergence is grown *from* the night and is a claim
+// about nothing. It carries no glow, no thumbnail and no arrival, it never
+// enters the score, and it reads arrivals only — a room grown from the authored
+// layers beneath it would be decoration laid over decoration, which is what the
+// five presets were retired for.
+//
+// It is **figure and ground, not two figures**: Gondwana decides how much a
+// record says; Emergence says nothing about any record and everything about the
+// night entire. That is why it can sit under every family at once.
+const EMERGENCE = {
+  on: false,              // she listens before anything ships, every time
+  level: 0.30,
+  solo: null,             // null, or one of 'bed'|'tones'|'piano'|'grain' — see buildEmergence
 
+  // Breath — the period is the night's own median gap between arrivals.
+  // Measured over all 144 offered nights: median gaps run 0.017 to 1.118 s,
+  // which these constants carry to 5.4-29.6 s. The clamp is a safety net that
+  // never fires on real data, and a test holds it to that across the archive.
+  breathBaseSec: 5,
+  breathPerGapSec: 22,
+  breathMinSec: 5,
+  breathMaxSec: 30,
+  breathDepth: 0.55,
+  breathOpenHz: 1.55,     // the band opens as it swells, by this factor
 
-function buildRelaxingHum(ctx, outGain, key, scaleName){
-  // Honey bowl: melodic, slow, and a little haunted — a track for unhurried exploration.
-  // Anchored to the current key/scale, with a soft "bowl" shimmer that appears like a moth at the edge of torchlight.
-  const prng = mulberry32(hash32(`honey_bowl_v2::${state.seed}::${state.nightKey||""}`));
+  // Memory — Thievery's dub, and this family's deep time. A long filtered
+  // feedback delay, each pass darker than the last. 7.1 s is deliberately
+  // incommensurate with every loop length this instrument uses, because
+  // material that repeats inside the loop will never feel old.
+  //
+  // How long the room holds is the night's: a night of many arrivals keeps
+  // more of itself. Feedback stays well below unity at every density the
+  // archive contains, or the room would never stop growing.
+  memorySec: 7.1,
+  memoryBaseFeedback: 0.50,
+  memoryPerOctave: 0.075,
+  memoryMaxFeedback: 0.72,
+  memoryDampBaseHz: 1600,
+  memoryDampPerClassHz: 260,
+  memoryWet: 0.45,
 
-  const scale = SCALES[scaleName] || SCALES.pentatonic;
+  // The band — "opening, opening". One class is a narrow trunk; seven is a
+  // room with a canopy. It opens upward far more than downward on purpose:
+  // Lily judges on headphones, and a class that only added sub-bass would be
+  // a gesture she could not hear that would still measure as working.
+  bandLowBaseHz: 110,
+  bandLowPerClassHz: 9,
+  bandLowFloorHz: 55,
+  bandHighBaseHz: 300,
+  bandHighPerClass: 1.34,
+  bandHighCeilHz: 6000,
 
-  const bus = ctx.createGain(); bus.gain.value = 0.86;
+  // The felt piano — Olafur, and the reverence. One note given all the room in
+  // the world, drawn only from pitch classes the night itself holds. A sparse
+  // night is left more room between notes than a full one: across the archive
+  // density runs 1.00 to 7.16 arrivals a second, which lands the spacing
+  // between about 26 s and about 10 s.
+  pianoBaseGapSec: 26,
+  pianoMinGapSec: 9,
+  pianoMaxGapSec: 30,
+  pianoJitter: 0.18,
+  pianoLowMidi: 48,       // C3, and whole octaves up, so the pitch class is exact
+  pianoOctaves: 3,
+  pianoLevel: 0.20,
+  pianoDecaySec: 6.5,
 
-  const lp = ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value = 4200; lp.Q.value = 0.7;
-  const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value = 55;   hp.Q.value = 0.7;
+  // Sounds of life. Short filtered noise, irregularly spaced, well under the
+  // piano — a texture the room has, not a field recording laid over it.
+  grainBasePerMin: 5,
+  grainPerOctave: 6,
+  grainMaxPerMin: 30,
+  grainLevel: 0.055,
+  grainMinSec: 0.035,
+  grainMaxSec: 0.11,
+  grainLowHz: 1400,
+  grainHighHz: 5200,
 
-  bus.connect(lp); lp.connect(hp); hp.connect(outGain);
+  // How many of the night's pitch classes are actually voiced. A night holding
+  // three pitch classes states one tone; a night holding twelve states three.
+  tonesMin: 1,
+  tonesMax: 3,
+  toneLevel: 0.22,
 
-  // Warm feedback delay — a small "cave" around each tone.
-  const dly = ctx.createDelay(2.0); dly.delayTime.value = 0.44;
-  const fb  = ctx.createGain(); fb.gain.value = 0.38;
-  const dlp = ctx.createBiquadFilter(); dlp.type="lowpass"; dlp.frequency.value = 2400; dlp.Q.value = 0.6;
+  scheduleHorizonSec: 180,
 
-  bus.connect(dly);
-  dly.connect(dlp);
-  dlp.connect(fb);
-  fb.connect(dly);
-  dly.connect(outGain);
+  // How loud the room is. Levelled against the five presets it replaced rather
+  // than guessed — measured through the real chain on the demo night, 10 s
+  // offline renders: the presets peaked 0.011-0.067 at rms 0.0045-0.0168, and
+  // at the 0.22 they shared this room sat at rms 0.004, quieter than four of
+  // the five. 0.70 puts it among them rather than above them.
+  busGain: 0.70
+};
 
-  // --- Drone bed (tonic + fifth, gently breathing) ---
-  const bed = ctx.createGain(); bed.gain.value = 0.0001;
-  bed.connect(bus);
+// Withheld exactly the way Gondwana and Noctilucent were, and for the same
+// reason: nothing here is published on my judgement. `?emergence=1` unlocks it
+// for audition. Without it the floor does not exist for anybody.
+try {
+  const q = new URLSearchParams(location.search).get("emergence");
+  if(q === "1" || q === "on" || q === "true") EMERGENCE.on = true;
+} catch(err){ EMERGENCE.on = false; }
 
-  const root2 = rootMidi(key, 2);
-  const tonic = midiToFreq(root2);
-  const fifth = midiToFreq(root2 + 7);
-
-  const o1 = ctx.createOscillator(); o1.type="triangle"; o1.frequency.value = tonic; o1.detune.value = -6;
-  const o2 = ctx.createOscillator(); o2.type="sine";     o2.frequency.value = fifth; o2.detune.value = +4;
-
-  const o1g = ctx.createGain(); o1g.gain.value = 0.16;
-  const o2g = ctx.createGain(); o2g.gain.value = 0.10;
-
-  o1.connect(o1g); o2.connect(o2g);
-  o1g.connect(bed); o2g.connect(bed);
-
-  // Breath noise (very subtle, just enough to feel "alive")
-  const ns = ctx.createBufferSource(); ns.buffer = noiseBuf; ns.loop = true;
-  const nbp = ctx.createBiquadFilter(); nbp.type="bandpass"; nbp.frequency.value = 1100; nbp.Q.value = 0.75;
-  const ng  = ctx.createGain(); ng.gain.value = 0.007;
-  ns.connect(nbp); nbp.connect(ng); ng.connect(bed);
-
-  // Slow breath in/out
-  const lfo = ctx.createOscillator(); lfo.type="sine"; lfo.frequency.value = 0.045;
-  const lfoG = ctx.createGain(); lfoG.gain.value = 0.05;
-  lfo.connect(lfoG); lfoG.connect(bed.gain);
-
-  const now = ctx.currentTime;
-  bed.gain.setValueAtTime(0.0001, now);
-  bed.gain.setTargetAtTime(0.20, now+0.05, 0.60);
-
-  o1.start(now); o2.start(now);
-  ns.start(now);
-  lfo.start(now);
-
-  // --- Melodic voice scheduler ---
-  function pickDegree(){
-    // Bias toward stable tones, with occasional gentle color.
-    const base = (scale.length >= 7)
-      ? [0,2,4,5,4,2,1,6,0,4,5]
-      : (scale.length === 6)
-        ? [0,2,4,3,1,5,0,2,4]
-        : [0,2,4,3,1,0,2,4];
-    return base[Math.floor(prng()*base.length)] % scale.length;
+// What the night is, as the room needs to know it. Arrivals only.
+function emergenceNightShape(events, loopLen){
+  const span = Math.max(1, Number.isFinite(loopLen) ? loopLen : 19);
+  const arrivals = [];
+  for(const e of (events || [])){
+    if(!e || e.kind !== "obs" || e.isSpecial) continue;
+    if(!Number.isFinite(e.atSec)) continue;
+    arrivals.push(e);
   }
-
-  function sing(t){
-    const deg = pickDegree();
-    const oct = (prng() < 0.78) ? 4 : 5;
-    const midi = rootMidi(key, oct) + scale[deg];
-
-    const f = midiToFreq(midi);
-
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-
-    // Long, slow envelope
-    const atk = 0.14 + prng()*0.08;
-    const hold = 0.60 + prng()*0.55;
-    const rel = 2.8 + prng()*2.6;
-    const peak = 0.10 + prng()*0.07;
-
-    g.gain.exponentialRampToValueAtTime(peak, t + atk);
-    g.gain.setTargetAtTime(peak*0.55, t + atk + hold, 0.22);
-    g.gain.setTargetAtTime(0.0001, t + atk + hold + 0.2, rel);
-
-    // Voice: sine + a faint octave shimmer
-    const o = ctx.createOscillator(); o.type="sine";
-    o.frequency.setValueAtTime(f, t);
-
-    const oHi = ctx.createOscillator(); oHi.type="triangle";
-    oHi.frequency.setValueAtTime(f*2, t);
-    oHi.detune.value = -5;
-
-    const og = ctx.createGain(); og.gain.value = 1.0;
-    const ohg = ctx.createGain(); ohg.gain.value = 0.28;
-
-    o.connect(og); oHi.connect(ohg);
-    og.connect(g); ohg.connect(g);
-
-    // Gentle formant shaping (keeps it "wood & air", not pure sine)
-    const bp = ctx.createBiquadFilter(); bp.type="bandpass";
-    bp.frequency.setValueAtTime(Math.min(2200, 700 + f*0.55), t);
-    bp.Q.value = 1.2;
-
-    // Subtle stereo drift (optional but helps depth)
-    const pan = ctx.createStereoPanner();
-    pan.pan.setValueAtTime((prng()*2-1)*0.35, t);
-
-    g.connect(bp); bp.connect(pan); pan.connect(bus);
-
-    // Tiny vibrato
-    const vib = ctx.createOscillator(); vib.type="sine"; vib.frequency.value = 4.6 + prng()*1.2;
-    const vibG = ctx.createGain(); vibG.gain.value = 2.2 + prng()*1.2; // Hz
-    vib.connect(vibG); vibG.connect(o.frequency);
-
-    const stopAt = t + atk + hold + rel + 0.6;
-
-    o.start(t); o.stop(stopAt);
-    oHi.start(t); oHi.stop(stopAt);
-    vib.start(t); vib.stop(stopAt);
-
-    // Clean up
-    setTimeout(()=>{
-      try{ o.disconnect(); oHi.disconnect(); }catch(e){}
-      try{ og.disconnect(); ohg.disconnect(); }catch(e){}
-      try{ g.disconnect(); bp.disconnect(); pan.disconnect(); }catch(e){}
-      try{ vib.disconnect(); vibG.disconnect(); }catch(e){}
-    }, Math.max(0, (stopAt - ctx.currentTime)*1000 + 80));
+  arrivals.sort((a, b) => a.atSec - b.atSec);
+  const gaps = [];
+  for(let i=1; i<arrivals.length; i++) gaps.push(arrivals[i].atSec - arrivals[i-1].atSec);
+  gaps.sort((a, b) => a - b);
+  const half = gaps.length >> 1;
+  const medianGapSec = !gaps.length ? 0
+    : (gaps.length % 2 ? gaps[half] : (gaps[half-1] + gaps[half]) / 2);
+  const classes = new Set();
+  for(const e of arrivals){
+    const name = e.obs && e.obs.ranks && e.obs.ranks.taxon_class_name;
+    if(typeof name === "string" && name.trim()) classes.add(name.trim());
   }
+  return {
+    arrivals: arrivals.length,
+    medianGapSec,
+    density: arrivals.length / span,
+    classCount: classes.size,
+    classes: Array.from(classes).sort(),
+    pitchClasses: mothGroundPitchClasses(arrivals, -Infinity, Infinity),
+    loopLen: span
+  };
+}
 
-  // A soft "bowl shimmer" accent (rare).
-  function bowl(t){
-    const base = midiToFreq(rootMidi(key, 3)) * 2;
-    const freqs = [base, base*1.50, base*2.02, base*2.52];
+// Density expressed in octaves above the quietest night the archive holds, so
+// every night-driven quantity below is sized on the same measured scale.
+function emergenceOctaves(shape){
+  return Math.log2(Math.max(1, (shape && shape.density) || 0));
+}
 
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.11, t + 0.030);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 3.10);
+// How slowly the room breathes. East Forest's patience, at the night's rate.
+function emergenceBreathSec(shape){
+  const gap = shape && Number.isFinite(shape.medianGapSec) ? shape.medianGapSec : 0;
+  return clamp(EMERGENCE.breathBaseSec + EMERGENCE.breathPerGapSec*gap,
+               EMERGENCE.breathMinSec, EMERGENCE.breathMaxSec);
+}
 
-    const oscs = freqs.map((f, i)=>{
-      const o = ctx.createOscillator();
-      o.type = "sine";
-      o.frequency.setValueAtTime(f * (1 + (prng()*2-1)*0.0018), t);
-      o.detune.value = (i-1.5) * 2;
-      o.connect(g);
-      o.start(t);
-      o.stop(t + 3.40);
-      return o;
+// How long the room holds what happened in it.
+function emergenceMemory(shape){
+  return {
+    seconds: EMERGENCE.memorySec,
+    feedback: clamp(EMERGENCE.memoryBaseFeedback + EMERGENCE.memoryPerOctave*emergenceOctaves(shape),
+                    EMERGENCE.memoryBaseFeedback, EMERGENCE.memoryMaxFeedback),
+    dampHz: EMERGENCE.memoryDampBaseHz +
+            EMERGENCE.memoryDampPerClassHz*Math.max(0, ((shape && shape.classCount) || 1) - 1)
+  };
+}
+
+// How tall the room is. Opening, opening — as width, not as layers.
+function emergenceBand(shape){
+  const n = Math.max(1, (shape && shape.classCount) || 1);
+  return {
+    lowHz: Math.max(EMERGENCE.bandLowFloorHz,
+                    EMERGENCE.bandLowBaseHz - EMERGENCE.bandLowPerClassHz*(n - 1)),
+    highHz: Math.min(EMERGENCE.bandHighCeilHz,
+                     EMERGENCE.bandHighBaseHz*Math.pow(EMERGENCE.bandHighPerClass, n - 1))
+  };
+}
+
+// How much of the night's harmony is actually stated.
+function emergenceTones(shape){
+  const pcs = (shape && shape.pitchClasses) || [];
+  if(!pcs.length) return [];
+  // How many notes the room holds is the night's **breadth of life**, not its
+  // count of pitch classes. Measured across the 144 offered nights: the scale
+  // is pentatonic and 140 of them use all five pitch classes, so that input
+  // carries no information at all. Keyed to it, this axis was first constant
+  // at 1 and then constant at 3 -- it looked like it varied on two nights and
+  // did not vary on the archive. Class count does: 64 nights hold one class,
+  // 33 two, 47 three or more.
+  //
+  // It is deliberately the same input the band uses. Breadth of life opens the
+  // room in two ways at once -- wider, and fuller -- which makes one real
+  // difference audible rather than spreading several thin.
+  const count = clamp((shape && shape.classCount) || 1, EMERGENCE.tonesMin, EMERGENCE.tonesMax);
+  return pcs.slice(0, count);
+}
+
+// The felt piano's notes. Deterministic from the seed, so the same night is
+// always tended the same way, and drawn only from pitch classes the night
+// actually holds — it invents no pitch, the way nothing else here does.
+function emergencePianoNotes(shape, seed, durationSec){
+  const pcs = (shape && shape.pitchClasses) || [];
+  const total = Math.max(0, Number.isFinite(durationSec) ? durationSec : 0);
+  if(!pcs.length || !total) return [];
+  const random = mulberry32(hash32(`emergence::piano::${seed}`));
+  // A full night is tended more often than an empty one. In this room the
+  // piano is the main event, so this is where a night becomes audible.
+  const centre = clamp(EMERGENCE.pianoBaseGapSec/Math.sqrt(Math.max(1, (shape.density || 1))),
+                       EMERGENCE.pianoMinGapSec, EMERGENCE.pianoMaxGapSec);
+  const out = [];
+  let at = 0;
+  for(let guard=0; guard<1024; guard++){
+    const jitter = 1 + (random()*2 - 1)*EMERGENCE.pianoJitter;
+    at += clamp(centre*jitter, EMERGENCE.pianoMinGapSec, EMERGENCE.pianoMaxGapSec);
+    if(at > total) break;
+    const pc = pcs[Math.min(pcs.length-1, Math.floor(random()*pcs.length))];
+    const base = EMERGENCE.pianoLowMidi +
+                 12*Math.min(EMERGENCE.pianoOctaves-1, Math.floor(random()*EMERGENCE.pianoOctaves));
+    out.push({ atSec: at, midi: base + ((((pc - base) % 12) + 12) % 12) });
+  }
+  return out;
+}
+
+// Sounds of life: short, quiet, and irregularly spaced. The irregularity is
+// the point — a regular one is a pulse, and the pulse is the gesture she
+// turned down.
+function emergenceGrains(shape, seed, durationSec){
+  const total = Math.max(0, Number.isFinite(durationSec) ? durationSec : 0);
+  if(!shape || !shape.arrivals || !total) return [];
+  const perMin = Math.min(EMERGENCE.grainMaxPerMin,
+    EMERGENCE.grainBasePerMin + EMERGENCE.grainPerOctave*emergenceOctaves(shape));
+  const mean = 60/Math.max(0.5, perMin);
+  const random = mulberry32(hash32(`emergence::grain::${seed}`));
+  const out = [];
+  let at = 0;
+  for(let guard=0; guard<2048; guard++){
+    // Exponential spacing: the gap between one small sound and the next is
+    // never the same twice, which is what keeps it from becoming a beat.
+    at += mean*(0.25 - Math.log(1 - random()*0.86));
+    if(at > total) break;
+    out.push({
+      atSec: at,
+      lengthSec: EMERGENCE.grainMinSec + random()*(EMERGENCE.grainMaxSec - EMERGENCE.grainMinSec),
+      hz: EMERGENCE.grainLowHz + random()*(EMERGENCE.grainHighHz - EMERGENCE.grainLowHz),
+      pan: random()*2 - 1
     });
+  }
+  return out;
+}
 
-    // Soft strike noise
-    const src = ctx.createBufferSource(); src.buffer = noiseBuf;
-    const bp = ctx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value = 950 + prng()*650; bp.Q.value = 2.0;
-    const ng = ctx.createGain(); ng.gain.value = 0.0001;
-    src.connect(bp); bp.connect(ng); ng.connect(g);
+// The room itself. Free-running rather than loop-locked — it is room, not
+// evidence — but it begins and ends with the music, which is the thing every
+// preset got wrong and only listening caught.
+function buildEmergence(ctx, outGain, shape, seed){
+  if(!ctx || !shape || !shape.arrivals) return null;
+  const now = ctx.currentTime || 0;
+  const made = [], sources = [];
+  const keep = node => { made.push(node); return node; };
 
-    ng.gain.setValueAtTime(0.0001, t);
-    ng.gain.exponentialRampToValueAtTime(0.06, t + 0.006);
-    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.060);
+  // EMERGENCE.solo isolates one of the room's four parts — 'bed', 'tones',
+  // 'piano' or 'grain' — for audition and for the explainer workbook, which
+  // must let each be heard alone (see PLAN-WORKBOOK.md: the arrivals sit
+  // 17-27 dB over these parts, so "listen to the mix" cannot demonstrate any
+  // of them). null plays all four, as normal. Breath and memory are not parts
+  // of their own — breath modulates the whole bus and memory is the bus's own
+  // feedback tail — so soloing any part still breathes and still echoes.
+  const allow = part => !EMERGENCE.solo || EMERGENCE.solo === part;
 
-    g.connect(bus);
+  const bus = keep(ctx.createGain());
+  bus.gain.setValueAtTime(EMERGENCE.level, now);
 
-    src.start(t);
-    src.stop(t + 0.10);
+  // ── Memory: the room remembers, and each pass is darker than the last.
+  const memory = emergenceMemory(shape);
+  const delay = keep(ctx.createDelay(Math.max(1, memory.seconds + 1)));
+  delay.delayTime.setValueAtTime(memory.seconds, now);
+  const feedback = keep(ctx.createGain());
+  feedback.gain.setValueAtTime(memory.feedback, now);
+  const damp = keep(ctx.createBiquadFilter());
+  damp.type = "lowpass";
+  damp.frequency.setValueAtTime(memory.dampHz, now);
+  const wet = keep(ctx.createGain());
+  wet.gain.setValueAtTime(EMERGENCE.memoryWet, now);
+  bus.connect(delay); delay.connect(damp); damp.connect(feedback);
+  feedback.connect(delay); damp.connect(wet);
+  if(outGain){ wet.connect(outGain); bus.connect(outGain); }
 
-    const stopAt = t + 3.55;
-    setTimeout(()=>{
-      try{ oscs.forEach(o=>o.disconnect()); }catch(e){}
-      try{ src.disconnect(); bp.disconnect(); ng.disconnect(); g.disconnect(); }catch(e){}
-    }, Math.max(0, (stopAt - ctx.currentTime)*1000 + 80));
+  // ── The band, and the breath that opens it.
+  const band = emergenceBand(shape);
+  const breathSec = emergenceBreathSec(shape);
+  const centreHz = Math.sqrt(band.lowHz*band.highHz);
+
+  const noise = createNoiseBuffer(ctx, 2.0);
+  const bed = keep(ctx.createBufferSource());
+  bed.buffer = noise; bed.loop = true;
+  const bedBand = keep(ctx.createBiquadFilter());
+  bedBand.type = "bandpass";
+  bedBand.frequency.setValueAtTime(centreHz, now);
+  bedBand.Q.setValueAtTime(0.7, now);
+  const bedLevel = keep(ctx.createGain());
+  bedLevel.gain.setValueAtTime(allow('bed') ? EMERGENCE.level : 0, now);
+  bed.connect(bedBand); bedBand.connect(bedLevel); bedLevel.connect(bus);
+  bed.start(now);
+  sources.push(bed);
+
+  // The breath moves the level and opens the band with it, so the room
+  // brightens as it swells rather than only getting louder.
+  const breath = keep(ctx.createOscillator());
+  breath.type = "sine";
+  breath.frequency.setValueAtTime(1/breathSec, now);
+  const breathLevel = keep(ctx.createGain());
+  breathLevel.gain.setValueAtTime(EMERGENCE.level*EMERGENCE.breathDepth, now);
+  breath.connect(breathLevel);
+  if(bus.gain) breathLevel.connect(bus.gain);
+  const breathOpen = keep(ctx.createGain());
+  breathOpen.gain.setValueAtTime(centreHz*(EMERGENCE.breathOpenHz - 1), now);
+  breath.connect(breathOpen);
+  if(bedBand.frequency) breathOpen.connect(bedBand.frequency);
+  breath.start(now);
+  sources.push(breath);
+
+  // ── The harmony the night actually holds.
+  emergenceTones(shape).forEach((pc, i) => {
+    const tone = keep(ctx.createOscillator());
+    tone.type = "sine";
+    let hz = midiToFreq(12*2 + pc);
+    while(hz < band.lowHz) hz *= 2;
+    while(hz > band.highHz && hz/2 >= band.lowHz) hz /= 2;
+    tone.frequency.setValueAtTime(hz, now);
+    const level = keep(ctx.createGain());
+    level.gain.setValueAtTime(allow('tones') ? EMERGENCE.level*EMERGENCE.toneLevel*Math.pow(0.66, i) : 0, now);
+    tone.connect(level); level.connect(bus);
+    tone.start(now);
+    sources.push(tone);
+  });
+
+  // ── The felt piano.
+  for(const note of emergencePianoNotes(shape, seed, EMERGENCE.scheduleHorizonSec)){
+    const when = now + note.atSec;
+    const osc = keep(ctx.createOscillator());
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(midiToFreq(note.midi), when);
+    const felt = keep(ctx.createBiquadFilter());
+    felt.type = "lowpass";
+    felt.frequency.setValueAtTime(1400, when);
+    felt.frequency.exponentialRampToValueAtTime(420, when + EMERGENCE.pianoDecaySec);
+    const env = keep(ctx.createGain());
+    env.gain.setValueAtTime(0, when);
+    // Gate by skipping the rise+decay ramp entirely when muted, not by
+    // ramping its target to 0 — an exponential ramp starting or ending at 0
+    // is invalid per the Web Audio spec and throws in a real browser.
+    if(allow('piano')){
+      env.gain.linearRampToValueAtTime(EMERGENCE.pianoLevel, when + 0.035);
+      env.gain.exponentialRampToValueAtTime(0.0001, when + EMERGENCE.pianoDecaySec);
+    }
+    osc.connect(felt); felt.connect(env); env.connect(bus);
+    osc.start(when); osc.stop(when + EMERGENCE.pianoDecaySec + 0.05);
+    sources.push(osc);
   }
 
-  let nextT = ctx.currentTime + 0.35;
-  const baseGap = Math.max(6.5, state.loopLen/5); // slow exploration; adapts gently to loop length
-  const timer = setInterval(()=>{
-    const now = ctx.currentTime;
-    const ahead = 1.25;
-    const end = now + ahead;
-    while(nextT < end){
-      sing(nextT);
-      if(prng() < 0.22) bowl(nextT + 0.02);
-      nextT += baseGap * (0.75 + prng()*0.75);
+  // ── Sounds of life.
+  for(const grain of emergenceGrains(shape, seed, EMERGENCE.scheduleHorizonSec)){
+    const when = now + grain.atSec;
+    const src = keep(ctx.createBufferSource());
+    src.buffer = noise; src.loop = true;
+    const shaped = keep(ctx.createBiquadFilter());
+    shaped.type = "bandpass";
+    shaped.frequency.setValueAtTime(grain.hz, when);
+    shaped.Q.setValueAtTime(7, when);
+    const env = keep(ctx.createGain());
+    env.gain.setValueAtTime(0, when);
+    // Same reason as the piano envelope above: skip the ramp, don't zero its target.
+    if(allow('grain')){
+      env.gain.linearRampToValueAtTime(EMERGENCE.grainLevel, when + grain.lengthSec*0.35);
+      env.gain.exponentialRampToValueAtTime(0.0001, when + grain.lengthSec);
     }
-  }, 180);
+    src.connect(shaped); shaped.connect(env);
+    if(ctx.createStereoPanner){
+      const pan = keep(ctx.createStereoPanner());
+      pan.pan.setValueAtTime(grain.pan, when);
+      env.connect(pan); pan.connect(bus);
+    } else env.connect(bus);
+    src.start(when); src.stop(when + grain.lengthSec + 0.02);
+    sources.push(src);
+  }
 
   return {
+    gain: bus,
+    breathSec, band, memory,
     stop(){
-      try{ clearInterval(timer); }catch(e){}
-      const t = ctx.currentTime;
-      try{
-        bed.gain.setTargetAtTime(0.0001, t, 0.20);
-      }catch(e){}
-      try{ o1.stop(t+0.5); o2.stop(t+0.5); }catch(e){}
-      try{ ns.stop(t+0.5); }catch(e){}
-      try{ lfo.stop(t+0.5); }catch(e){}
-      try{ bus.disconnect(); lp.disconnect(); hp.disconnect(); }catch(e){}
-      try{ dly.disconnect(); fb.disconnect(); dlp.disconnect(); }catch(e){}
-      try{ bed.disconnect(); }catch(e){}
-      try{ o1.disconnect(); o2.disconnect(); }catch(e){}
-      try{ o1g.disconnect(); o2g.disconnect(); }catch(e){}
-      try{ ns.disconnect(); nbp.disconnect(); ng.disconnect(); }catch(e){}
-      try{ lfo.disconnect(); lfoG.disconnect(); }catch(e){}
+      for(const s of sources){ try{ s.stop(); }catch(e){} }
+      for(const n of made){ try{ n.disconnect(); }catch(e){} }
     }
   };
 }
 
-function buildQuietBeat(ctx, outGain){
-  // Lumen strings: a warm drone + occasional resonant plucks,
-  // like small lanterns blinking through leaves. Synthetic (no samples).
-  const prng = mulberry32(hash32(`lumen_strings::${state.seed}`));
-
-  const key = state.keyName;
-  const scaleName = state.scaleName;
-  const scale = SCALES[scaleName] || SCALES.pentatonic;
-
-  const root = rootMidi(key, 3);
-  const tonic = midiToFreq(root);
-  const fifth = midiToFreq(root + 7);
-
-  // --- Drone bed ---
-  const bedG = ctx.createGain(); bedG.gain.value = 0.0001;
-
-  const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value = 55; hp.Q.value = 0.7;
-  const lp = ctx.createBiquadFilter(); lp.type="lowpass";  lp.frequency.value = 1700; lp.Q.value = 0.6;
-
-  bedG.connect(hp); hp.connect(lp); lp.connect(outGain);
-
-  const o1 = ctx.createOscillator(); o1.type="triangle"; o1.frequency.value = tonic; o1.detune.value = -5;
-  const o2 = ctx.createOscillator(); o2.type="sine";     o2.frequency.value = fifth; o2.detune.value = +3;
-
-  const o1G = ctx.createGain(); o1G.gain.value = 0.12;
-  const o2G = ctx.createGain(); o2G.gain.value = 0.10;
-
-  o1.connect(o1G); o2.connect(o2G);
-  o1G.connect(bedG); o2G.connect(bedG);
-
-  // Slow breath
-  const lfo = ctx.createOscillator(); lfo.type="sine"; lfo.frequency.value = 0.06;
-  const lfoG = ctx.createGain(); lfoG.gain.value = 0.035;
-  lfo.connect(lfoG); lfoG.connect(bedG.gain);
-
-  // Tiny airy shimmer
-  const air = ctx.createBufferSource(); air.buffer = noiseBuf; air.loop = true;
-  const airBP = ctx.createBiquadFilter(); airBP.type="bandpass"; airBP.frequency.value = 2300; airBP.Q.value = 1.4;
-  const airG = ctx.createGain(); airG.gain.value = 0.010;
-  air.connect(airBP); airBP.connect(airG); airG.connect(bedG);
-
-  // Fade in
-  const now = ctx.currentTime;
-  bedG.gain.setValueAtTime(0.0001, now);
-  bedG.gain.setTargetAtTime(0.18, now+0.03, 0.24);
-
-  o1.start(); o2.start(); lfo.start(); air.start();
-
-  // --- Resonant plucks (Karplus-ish) ---
-  const pluckOut = ctx.createGain(); pluckOut.gain.value = 0.70;
-  pluckOut.connect(outGain);
-
-  function pickMidi(){
-    // bias to tonic and fifth; sometimes a gentle upper color
-    const degrees = [0, 2, 4, 0, 4, 1, 3];
-    const d = degrees[Math.floor(prng()*degrees.length)] % scale.length;
-    const oct = (prng() < 0.22) ? 12 : 0;
-    return root + scale[d] + oct;
-  }
-
-  function schedulePluck(t, midi){
-    const f = midiToFreq(midi);
-
-    const env = ctx.createGain();
-    env.gain.value = 0.0001;
-    env.connect(pluckOut);
-
-    // Excitation: tiny noise burst
-    const excite = ctx.createBufferSource();
-    excite.buffer = noiseBuf;
-
-    const exciteHP = ctx.createBiquadFilter(); exciteHP.type="highpass"; exciteHP.frequency.value = 900; exciteHP.Q.value = 0.8;
-
-    // String loop: delay + feedback + gentle damping
-    const dly = ctx.createDelay(0.20);
-    dly.delayTime.setValueAtTime(Math.min(0.20, Math.max(0.010, 1.0/f)), t);
-
-    const fb = ctx.createGain(); fb.gain.value = 0.62;
-    const damp = ctx.createBiquadFilter(); damp.type="lowpass"; damp.frequency.value = 2600; damp.Q.value = 0.6;
-
-    excite.connect(exciteHP);
-    exciteHP.connect(dly);
-
-    dly.connect(damp);
-    damp.connect(fb);
-    fb.connect(dly);
-
-    dly.connect(env);
-
-    // Envelope
-    env.gain.setValueAtTime(0.0001, t);
-    env.gain.exponentialRampToValueAtTime(0.14, t + 0.008);
-    env.gain.exponentialRampToValueAtTime(0.0001, t + (1.8 + prng()*1.6));
-
-    excite.start(t);
-    excite.stop(t + 0.06);
-
-    // Cleanup
-    const stopAt = t + 3.0;
-    setTimeout(()=>{
-      try{ excite.disconnect(); exciteHP.disconnect(); dly.disconnect(); fb.disconnect(); damp.disconnect(); env.disconnect(); }catch(e){}
-    }, Math.max(0, (stopAt - ctx.currentTime)*1000 + 50));
-  }
-
-  let nextT = ctx.currentTime + 0.8 + prng()*1.4;
-  const timer = setInterval(()=>{
-    const now = ctx.currentTime;
-    const horizon = now + 0.9;
-    while(nextT < horizon){
-      if(prng() < 0.85){
-        schedulePluck(nextT, pickMidi());
-      }
-      nextT += 1.6 + prng()*3.2;
-    }
-  }, 120);
-
-  return {
-    stop(){
-      try{ clearInterval(timer); }catch(e){}
-      try{ o1.stop(); o2.stop(); lfo.stop(); air.stop(); }catch(e){}
-      try{ o1.disconnect(); o2.disconnect(); lfo.disconnect(); lfoG.disconnect(); }catch(e){}
-      try{ o1G.disconnect(); o2G.disconnect(); }catch(e){}
-      try{ air.disconnect(); airBP.disconnect(); airG.disconnect(); }catch(e){}
-      try{ bedG.disconnect(); hp.disconnect(); lp.disconnect(); }catch(e){}
-      try{ pluckOut.disconnect(); }catch(e){}
-    }
-  };
-}
-
-
-function buildSporeCloud(ctx, outGain, key, scaleName){
-  // Spore Cloud: breathing exercise — 3s inhale + 3s exhale = 6s cycle.
-  // Granular texture rises on inhale, falls on exhale.
-  const prng = mulberry32(hash32(`spore_cloud::${state.seed}`));
-  const scale = SCALES[scaleName] || SCALES.pentatonic;
-  const cycleSec = 6.0;
-  const inhale = 3.0;
-  const exhale = 3.0;
-
-  const bus = ctx.createGain(); bus.gain.value = 0.90;
-  const masterLP = ctx.createBiquadFilter(); masterLP.type="lowpass"; masterLP.frequency.value=4200; masterLP.Q.value=0.5;
-  const masterHP = ctx.createBiquadFilter(); masterHP.type="highpass"; masterHP.frequency.value=45; masterHP.Q.value=0.5;
-  bus.connect(masterLP); masterLP.connect(masterHP); masterHP.connect(outGain);
-
-  const dly = ctx.createDelay(2.0); dly.delayTime.value=0.30;
-  const dlFb = ctx.createGain(); dlFb.gain.value=0.22;
-  const dlLP = ctx.createBiquadFilter(); dlLP.type="lowpass"; dlLP.frequency.value=2000; dlLP.Q.value=0.5;
-  bus.connect(dly); dly.connect(dlLP); dlLP.connect(dlFb); dlFb.connect(dly);
-  const dlWet = ctx.createGain(); dlWet.gain.value=0.16;
-  dly.connect(dlWet); dlWet.connect(outGain);
-
-  // Drone bed
-  const root = rootMidi(key, 2);
-  const tonic = midiToFreq(root);
-  const fifth = midiToFreq(root + 7);
-  const droneG = ctx.createGain(); droneG.gain.value=0.0001; droneG.connect(bus);
-  const d1 = ctx.createOscillator(); d1.type="sine"; d1.frequency.value=tonic; d1.detune.value=-3;
-  const d2 = ctx.createOscillator(); d2.type="triangle"; d2.frequency.value=tonic*2; d2.detune.value=4;
-  const d3 = ctx.createOscillator(); d3.type="sine"; d3.frequency.value=fifth; d3.detune.value=-2;
-  const d1g = ctx.createGain(); d1g.gain.value=0.10;
-  const d2g = ctx.createGain(); d2g.gain.value=0.05;
-  const d3g = ctx.createGain(); d3g.gain.value=0.07;
-  d1.connect(d1g); d2.connect(d2g); d3.connect(d3g);
-  d1g.connect(droneG); d2g.connect(droneG); d3g.connect(droneG);
-  const dNs = ctx.createBufferSource(); dNs.buffer=noiseBuf; dNs.loop=true;
-  const dNBP = ctx.createBiquadFilter(); dNBP.type="bandpass"; dNBP.frequency.value=800; dNBP.Q.value=0.6;
-  const dNg = ctx.createGain(); dNg.gain.value=0.005;
-  dNs.connect(dNBP); dNBP.connect(dNg); dNg.connect(droneG);
-  const now = ctx.currentTime;
-  droneG.gain.setValueAtTime(0.0001, now);
-  droneG.gain.setTargetAtTime(0.14, now+0.1, 0.5);
-  d1.start(now); d2.start(now); d3.start(now); dNs.start(now);
-
-  function scheduleBreathCycle(t0){
-    const tPeak = t0 + inhale;
-    const tEnd = t0 + inhale + exhale;
-
-    // Pad chord (rises on inhale, falls on exhale)
-    const padG = ctx.createGain(); padG.gain.value=0.0001; padG.connect(bus);
-    const oct = (prng()<0.7) ? 4 : 3;
-    const f1 = midiToFreq(rootMidi(key, oct) + scale[0]);
-    const f2 = midiToFreq(rootMidi(key, oct) + scale[Math.min(2, scale.length-1)]);
-    const f3 = midiToFreq(rootMidi(key, oct) + scale[Math.min(4, scale.length-1)]);
-    const p1=ctx.createOscillator();p1.type="sine";p1.frequency.value=f1;p1.detune.value=-4;
-    const p2=ctx.createOscillator();p2.type="triangle";p2.frequency.value=f2;p2.detune.value=6;
-    const p3=ctx.createOscillator();p3.type="sine";p3.frequency.value=f3;p3.detune.value=-2;
-    const p1g=ctx.createGain();p1g.gain.value=0.16;
-    const p2g=ctx.createGain();p2g.gain.value=0.10;
-    const p3g=ctx.createGain();p3g.gain.value=0.08;
-    p1.connect(p1g);p2.connect(p2g);p3.connect(p3g);
-    p1g.connect(padG);p2g.connect(padG);p3g.connect(padG);
-    const vib=ctx.createOscillator();vib.type="sine";vib.frequency.value=4.2+prng()*0.8;
-    const vibG=ctx.createGain();vibG.gain.value=1.6;
-    vib.connect(vibG);vibG.connect(p1.frequency);vibG.connect(p2.frequency);
-
-    // Inhale: rise
-    padG.gain.setValueAtTime(0.0001, t0);
-    padG.gain.linearRampToValueAtTime(0.20, t0 + inhale*0.85);
-    padG.gain.linearRampToValueAtTime(0.22, tPeak);
-    // Exhale: fall over full exhale duration
-    padG.gain.setTargetAtTime(0.06, tPeak+0.05, exhale*0.20);
-    padG.gain.setTargetAtTime(0.0001, tPeak+exhale*0.55, exhale*0.18);
-
-    const padLP = ctx.createBiquadFilter(); padLP.type="lowpass"; padLP.Q.value=0.8;
-    padLP.frequency.setValueAtTime(400, t0);
-    padLP.frequency.linearRampToValueAtTime(2800, tPeak);
-    padLP.frequency.setTargetAtTime(500, tPeak+0.05, exhale*0.25);
-    padG.connect(padLP); padLP.connect(bus);
-
-    p1.start(t0);p2.start(t0);p3.start(t0);vib.start(t0);
-    const padEnd = tEnd+1.2;
-    p1.stop(padEnd);p2.stop(padEnd);p3.stop(padEnd);vib.stop(padEnd);
-
-    // Transition chime
-    const chF = midiToFreq(rootMidi(key, 5) + scale[0]);
-    const ch = ctx.createOscillator(); ch.type="sine"; ch.frequency.value=chF;
-    const chG = ctx.createGain(); chG.gain.value=0.0001;
-    chG.gain.setValueAtTime(0.0001, t0);
-    chG.gain.exponentialRampToValueAtTime(0.045, t0+0.02);
-    chG.gain.exponentialRampToValueAtTime(0.0001, t0+1.0);
-    ch.connect(chG); chG.connect(bus);
-    ch.start(t0); ch.stop(t0+1.2);
-
-    setTimeout(()=>{
-      try{p1.disconnect();p2.disconnect();p3.disconnect();vib.disconnect();vibG.disconnect();}catch(e){}
-      try{p1g.disconnect();p2g.disconnect();p3g.disconnect();}catch(e){}
-      try{padG.disconnect();padLP.disconnect();}catch(e){}
-      try{ch.disconnect();chG.disconnect();}catch(e){}
-    }, Math.max(0, (tEnd+1.5 - ctx.currentTime)*1000 + 100));
-  }
-
-  let nextCycleT = ctx.currentTime + 0.15;
-  state.sporeCloudEpoch = performance.now() + 0.15 * 1000;
-  scheduleBreathCycle(nextCycleT);
-  const timer = setInterval(()=>{
-    const horizon = ctx.currentTime + cycleSec + 2.0;
-    while(nextCycleT + cycleSec < horizon){
-      nextCycleT += cycleSec;
-      scheduleBreathCycle(nextCycleT);
-    }
-  }, 500);
-
-  return {
-    stop(){
-      try{ clearInterval(timer); }catch(e){}
-      const t = ctx.currentTime;
-      try{ droneG.gain.setTargetAtTime(0.0001, t, 0.12); }catch(e){}
-      try{ d1.stop(t+0.4); d2.stop(t+0.4); d3.stop(t+0.4); dNs.stop(t+0.4); }catch(e){}
-      setTimeout(()=>{
-        try{ bus.disconnect(); masterLP.disconnect(); masterHP.disconnect(); }catch(e){}
-        try{ dly.disconnect(); dlFb.disconnect(); dlLP.disconnect(); dlWet.disconnect(); }catch(e){}
-        try{ droneG.disconnect(); }catch(e){}
-      }, 500);
-    }
-  };
-}
-
-function buildSilkThread(ctx, outGain, key){
-  // Silk Thread: extremely delicate high harmonics with warmth underneath
-  const root = midiToFreq(rootMidi(key, 5));
-  const nodes = [];
-
-  const bus = ctx.createGain(); bus.gain.value = 0.35; bus.connect(outGain);
-  for(let i = 0; i < 6; i++){
-    const f = root * (1 + i * 0.12) + (Math.random()-0.5) * 8;
-    const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
-    o.detune.value = (Math.random()-0.5) * 12;
-    const g = ctx.createGain(); g.gain.value = 0.06 - i * 0.005;
-    o.connect(g); g.connect(bus); o.start(); nodes.push(o);
-  }
-
-  // Slow shimmer
-  const lfo = ctx.createOscillator(); lfo.type = "sine"; lfo.frequency.value = 0.07;
-  const lg = ctx.createGain(); lg.gain.value = 0.15;
-  lfo.connect(lg); lg.connect(bus.gain); lfo.start(); nodes.push(lfo);
-
-  // Warmth underneath
-  const warm = ctx.createOscillator(); warm.type = "sine";
-  warm.frequency.value = midiToFreq(rootMidi(key, 3));
-  const wg = ctx.createGain(); wg.gain.value = 0.06;
-  warm.connect(wg); wg.connect(outGain); warm.start(); nodes.push(warm);
-
-  const warm2 = ctx.createOscillator(); warm2.type = "sine";
-  warm2.frequency.value = midiToFreq(rootMidi(key, 3)) * 1.5; warm2.detune.value = 3;
-  const w2g = ctx.createGain(); w2g.gain.value = 0.03;
-  warm2.connect(w2g); w2g.connect(outGain); warm2.start(); nodes.push(warm2);
-
-  return {
-    stop(){
-      const t = ctx.currentTime;
-      bus.gain.setTargetAtTime(0.0001, t, 0.2);
-      wg.gain.setTargetAtTime(0.0001, t, 0.2);
-      w2g.gain.setTargetAtTime(0.0001, t, 0.2);
-      setTimeout(()=>{ nodes.forEach(n=>{ try{n.stop();}catch(e){} }); }, 800);
-    }
-  };
-}
-
-function buildFireflyField(ctx, outGain, key){
-  // Firefly Field: scattered pentatonic bell tones over a dark warm bed
-  const scale = SCALES[state.scaleName] || SCALES.pentatonic;
-  const root = rootMidi(key, 4);
-  const nodes = [];
-
-  const bedF = midiToFreq(rootMidi(key, 2));
-  const b1 = ctx.createOscillator(); b1.type = "sine"; b1.frequency.value = bedF;
-  const bg1 = ctx.createGain(); bg1.gain.value = 0.10;
-  b1.connect(bg1); bg1.connect(outGain); b1.start(); nodes.push(b1);
-
-  const b2 = ctx.createOscillator(); b2.type = "sine";
-  b2.frequency.value = bedF * 2; b2.detune.value = 4;
-  const bg2 = ctx.createGain(); bg2.gain.value = 0.04;
-  b2.connect(bg2); bg2.connect(outGain); b2.start(); nodes.push(b2);
-
-  let bellTimer = null;
-  function bell(){
-    const note = root + scale[Math.floor(Math.random()*scale.length)] + (Math.random()>0.5 ? 12 : 0);
-    const freq = midiToFreq(note);
-    const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = freq;
-    const o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = freq * 2.01;
-    const g = ctx.createGain(); g.gain.value = 0.0001;
-    const g2 = ctx.createGain(); g2.gain.value = 0.0001;
-    o.connect(g); g.connect(outGain);
-    o2.connect(g2); g2.connect(outGain);
-    const t = ctx.currentTime;
-    const vol = 0.04 + Math.random() * 0.04;
-    g.gain.setTargetAtTime(vol, t, 0.01);
-    g.gain.setTargetAtTime(0.0001, t + 0.15, 0.3);
-    g2.gain.setTargetAtTime(vol * 0.3, t, 0.01);
-    g2.gain.setTargetAtTime(0.0001, t + 0.1, 0.25);
-    o.start(t); o.stop(t + 1.5);
-    o2.start(t); o2.stop(t + 1.2);
-    bellTimer = setTimeout(bell, 200 + Math.random() * 1200);
-  }
-  bell();
-
-  return {
-    stop(){
-      clearTimeout(bellTimer);
-      const t = ctx.currentTime;
-      bg1.gain.setTargetAtTime(0.0001, t, 0.15);
-      bg2.gain.setTargetAtTime(0.0001, t, 0.15);
-      setTimeout(()=>{ nodes.forEach(n=>{ try{n.stop();}catch(e){} }); }, 700);
-    }
-  };
-}
-
-function buildPollenDrift(ctx, outGain, key){
-  // Pollen Drift: random gentle chords that bloom and dissolve
-  const prng = mulberry32(hash32(`pollen_drift::${state.seed}`));
-  const scale = SCALES[state.scaleName] || SCALES.pentatonic;
-  const nodes = [];
-
-  // Gentle noise bed
-  const ns = ctx.createBufferSource(); ns.buffer = noiseBuf; ns.loop = true;
-  const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 800; bp.Q.value = 0.4;
-  const ng = ctx.createGain(); ng.gain.value = 0.03;
-  ns.connect(bp); bp.connect(ng); ng.connect(outGain); ns.start(); nodes.push(ns);
-
-  let bloomTimer = null;
-  function bloom(){
-    const oct = (prng() < 0.5) ? 3 : 4;
-    const d1 = Math.floor(prng() * scale.length);
-    const freqs = [
-      midiToFreq(rootMidi(key, oct) + scale[d1]),
-      midiToFreq(rootMidi(key, oct) + scale[(d1+2) % scale.length]),
-      midiToFreq(rootMidi(key, oct) + scale[(d1+4) % scale.length])
-    ];
-    const t = ctx.currentTime;
-    const env = ctx.createGain(); env.gain.value = 0.0001;
-    env.gain.setTargetAtTime(0.09 + prng() * 0.04, t, 0.3);
-    env.gain.setTargetAtTime(0.0001, t + 2.5 + prng() * 2, 1.2);
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = (prng() * 2 - 1) * 0.4;
-    env.connect(pan); pan.connect(outGain);
-    freqs.forEach(f => {
-      const o = ctx.createOscillator();
-      o.type = (prng() < 0.6) ? "sine" : "triangle";
-      o.frequency.value = f; o.detune.value = (prng()-0.5) * 8;
-      o.connect(env); o.start(t); o.stop(t + 6);
-    });
-    bloomTimer = setTimeout(bloom, 3000 + prng() * 5000);
-  }
-  bloom();
-
-  return {
-    stop(){
-      clearTimeout(bloomTimer);
-      ng.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.15);
-      setTimeout(()=>{ nodes.forEach(n=>{ try{n.stop();}catch(e){} }); }, 700);
-    }
-  };
-}
-
-function buildCosmicBreath(ctx, outGain, key, scaleName){
-  // Cosmic Breath: a real breathwork guide — 4s inhale (rise) + 6s exhale (fall) = 10s cycle.
-  const prng = mulberry32(hash32(`cosmic_breath::${state.seed}`));
-  const scale = SCALES[scaleName] || SCALES.pentatonic;
-  const root  = rootMidi(key, 3);
-  const cycleSec = 10.0;
-  const inhale = 4.0;
-  const exhale = 6.0;
-
-  const bus = ctx.createGain(); bus.gain.value = 0.92;
-  const masterLP = ctx.createBiquadFilter(); masterLP.type="lowpass"; masterLP.frequency.value = 3800; masterLP.Q.value = 0.5;
-  const masterHP = ctx.createBiquadFilter(); masterHP.type="highpass"; masterHP.frequency.value = 50; masterHP.Q.value = 0.5;
-  bus.connect(masterLP); masterLP.connect(masterHP); masterHP.connect(outGain);
-
-  const dly = ctx.createDelay(2.0); dly.delayTime.value = 0.38;
-  const dlFb = ctx.createGain(); dlFb.gain.value = 0.28;
-  const dlLP = ctx.createBiquadFilter(); dlLP.type="lowpass"; dlLP.frequency.value = 2200; dlLP.Q.value = 0.5;
-  bus.connect(dly); dly.connect(dlLP); dlLP.connect(dlFb); dlFb.connect(dly);
-  const dlWet = ctx.createGain(); dlWet.gain.value = 0.22;
-  dly.connect(dlWet); dlWet.connect(outGain);
-
-  // Drone bed
-  const tonic = midiToFreq(root);
-  const fifth = midiToFreq(root + 7);
-  const droneG = ctx.createGain(); droneG.gain.value = 0.0001; droneG.connect(bus);
-  const d1 = ctx.createOscillator(); d1.type="sine"; d1.frequency.value = tonic / 2; d1.detune.value = -3;
-  const d2 = ctx.createOscillator(); d2.type="triangle"; d2.frequency.value = tonic; d2.detune.value = +4;
-  const d3 = ctx.createOscillator(); d3.type="sine"; d3.frequency.value = fifth; d3.detune.value = -2;
-  const d1g = ctx.createGain(); d1g.gain.value = 0.14;
-  const d2g = ctx.createGain(); d2g.gain.value = 0.08;
-  const d3g = ctx.createGain(); d3g.gain.value = 0.06;
-  d1.connect(d1g); d2.connect(d2g); d3.connect(d3g);
-  d1g.connect(droneG); d2g.connect(droneG); d3g.connect(droneG);
-  const dNs = ctx.createBufferSource(); dNs.buffer = noiseBuf; dNs.loop = true;
-  const dNBP = ctx.createBiquadFilter(); dNBP.type="bandpass"; dNBP.frequency.value = 900; dNBP.Q.value = 0.6;
-  const dNg = ctx.createGain(); dNg.gain.value = 0.006;
-  dNs.connect(dNBP); dNBP.connect(dNg); dNg.connect(droneG);
-  const now = ctx.currentTime;
-  droneG.gain.setValueAtTime(0.0001, now);
-  droneG.gain.setTargetAtTime(0.16, now + 0.1, 0.5);
-  d1.start(now); d2.start(now); d3.start(now); dNs.start(now);
-
-  function scheduleBreathCycle(t0){
-    const tIn = t0;
-    const tPeak = t0 + inhale;
-    const tEnd = t0 + inhale + exhale;
-    const padG = ctx.createGain(); padG.gain.value = 0.0001; padG.connect(bus);
-    const deg1 = 0, deg2 = (scale.length >= 5) ? 2 : 1, deg3 = (scale.length >= 5) ? 4 : (scale.length >= 3 ? 2 : 0);
-    const oct = (prng() < 0.7) ? 4 : 3;
-    const f1 = midiToFreq(rootMidi(key, oct) + scale[deg1 % scale.length]);
-    const f2 = midiToFreq(rootMidi(key, oct) + scale[deg2 % scale.length]);
-    const f3 = midiToFreq(rootMidi(key, oct) + scale[deg3 % scale.length]);
-    const p1 = ctx.createOscillator(); p1.type="sine"; p1.frequency.value = f1; p1.detune.value = -4;
-    const p2 = ctx.createOscillator(); p2.type="triangle"; p2.frequency.value = f2; p2.detune.value = +6;
-    const p3 = ctx.createOscillator(); p3.type="sine"; p3.frequency.value = f3; p3.detune.value = -2;
-    const pHi = ctx.createOscillator(); pHi.type="sine"; pHi.frequency.value = f1 * 2; pHi.detune.value = +3;
-    const p1g = ctx.createGain(); p1g.gain.value = 0.18;
-    const p2g = ctx.createGain(); p2g.gain.value = 0.12;
-    const p3g = ctx.createGain(); p3g.gain.value = 0.10;
-    const pHg = ctx.createGain(); pHg.gain.value = 0.04;
-    p1.connect(p1g); p2.connect(p2g); p3.connect(p3g); pHi.connect(pHg);
-    p1g.connect(padG); p2g.connect(padG); p3g.connect(padG); pHg.connect(padG);
-    const vib = ctx.createOscillator(); vib.type="sine"; vib.frequency.value = 4.2 + prng()*0.8;
-    const vibG = ctx.createGain(); vibG.gain.value = 1.8;
-    vib.connect(vibG); vibG.connect(p1.frequency); vibG.connect(p2.frequency);
-    padG.gain.setValueAtTime(0.0001, tIn);
-    padG.gain.linearRampToValueAtTime(0.20, tIn + inhale * 0.85);
-    padG.gain.linearRampToValueAtTime(0.22, tPeak);
-    padG.gain.setTargetAtTime(0.08, tPeak + 0.1, exhale * 0.22);
-    padG.gain.setTargetAtTime(0.0001, tPeak + exhale * 0.6, exhale * 0.18);
-    const padLP = ctx.createBiquadFilter(); padLP.type="lowpass"; padLP.Q.value = 0.8;
-    padLP.frequency.setValueAtTime(400, tIn);
-    padLP.frequency.linearRampToValueAtTime(2800, tPeak);
-    padLP.frequency.setTargetAtTime(600, tPeak + 0.1, exhale * 0.25);
-    const pan = ctx.createStereoPanner();
-    pan.pan.setValueAtTime(0, tIn);
-    pan.pan.linearRampToValueAtTime((prng() * 2 - 1) * 0.25, tPeak);
-    pan.pan.setTargetAtTime(0, tPeak + 0.2, exhale * 0.3);
-    padG.connect(padLP); padLP.connect(pan); pan.connect(bus);
-    p1.start(tIn); p2.start(tIn); p3.start(tIn); pHi.start(tIn); vib.start(tIn);
-    const padEnd = tEnd + 1.5;
-    p1.stop(padEnd); p2.stop(padEnd); p3.stop(padEnd); pHi.stop(padEnd); vib.stop(padEnd);
-    // Inhale: rising breathy noise (low→high filter sweep, mirrors exhale)
-    const inNs = ctx.createBufferSource(); inNs.buffer = noiseBuf; inNs.loop = false;
-    const inBP = ctx.createBiquadFilter(); inBP.type="bandpass"; inBP.Q.value = 0.7;
-    inBP.frequency.setValueAtTime(300, tIn);
-    inBP.frequency.exponentialRampToValueAtTime(2200, tPeak);
-    const inLP = ctx.createBiquadFilter(); inLP.type="lowpass"; inLP.frequency.value = 3200; inLP.Q.value = 0.5;
-    const inG = ctx.createGain(); inG.gain.value = 0.0001;
-    inG.gain.setValueAtTime(0.0001, tIn);
-    inG.gain.linearRampToValueAtTime(0.045, tIn + inhale * 0.5);
-    inG.gain.linearRampToValueAtTime(0.06, tPeak - 0.1);
-    inG.gain.setTargetAtTime(0.0001, tPeak, 0.08);
-    inNs.connect(inBP); inBP.connect(inLP); inLP.connect(inG); inG.connect(bus);
-    inNs.start(tIn); inNs.stop(tPeak + 0.5);
-    // Exhale: breathy noise release
-    const exNs = ctx.createBufferSource(); exNs.buffer = noiseBuf; exNs.loop = false;
-    const exBP = ctx.createBiquadFilter(); exBP.type="bandpass"; exBP.Q.value = 0.9;
-    exBP.frequency.setValueAtTime(2600, tPeak);
-    exBP.frequency.exponentialRampToValueAtTime(500, tEnd);
-    const exLP = ctx.createBiquadFilter(); exLP.type="lowpass"; exLP.frequency.value = 4000; exLP.Q.value = 0.6;
-    const exG = ctx.createGain(); exG.gain.value = 0.0001;
-    exG.gain.setValueAtTime(0.0001, tPeak);
-    exG.gain.linearRampToValueAtTime(0.07, tPeak + 0.25);
-    exG.gain.setTargetAtTime(0.0001, tPeak + exhale * 0.6, exhale * 0.22);
-    exNs.connect(exBP); exBP.connect(exLP); exLP.connect(exG); exG.connect(bus);
-    exNs.start(tPeak); exNs.stop(tEnd + 0.5);
-    // Transition chime
-    const chF = midiToFreq(rootMidi(key, 5) + scale[0]);
-    const ch = ctx.createOscillator(); ch.type="sine"; ch.frequency.value = chF;
-    const chG = ctx.createGain(); chG.gain.value = 0.0001;
-    chG.gain.setValueAtTime(0.0001, tIn);
-    chG.gain.exponentialRampToValueAtTime(0.055, tIn + 0.02);
-    chG.gain.exponentialRampToValueAtTime(0.0001, tIn + 1.2);
-    ch.connect(chG); chG.connect(bus);
-    ch.start(tIn); ch.stop(tIn + 1.5);
-    setTimeout(() => {
-      try{ p1.disconnect(); p2.disconnect(); p3.disconnect(); pHi.disconnect(); vib.disconnect(); vibG.disconnect(); }catch(e){}
-      try{ p1g.disconnect(); p2g.disconnect(); p3g.disconnect(); pHg.disconnect(); }catch(e){}
-      try{ padG.disconnect(); padLP.disconnect(); pan.disconnect(); }catch(e){}
-      try{ exNs.disconnect(); exBP.disconnect(); exLP.disconnect(); exG.disconnect(); }catch(e){}
-      try{ inNs.disconnect(); inBP.disconnect(); inLP.disconnect(); inG.disconnect(); }catch(e){}
-      try{ ch.disconnect(); chG.disconnect(); }catch(e){}
-    }, Math.max(0, (tEnd + 2.0 - ctx.currentTime) * 1000 + 100));
-  }
-
-  let nextCycleT = ctx.currentTime + 0.15;
-  // Record epoch so the visual breathing circle stays in perfect sync
-  state.cosmicBreathEpoch = performance.now() + 0.15 * 1000;
-  scheduleBreathCycle(nextCycleT);
-  const timer = setInterval(() => {
-    const now = ctx.currentTime;
-    const horizon = now + cycleSec + 2.0;
-    while(nextCycleT + cycleSec < horizon){
-      nextCycleT += cycleSec;
-      scheduleBreathCycle(nextCycleT);
-    }
-  }, 500);
-
-  return {
-    stop(){
-      try{ clearInterval(timer); }catch(e){}
-      const t = ctx.currentTime;
-      try{ droneG.gain.setTargetAtTime(0.0001, t, 0.12); }catch(e){}
-      try{ d1.stop(t+0.4); d2.stop(t+0.4); d3.stop(t+0.4); dNs.stop(t+0.4); }catch(e){}
-      try{ bus.disconnect(); masterLP.disconnect(); masterHP.disconnect(); }catch(e){}
-      try{ dly.disconnect(); dlFb.disconnect(); dlLP.disconnect(); dlWet.disconnect(); }catch(e){}
-      try{ droneG.disconnect(); }catch(e){}
-      try{ d1.disconnect(); d2.disconnect(); d3.disconnect(); }catch(e){}
-      try{ d1g.disconnect(); d2g.disconnect(); d3g.disconnect(); }catch(e){}
-      try{ dNs.disconnect(); dNBP.disconnect(); dNg.disconnect(); }catch(e){}
-    }
-  };
-}
-
-
-async function setAmbience(name){
-  // Ambience should be able to start even if notes aren't playing yet.
+// Start the room, or stop it. It begins and ends with the music: the bug Lily
+// found by ear on 18 September 2026 was that the old ambience kept playing
+// after the music stopped, because stopScheduler() only clears the note
+// scheduling interval and every preset ran on a graph of its own that nothing
+// ever told to stop. Every preset had it; nothing but listening caught it.
+async function setEmergence(on){
+  if(!on){ stopEmergence(); return; }
+  if(!EMERGENCE.on) return;
   if(!audioCtx || !masterGain){
     try{ await ensureAudio(); }catch(e){ return; }
   } else {
     try{ await audioCtx.resume(); }catch(e){}
   }
   if(!audioCtx || !masterGain) return;
+
+  // The room the night makes. It reads the score that is currently built, so
+  // changing the night changes the room -- which is the whole claim.
+  const shape = emergenceNightShape(state.sequencer && state.sequencer.events, state.loopLen);
+  if(!shape.arrivals){ stopEmergence(); return; }
+
+  stopEmergence();
   const now = audioCtx.currentTime;
-
-  // fade out old ambience
-  if(ambienceNodes && ambienceNodes.gain){
-    const g0 = ambienceNodes.gain;
-    g0.gain.setTargetAtTime(0.0001, now, 0.08);
-    const old = ambienceNodes;
-    ambienceNodes = null;
-    setTimeout(()=>{
-      try{ old.stop?.(); }catch(e){}
-      try{ g0.disconnect(); }catch(e){}
-    }, 450);
-  }
-
-  if(!name || name==="none") return;
-
   const g = audioCtx.createGain();
   g.gain.value = 0.0001;
-  g.connect(ambienceBus || masterGain);
+  g.connect(emergenceBus || masterGain);
+  const room = buildEmergence(audioCtx, g, shape, state.seed);
+  if(!room){ try{ g.disconnect(); }catch(e){} return; }
+  // Levelled against the five presets it replaced -- see EMERGENCE.busGain.
+  g.gain.setTargetAtTime(EMERGENCE.busGain, now+0.02, 0.18);
+  room.gain = g;
+  emergenceRoom = room;
+}
 
-  // subtle by default
-  g.gain.setTargetAtTime(0.22, now+0.02, 0.18);
-
-  const key = state.keyName;
-  const scaleName = state.scaleName;
-
-  if(name==="spore_cloud"){
-    ambienceNodes = buildSporeCloud(audioCtx, g, key, scaleName);
-  } else if(name==="quiet_beat"){
-    ambienceNodes = buildQuietBeat(audioCtx, g);
-  } else if(name==="silk_thread"){
-    ambienceNodes = buildSilkThread(audioCtx, g, key);
-  } else if(name==="firefly_field"){
-    ambienceNodes = buildFireflyField(audioCtx, g, key);
-  } else if(name==="pollen_drift"){
-    ambienceNodes = buildPollenDrift(audioCtx, g, key);
-  } else {
-    try{ g.disconnect(); }catch(e){}
-    return;
+// Fade out and release. Called on every path that stops the music, so the room
+// can never outlive what it is a room for.
+function stopEmergence(){
+  if(!emergenceRoom) return;
+  const room = emergenceRoom;
+  emergenceRoom = null;
+  const g = room.gain;
+  if(audioCtx && g){
+    try{ g.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.08); }catch(e){}
   }
-
-  ambienceNodes.gain = g;
+  setTimeout(()=>{
+    try{ room.stop?.(); }catch(e){}
+    try{ g && g.disconnect(); }catch(e){}
+  }, 450);
 }
 
 function rootMidi(key, octave=3){
@@ -6064,11 +5713,9 @@ const state = {
   selected: null,
   selectedObsId: null,
   galleryCollapsed: true,
-  ambience: "none",
-  ambienceOn: true,
-  sporeCloudEpoch: 0,
+  emergenceOn: true,
   volume: 1.0,
-  ambienceVol: 0.45,
+  emergenceLevel: 0.45,
   listenMode: "both", // "both" | "A" | "B"
   spacingMode: "riff", // "timeline" | "riff" | "song"
   isPlaying: false,
@@ -7961,10 +7608,10 @@ async function killAudioContext(){
   try{
     state.isPlaying = false;
     stopScheduler();
-    // stop ambience + disconnect
-    try{ setAmbience("none"); }catch(_){}
+    // stop the room + disconnect
+    try{ stopEmergence(); }catch(_){}
     if(masterGain){ try{ masterGain.disconnect(); }catch(_){ } }
-    if(ambienceBus){ try{ ambienceBus.disconnect(); }catch(_){ } }
+    if(emergenceBus){ try{ emergenceBus.disconnect(); }catch(_){ } }
     if(delaySend){ try{ delaySend.disconnect(); }catch(_){ } }
     if(compressor){ try{ compressor.disconnect(); }catch(_){ } }
     if(limiter){ try{ limiter.disconnect(); }catch(_){ } }
@@ -7977,11 +7624,11 @@ async function killAudioContext(){
     audioCtx = null;
     noiseBuf = null;
     masterGain = null;
-    ambienceBus = null;
+    emergenceBus = null;
     delaySend = null;
     compressor = null;
     limiter = null;
-    ambienceNodes = null;
+    emergenceRoom = null;
   }
 }
 function startScheduler(resumeFromSec){
@@ -8109,10 +7756,9 @@ function hardResetPlayback(reason){
   // stop + reset
   state.isPlaying = false;
   stopScheduler();
-  if(audioCtx){
-    if(state.ambienceOn) setAmbience(state.ambience);
-    else setAmbience("none");
-  }
+  // A hard reset stops the music, so it stops the room. The room never
+  // outlives what it is a room for.
+  if(audioCtx) stopEmergence();
   $("playBtn").textContent = "Play";
   resetPlaybackClock();
   updateCornerStatus()
@@ -8174,6 +7820,7 @@ function softRebuild(fullRebuild){
     $("playBtn").textContent = "…";
     state.isPlaying = false;
     stopScheduler(); // Kill scheduler immediately so old-key notes don't fire during fade
+    stopEmergence();  // and the room goes quiet with the music it is a room for
     _softRebuildWasPlaying = true;
 
     const totalMs = (fadeOut + drain) * 1000;
@@ -8210,6 +7857,8 @@ function softRebuild(fullRebuild){
       state.isPlaying = true;
       $("playBtn").textContent = "Pause";
       startScheduler(resumeSec);
+      // The rebuilt night gets its own room, not the one the old night made.
+      if(state.emergenceOn) setEmergence(true);
 
       // Fade volume back up
       masterGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, fadeIn * 0.4);
@@ -8749,39 +8398,6 @@ function drawFrame(){
       ctx.fillText(text, bx + pad, by + 20*dpr);
       ctx.restore();
     }
-  }
-
-
-  // ── Spore Cloud: breathing circle visualization ──
-  // Synced to audio via shared epoch — 6s cycle (3s inhale + 3s exhale).
-  if(state.ambience === "spore_cloud" && (state.ambienceOn || state.isPlaying)){
-    const scCycleSec = 6.0;
-    const scInhaleSec = 3.0;
-    const scExhaleSec = 3.0;
-    const scElapsed = (performance.now() - (state.sporeCloudEpoch || performance.now())) / 1000;
-    const scPhase = ((scElapsed % scCycleSec) + scCycleSec) % scCycleSec;
-
-    let scBreathT;
-    if(scPhase < scInhaleSec){
-      const t = scPhase / scInhaleSec;
-      scBreathT = 1 - Math.pow(1 - t, 2.2);
-    } else {
-      const t = (scPhase - scInhaleSec) / scExhaleSec;
-      scBreathT = 1 - (t * t * (3 - 2 * t));
-    }
-
-    const scRMin = baseR * 0.12;
-    const scRMax = baseR * 0.42;
-    const scR = scRMin + (scRMax - scRMin) * scBreathT;
-
-    // Circle ring
-    ctx.save();
-    const scRingA = 0.12 + 0.28 * scBreathT;
-    ctx.globalAlpha = scRingA;
-    ctx.strokeStyle = `rgba(160, 220, 180, 0.9)`;
-    ctx.lineWidth = (1.5 + 1.0 * scBreathT) * dpr;
-    ctx.beginPath(); ctx.arc(cx, cy, scR, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
   }
 
 
@@ -9371,14 +8987,18 @@ function initUI(){
     clearSelection();
     softRebuild();
   });
-  if($("tAmbience")) $("tAmbience").addEventListener("click", async ()=>{
-    state.ambienceOn = !state.ambienceOn;
-    if(state.ambienceOn){
+  if($("tEmergence")) $("tEmergence").addEventListener("click", async ()=>{
+    state.emergenceOn = !state.emergenceOn;
+    // The room only sounds while the music does, so turning it on when nothing
+    // is playing arms it rather than starting it.
+    if(state.emergenceOn && state.isPlaying){
       await ensureAudio();
-      setAmbience(state.ambience);
+      setEmergence(true);
     } else {
-      if(audioCtx) setAmbience("none");
+      stopEmergence();
     }
+    const sel = $("emergenceOnSel");
+    if(sel) sel.value = state.emergenceOn ? "on" : "off";
     updateCornerStatus();
   });
   if($("tExitFs")) $("tExitFs").addEventListener("click", ()=>{
@@ -9433,14 +9053,14 @@ function initUI(){
   // key/scale changes
   keySel.addEventListener("change", (e)=>{
     state.keyName = e.target.value;
-    // Restart ambience in the new key
-    if(audioCtx && state.ambienceOn) setAmbience(state.ambience);
+    // The room is voiced from the night's own pitches, which move with the key
+    if(audioCtx && state.isPlaying && state.emergenceOn) setEmergence(true);
     softRebuild();
   });
   scaleSel.addEventListener("change", (e)=>{
     state.scaleName = e.target.value;
-    // Restart ambience in the new scale
-    if(audioCtx && state.ambienceOn) setAmbience(state.ambience);
+    // ... and with the scale, for the same reason
+    if(audioCtx && state.isPlaying && state.emergenceOn) setEmergence(true);
     softRebuild();
   });
 
@@ -9452,6 +9072,7 @@ function initUI(){
       cancelSoftRebuild();
       state.isPlaying = false;
       stopScheduler();
+      stopEmergence();
       $("playBtn").textContent = "Play";
       updateCornerStatus();
       return;
@@ -9459,7 +9080,7 @@ function initUI(){
     if(!state.isPlaying){
       // start or resume
       await ensureAudio();
-      if(state.ambienceOn) setAmbience(state.ambience); else setAmbience("none");
+      if(state.emergenceOn) setEmergence(true); else stopEmergence();
       const resumeSec = state.lastPlayhead || 0;
       // Sync perfStart so getPlayheadSec() continues from where we paused
       state.perfStart = performance.now() - (resumeSec * 1000);
@@ -9481,6 +9102,7 @@ function initUI(){
       getPlayheadSec();
       state.isPlaying = false;
       stopScheduler();
+      stopEmergence();
       $("playBtn").textContent = "Play";
       updateCornerStatus();
     }
@@ -9516,46 +9138,53 @@ function initUI(){
     resetPlaybackClock();
     if(state.isPlaying) startScheduler();
   });
-  // ambience
-  const ambSel = $("ambienceSelect");
-  ambSel.value = state.ambience;
-  ambSel.addEventListener("change", async (e)=>{
-    state.ambience = e.target.value;
-    if(!state.ambienceOn){
-      if(audioCtx) setAmbience("none");
+  // Emergence on/off. The toolbar glyph and the A key set the same state, so
+  // all three have to show it -- a control that lies about whether it is on is
+  // worse than no control.
+  const emgOnSel = $("emergenceOnSel");
+  if(emgOnSel){
+    emgOnSel.value = state.emergenceOn ? "on" : "off";
+    emgOnSel.addEventListener("change", async (e)=>{
+      state.emergenceOn = e.target.value === "on";
+      if(state.emergenceOn && state.isPlaying){
+        await ensureAudio();
+        setEmergence(true);
+      } else stopEmergence();
       updateCornerStatus();
-      return;
-    }
-    await ensureAudio();
-    setAmbience(state.ambience);
-    updateCornerStatus();
-  });
+    });
+  }
 
-  // ambience volume
-  const ambVol = $("ambienceVol");
-  ambVol.value = state.ambienceVol;
-  $("ambVolPct").textContent = `${Math.round(state.ambienceVol*100)}%`;
-  ambVol.addEventListener("input", (e)=>{
-    state.ambienceVol = parseFloat(e.target.value);
-    $("ambVolPct").textContent = `${Math.round(state.ambienceVol*100)}%`;
-    if(ambienceBus && audioCtx){
-      ambienceBus.gain.setTargetAtTime(state.ambienceVol, audioCtx.currentTime, 0.08);
-    }
-  });
+  // Emergence level
+  const emgVol = $("emergenceVol");
+  if(emgVol){
+    emgVol.value = state.emergenceLevel;
+    $("emgVolPct").textContent = `${Math.round(state.emergenceLevel*100)}%`;
+    emgVol.addEventListener("input", (e)=>{
+      state.emergenceLevel = parseFloat(e.target.value);
+      $("emgVolPct").textContent = `${Math.round(state.emergenceLevel*100)}%`;
+      if(emergenceBus && audioCtx){
+        emergenceBus.gain.setTargetAtTime(state.emergenceLevel, audioCtx.currentTime, 0.08);
+      }
+    });
+  }
 
-  // Keyboard: toggle ambience on/off with the A key (works even when notes are paused)
+  // Keyboard: toggle Emergence with the A key
   window.addEventListener("keydown", async (e)=>{
     if(e.repeat) return;
     if(e.key !== "a" && e.key !== "A") return;
     const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
     if(tag === "input" || tag === "textarea" || tag === "select") return;
-    state.ambienceOn = !state.ambienceOn;
-    if(state.ambienceOn){
+    state.emergenceOn = !state.emergenceOn;
+    // The room only sounds while the music does, so turning it on when nothing
+    // is playing arms it rather than starting it.
+    if(state.emergenceOn && state.isPlaying){
       await ensureAudio();
-      setAmbience(state.ambience);
+      setEmergence(true);
     } else {
-      if(audioCtx) setAmbience("none");
+      stopEmergence();
     }
+    const sel = $("emergenceOnSel");
+    if(sel) sel.value = state.emergenceOn ? "on" : "off";
     updateCornerStatus();
   });
 

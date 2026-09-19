@@ -5,138 +5,102 @@ by 16 September 2026; if it grows a second again, that is the bug.
 
 ---
 
-## Standing state — 17 September 2026, end of day
+## Standing state — 18 September 2026, end of day
 
-`main` is **published** at <https://lily-lmk.github.io/moth-orchestra/> and
-verified by SHA against the file that was tested. Suite: **443 tests, 434 pass,
-0 fail**, 1 documented skip, 8 gap-remapping TODOs.
+`main` is **published** at <https://lily-lmk.github.io/moth-orchestra/> and is
+**unchanged at `11265d1`**. All of today's work is on the branch **`floor`**,
+three commits, working tree clean:
 
-Three things went live today, in one push:
+```
+5d83d96  Give Emergence an on/off, and fix an axis that never varied
+3d18fe3  Make Emergence the gallery floor; retire all ambience
+d59f85a  Build the gallery floor: three spines, withheld for her ear
+```
 
-1. **The registers** — Frog Yawn's soprano folds into C4–E5; Lantern Glass is a
-   consort in thirds. Built, measured, and **accepted by ear**: *"Frog Yawn and
-   Lantern glass sound better now."*
-2. **Emergence**, a seventh published family, whose note is built from the
-   record's own lineage. Published **deliberately unsettled** — *"I'm not
-   entirely set just yet."*
-3. **Gondwana is the default** and leads the family list.
+Suite: **464 tests, 455 pass, 0 fail**, 1 documented skip, 8 gap-remapping
+TODOs.
 
-**Moth Orchestra is unchanged** and is held to the original reference score
-note for note, instrument names included, by a fixture that has never been
-regenerated.
+### A push is pending her word
+
+Lily, 18 September: *"Soon we will want to commit and push to live because
+you've corrected some important bugs and also replaced the ambience tracks with
+something meaningful."* **Soon, not yet.** Do not merge or push until she says
+so. What would go live:
+
+- **A real bug fix.** Ambience kept playing after the music stopped. Six code
+  paths stop playback; only three stopped the sound. All six now do.
+- **All ambience retired** — the five presets in the menu and two builders that
+  were never reachable from the interface. 1,085 lines removed.
+- **Emergence, the gallery floor**, replacing them. Still behind `?emergence=1`.
+- **Emergence withdrawn as a voice family** — withheld, not deleted, and still
+  auditionable with `?family=emergence`.
+
+Note that publishing removes five ambience presets that have been live for
+weeks. Nothing suggests she wants them kept, but say it plainly before pushing
+rather than after.
 
 Read in this order:
 
-1. **[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md)** — every sound the
-   instrument makes, what fires it, what it claims, evidence or authorship.
-   Keep it current; it is the cheapest defence this project has.
-2. **[PLAN-EMERGENCE.md](PLAN-EMERGENCE.md)** — the brief for the main task
-   below.
-3. [SESSION-2026-09-17-HERO.md](SESSION-2026-09-17-HERO.md) and
-   [SESSION-2026-09-17-REGISTERS.md](SESSION-2026-09-17-REGISTERS.md).
+1. **[PLAN-WORKBOOK.md](PLAN-WORKBOOK.md)** — the brief for the main task below.
+2. **[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md)** — every sound, what
+   fires it, what it claims. The workbook is largely a hearable version of this.
+3. [SESSION-2026-09-18-FLOOR.md](SESSION-2026-09-18-FLOOR.md) — how Emergence
+   was built and what was measured.
 
 ---
 
 # Start here
 
-Two tasks, both set by Lily on 17 September 2026. Do the first one first: it is
-small, she has decided it, and it has been outstanding for two sessions. It
-carries **one question for her** — flagged below — which is worth asking before
-building rather than after.
+## 1. The explainer workbook — read PLAN-WORKBOOK.md
 
-## 1. Fix the `chime` clamp — decided, measured, one entry in a table
+> *"I think we need a total explainer workbook, not just for emergence but for
+> at least two sample music families. [...] I'll be demonstrating this soon and
+> I think this workbook will be an important part of introducing Moth
+> Orchestra."*
 
-> *"I want what you discovered about moth orchestra to get fixed."*
+**This is for an audience, not for us**, which changes what "good" means: every
+claim must be hearable rather than merely written down.
 
-`chime`, in **Moth Orchestra**, is the one place in this instrument where a note
-is moved to a pitch the taxon was never given:
+Three content areas, all specified in the plan: *every note is one observation*;
+*the three gestures that mark the two observers together*, in her own words; and
+*what makes Emergence behave one way versus another*. Two families —
+**Gondwana** and **Moth Orchestra** proposed, both published and accepted.
 
-```js
-const cappedFreq = Math.min(freq, midiToFreq(12*(4+1) + 11)); // cap at B4
-```
+**The finding that shapes the design.** She said she could not hear four of
+Emergence's six gestures and guessed the arrivals were covering them. She is
+right, by a wide margin: on 3 September the whole room renders **26.6 dB below
+the arrivals**, and grain and tones sit around −17 dB even measured generously.
+So the workbook must let every sound be heard **alone**, and there is a real
+question for her ear — **is Emergence simply too quiet?** Even at 100% the room
+stays about 20 dB under. Do not change that level on measurement alone.
 
-`Math.min` is a clamp, not a fold. It does not preserve the pitch class — it
-collapses everything above B4 onto B4 itself, so two different moths sound like
-the same moth, at a pitch belonging to neither.
+Five questions for her are at the foot of the plan; the first two (audience,
+and where the workbook lives) shape everything and are worth asking early.
 
-**Measured across the 144 offered nights:** 526 chime notes, of which **166
-(32%) are clamped**, flattening five distinct written pitches into one and
-giving **56 taxa a pitch that is not their own**.
+## 2. Fix the `chime` clamp — still outstanding, still decided
 
-| written | the clamp gives | folding would give |
-|---|---|---|
-| 587 Hz | 494 | 293 |
-| 659 Hz | 494 | 329 |
-| 740 Hz | 494 | 370 |
-| 880 Hz | 494 | 440 |
-| 988 Hz | 494 | 494 |
+Carried from 17 September, untouched since, and still the smallest real task in
+this file. `chime`, in Moth Orchestra, uses `Math.min` where it needs a fold:
+166 of 526 chime notes across 144 nights are flattened onto B4, giving 56 taxa a
+pitch that is not their own. The fix is one entry in `VOICE_REGISTERS` and one
+call to `voicedFreq`.
 
-**The fix** is one entry in `VOICE_REGISTERS` and one call to `voicedFreq`,
-exactly as Lantern Glass and Frog Yawn already do — the machinery is built,
-released and accepted.
+Measured, so it is not left as a guess: **220–494 Hz** is the register to start
+from — seven distinct pitches rather than the five that 247–494 gives, fewer
+notes moved, median unchanged. The trade-off to put to her rather than decide:
+the clamp yields *ten* distinct sounding pitches because it piles 199 notes onto
+B4, so folding trades three distinct pitches for the guarantee that no note is
+ever given a pitch its taxon did not have.
 
-**Which register, measured, so this is not left as a guess.** 526 chime notes,
-written 147 … 330 … 988 Hz:
+It changes Moth Orchestra, so it needs her ear, and
+`tests/musical-reference.test.cjs` **will fail** when it lands — correct, and the
+fixture must not be regenerated to silence it.
 
-| register | sounding min/med/max | distinct pitches | notes moved | notes at the ceiling |
-|---|---|---|---|---|
-| the clamp today | 147 / 330 / 494 | 10 | 166 | **199** |
-| 247–494 | 294 / 370 / 494 | 5 | 354 | 77 |
-| **220–494** | **220 / 330 / 494** | **7** | **268** | **41** |
-| 165–330 | 185 / 247 / 330 | 5 | 325 | 77 |
+## 3. The curated vernacular-name lookup — build-ready, blocked on nothing
 
-**220–494 is the one to start from**, not the 247 a first pass assumed: it keeps
-seven distinct pitches rather than five, moves fewer notes, and leaves the
-median exactly where it is today.
-
-**And there is a real trade-off to put to Lily rather than decide.** The clamp
-produces *ten* distinct sounding pitches — more than any fold — because it
-leaves everything below B4 untouched and piles everything above it onto one
-note. 199 of 526 chime notes, 38%, sit on that single pile. Folding trades
-three of those distinct pitches for the guarantee that **no note is ever given
-a pitch its taxon did not have**. That is the right trade on this project's own
-terms, and it is still a trade; say so rather than presenting it as free.
-
-`chime` is scheduled at 2× and 3× the fundamental and never sounds the
-fundamental itself, so a 494 Hz ceiling puts its top partial at 1,482 Hz.
-
-**It changes the sound of the default-until-today family, so it needs her ear
-before it is pushed.** Build it on a branch, render before/after on 3 September
-and 17 February, and follow the rhythm. `tests/musical-reference.test.cjs`
-holds Moth Orchestra against the original fixture and **will fail** when this
-lands — that is correct, and the fixture must not be regenerated to silence it;
-hold every other field and assert this one change, the way the Emergence seam
-test does.
-
-Two smaller questions to settle while in there: whether the Song-mode pooled
-`lead` role should use the folded chime too (it is authorship, so it may not
-matter), and whether any other instrument clamps — nothing else measured as
-doing so, but nothing has looked since.
-
-## 2. Reshape Emergence into something of its own
-
-> *"Emergence is fantastic but it's a lesser Gondwana so I think we should
-> reshape it into something of its own. I'll leave it for you to brainstorm and
-> plan in the next session."*
-
-**Read [PLAN-EMERGENCE.md](PLAN-EMERGENCE.md).** It carries the measured
-diagnosis, why it happened, what must be protected, four directions to react
-to, and the five questions only Lily can answer.
-
-The diagnosis in one line: **100% of Emergence's notes land inside Gondwana's
-central register**, and all six structural ideas in its sound were Gondwana's
-first — the room, the folding, the additive partials, the late arrivals, the
-authored harmonic layer, and long tails as the dominant gesture. She asked for
-*"a touch of Gondwana"*, which described a **mood**, and it was implemented as
-an **architecture**.
-
-The thing to protect: **the mapping is the idea and it is untouched by any of
-this.** Eight ranks, each sized by what it measurably tells apart. Keep the
-mapping, replace the sound world.
-
-**This is a brainstorm with her, not a build.** Bring the directions, ask the
-five questions, and do not start until she has answered — the last two sessions
-both improved by measuring first and both went wrong where they guessed.
+Fully specified below under "Ready and fully specified". It is the only
+outstanding task that touches **words rather than sound**, which makes it the
+one to pick up when her ear is not available.
 
 ---
 
@@ -155,13 +119,9 @@ true sentence that told Lily the wrong thing — only reading one catches the
 next. One judgement inside the plan's latitude is most likely to want changing:
 the omitted-row count is kept but only when non-zero, and that is one `if`.
 
-### The gallery family's floor — step 3 of PLAN-NEXT-FAMILY.md
-The room generated from the night's own shape, replacing the five ambience
-presets. **Emergence's `moth_ground` is now a worked example of exactly this
-idea** — harmony grown from the night's own pitch classes, 143 distinct
-harmonies across 144 nights where a preset gives one — so the floor has a
-pattern to follow and a tested one. The parked ground's bus and limiter are
-still in place.
+### ~~The gallery family's floor — step 3 of PLAN-NEXT-FAMILY.md~~
+**Done 18 September 2026**, on the `floor` branch, as Emergence. The five
+presets are retired. Unheard in a gallery, like everything else here.
 
 ### Noctilucent has never been heard
 Built, tested, withheld. Audition with `?family=noctilucent`, or at
@@ -176,8 +136,13 @@ Built, tested, withheld. Audition with `?family=noctilucent`, or at
   re-examined since the September interface rebuild.
 - **Photo preload on a slow connection** — never watched from a cold cache on
   anything but a fast link. See [PLAN-PHOTOS.md](PLAN-PHOTOS.md).
-- **Emergence's ground level** is 0.115 against arrivals at 0.12–0.65, and it
-  was a guess. One number.
+- **Is Emergence too quiet?** Measured: the whole room renders 26.6 dB below
+  the arrivals, and grain and tones sit around −17 dB. Four of its six gestures
+  may be inaudible in context. Her ear, with isolated clips — see
+  [PLAN-WORKBOOK.md](PLAN-WORKBOOK.md).
+- **`moth_ground`** belongs to the withheld Emergence *family* now, and its
+  level (0.115) is still the guess it always was. Only reachable via
+  `?family=emergence`.
 
 ---
 
@@ -204,11 +169,27 @@ every shared minute. The meeting claimed a moment and delivered a volume.
 > Before adding a gesture, measure how often it fires on real data, and check
 > that the thing it fires on is the thing its name says.
 
-A fifth, from this session, worth adding beside it:
+A fifth, from 17 September:
 
 > Measure where a new family sits **relative to the families that already
 > exist**, not only against its own intentions. Emergence measured beautifully
 > on every axis it was designed against, and was still a lesser Gondwana.
+
+Two more, both from 18 September, and both cheap to apply:
+
+> **Sweep the whole archive, not the two nights that get auditioned.** The
+> Emergence `tones` axis read 2 against 3 on the two test nights and looked
+> like it worked. Across all 144 nights it was 3 every time — dead, because it
+> keyed on pitch-class count and the scale is pentatonic, so 140 of 144 nights
+> use all five. `tests/emergence.test.cjs` now sweeps the archive and fails any
+> axis that takes only one value.
+
+> **A passing test is not a working feature.** The first fix for "the room does
+> not stop when the music stops" passed every test and did not work: the tests
+> proved `stop()` released its nodes, and nothing proved anything *called* it on
+> pause. Pressing the real button in a real browser caught it. Where a change is
+> about *when* something happens rather than *what* it does, drive the real
+> control.
 
 ---
 

@@ -197,7 +197,9 @@ test('Noctilucent is built but withheld from the user-facing family list', () =>
   const published = vm.runInContext('Array.from(PUBLIC_VOICE_MODES)', c);
   assert.ok(!published.includes('noctilucent'), 'not offered to the listener');
   assert.ok(vm.runInContext('VOICE_MODES.includes("noctilucent")', c), 'still registered');
-  assert.deepEqual(plain(published), ['gondwana', 'emergence', 'mixed', 'night', 'choir', 'steelpan', 'lantern']);
+  // Emergence left this list on 18 September 2026, when Lily spent the name on
+  // the gallery floor. It is withheld, not removed.
+  assert.deepEqual(plain(published), ['gondwana', 'mixed', 'night', 'choir', 'steelpan', 'lantern']);
   // Gondwana was accepted by ear and published on 14 September 2026, and leads
   // the list from 17 September; this family has still not been heard at all,
   // so it stays out regardless.
