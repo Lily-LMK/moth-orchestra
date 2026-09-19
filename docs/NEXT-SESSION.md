@@ -1,89 +1,134 @@
 # Next session
 
-One "Start here", updated in place. This file had grown three competing ones
-by 16 September 2026; if it grows a second again, that is the bug.
+One "Start here", updated in place. This file had grown three competing ones by
+16 September 2026; if it grows a second again, that is the bug. On 19 September
+it had instead grown a 120-line tail it called "not a brief" — that tail is now
+[HISTORY.md](HISTORY.md), and this file is meant to stay about a screen long.
 
 ---
 
-## Standing state — 18 September 2026, end of day
+## Standing state — 19 September 2026
 
-`main` is **published** at <https://lily-lmk.github.io/moth-orchestra/> and is
-**unchanged at `11265d1`**. All of today's work is on the branch **`floor`**,
-three commits, working tree clean:
+**`main` is published at <https://lily-lmk.github.io/moth-orchestra/> and now
+carries the Emergence floor.** Pushed at `d049fdd` and confirmed live: the
+ambience code is gone from the served build and `setEmergence` is present.
 
-```
-5d83d96  Give Emergence an on/off, and fix an axis that never varied
-3d18fe3  Make Emergence the gallery floor; retire all ambience
-d59f85a  Build the gallery floor: three spines, withheld for her ear
-```
+Four branches, each with one job:
 
-Suite: **464 tests, 455 pass, 0 fail**, 1 documented skip, 8 gap-remapping
-TODOs.
+| Branch | What it is |
+|---|---|
+| **`main`** | `d049fdd`, published and live |
+| **`frog-yawn`** | The active work. The nested voice mapping and SSAATTBB. Carries `PLAN-FROG-YAWN.md` and `tools/measure-voice-mapping.cjs` and **no workbook audio** |
+| **`workbook`** | Parked, **ON HOLD**, never pushed. The explainer, and the 35MB of committed WAV |
+| **`emergence-floor`** | Merged into `main`; safe to delete once the live build is accepted |
 
-### A push is pending her word
+Six older branches (`voice-registers`, `restore-the-crossing`,
+`restore-the-flourishes`, `repair/synchrony-reference`, `moth-orchestra-hero`,
+`fix/fetch-replaces-loaded-records`) were fully merged into `main` and were
+deleted locally on 19 September. `repair/synchrony-reference` still exists on
+`origin` and can go whenever Lily says.
 
-Lily, 18 September: *"Soon we will want to commit and push to live because
-you've corrected some important bugs and also replaced the ambience tracks with
-something meaningful."* **Soon, not yet.** Do not merge or push until she says
-so. What would go live:
+Suite: **470 tests, 461 pass, 0 fail**, 1 documented skip, 8 gap-remapping
+TODOs. Run it with `node --test tests/*.test.cjs` from `repository/`.
+
+### What went live on 19 September
 
 - **A real bug fix.** Ambience kept playing after the music stopped. Six code
   paths stop playback; only three stopped the sound. All six now do.
-- **All ambience retired** — the five presets in the menu and two builders that
-  were never reachable from the interface. 1,085 lines removed.
-- **Emergence, the gallery floor**, replacing them. Still behind `?emergence=1`.
-- **Emergence withdrawn as a voice family** — withheld, not deleted, and still
+- **All ambience retired** — the five presets and two builders never reachable
+  from the interface. 1,085 lines. Five mentions survive, all comments.
+- **Emergence, the gallery floor**, in their place, behind `?emergence=1`.
+- **Emergence withdrawn as a voice family** — withheld, not deleted, still
   auditionable with `?family=emergence`.
 
-Note that publishing removes five ambience presets that have been live for
-weeks. Nothing suggests she wants them kept, but say it plainly before pushing
-rather than after.
+Verified before pushing: the suite, and **the real Play/Pause button driven in a
+real browser** — the room starts with the music and is null again after the
+teardown. Not verified: anything by ear, on any device.
 
-Read in this order:
+---
 
-1. **[PLAN-WORKBOOK.md](PLAN-WORKBOOK.md)** — the brief for the main task below.
-2. **[WHAT-EVERY-SOUND-MEANS.md](WHAT-EVERY-SOUND-MEANS.md)** — every sound, what
-   fires it, what it claims. The workbook is largely a hearable version of this.
-3. [SESSION-2026-09-18-FLOOR.md](SESSION-2026-09-18-FLOOR.md) — how Emergence
-   was built and what was measured.
+## Settled by Lily, 19 September 2026 — do not reopen these
+
+Three things this repository has repeatedly proposed "fixing" are now decided,
+and none of them is a bug:
+
+- **Emergence does not appear in exported audio, and that is intended.** Do not
+  wire `buildEmergence()` into `renderOfflineBuffer()`. Earlier notes in this
+  file called the omission a gap; she has said plainly that she does not want
+  Emergence to export.
+- **The default listening rank stays at `taxon_class_name`.** *"We all love that
+  it starts at Class and then we can build enrichment by traveling deeper into
+  the taxonomy. Class often sounds fabulous too."* Measurements showing that
+  class reaches only 2 instruments and 4 pitches on a busy night are not an
+  argument against it — depth is the enrichment, not the default.
+- **The echo stays loyal to species** and will not follow the rank being listened
+  at. Whether its *wording* is accurate is a separate question, deliberately
+  deferred: she noted the interface wording is as much mine as hers and wants to
+  look at it in a session of its own.
 
 ---
 
 # Start here
 
-## 1. The explainer workbook — read PLAN-WORKBOOK.md
+## 1. The mapping, and Frog Yawn — this is the work
 
-> *"I think we need a total explainer workbook, not just for emergence but for
-> at least two sample music families. [...] I'll be demonstrating this soon and
-> I think this workbook will be an important part of introducing Moth
-> Orchestra."*
+Branch `frog-yawn`. Read **[PLAN-FROG-YAWN.md](PLAN-FROG-YAWN.md)**; its line
+references were checked against the current `index.html` on 19 September and are
+accurate.
 
-**This is for an audience, not for us**, which changes what "good" means: every
-claim must be hearable rather than merely written down.
+Writing the explainer forced the central mapping to be described honestly, and it
+did not survive the description. `hash32(name) % poolSize` discards the taxonomic
+tree at the one moment it could be heard. **Measured across 2,344 distinct taxa:
+two moths of the same family sit 2.65 voices apart in an 8-voice ensemble, and a
+moth and a beetle sit 2.66 apart.** The mapping carries no taxonomic information
+whatsoever. `tools/measure-voice-mapping.cjs` produces that table.
 
-Three content areas, all specified in the plan: *every note is one observation*;
-*the three gestures that mark the two observers together*, in her own words; and
-*what makes Emergence behave one way versus another*. Two families —
-**Gondwana** and **Moth Orchestra** proposed, both published and accepted.
+Lily: *"Let's bring this into being in the next session with Frog Yawn. Let's put
+the explainer on hold until we have something we can defend as data driven."*
 
-**The finding that shapes the design.** She said she could not hear four of
-Emergence's six gestures and guessed the arrivals were covering them. She is
-right, by a wide margin: on 3 September the whole room renders **26.6 dB below
-the arrivals**, and grain and tones sit around −17 dB even measured generously.
-So the workbook must let every sound be heard **alone**, and there is a real
-question for her ear — **is Emergence simply too quiet?** Even at 100% the room
-stays about 20 dB under. Do not change that level on measurement alone.
+The replacement, chosen by measurement over five candidates: each rank in turn
+chooses one half of what remains of the ensemble — **order → family → genus**.
+Same family lands adjacent 100% of the time, different orders 2.92 voices apart,
+a monotonic gradient. It costs a little variety (6.70 of 8 voices on a typical
+night against 7.77) and it uses only ranks at or above the listening rank, so
+depth still unlocks the ensemble.
 
-Five questions for her are at the foot of the plan; the first two (audience,
-and where the workbook lives) shape everything and are worth asking early.
+Frog Yawn is its first home because **register is a continuum**, so "adjacent
+voice" means something to the ear. It goes to **SSAATTBB** by divisi rather than
+four invented timbres, after a sound-neutral table refactor (`CHOIR_VOICES`).
 
-## 2. Fix the `chime` clamp — still outstanding, still decided
+**Know before starting: "Frog Yawn" does not exist in the code.** The family's
+key is `"choir"` (`index.html:2494`); "Frog Yawn" is only a display label
+(`:2514`). Same for `night` → "Boobook" and `steelpan` → "Fireflies".
 
-Carried from 17 September, untouched since, and still the smallest real task in
-this file. `chime`, in Moth Orchestra, uses `Math.min` where it needs a fold:
-166 of 526 chime notes across 144 nights are flattened onto B4, giving 56 taxa a
-pitch that is not their own. The fix is one entry in `VOICE_REGISTERS` and one
-call to `voicedFreq`.
+Two standing decisions: **organum** implemented but defaulting off, for audition;
+**no reverb in the first build**, so she hears the voices dry first. Two things
+need her word rather than a measurement — the roster weighting she chose on 19
+September is **superseded** by the new mapping (there is no pool left to weight),
+and at class rank the mapping yields **one** choir voice where today it reaches
+about two.
+
+It stops at a listening gate. Frog Yawn is published, so the dry eight voices go
+to her ear before the room, before organum, and before any merge.
+
+## 2. The explainer is ON HOLD
+
+`workbook/index.html` is committed, working and accurate about everything except
+the thing it most needs to be right about. **Do not show it, publish it or extend
+it** until the mapping above exists. Her reason is the correct one: it should not
+teach an arbitrary assignment as though it were meaningful. It is paused, not
+wrong — see `SESSION-2026-09-19-WORKBOOK-DRAFT.md` on the `workbook` branch.
+
+**Its 35MB of committed WAV is an open question**, deliberately kept off every
+other branch until Lily decides. Every other large file in this project lives
+outside the git tree. It costs nothing while `workbook` stays unpushed.
+
+## 3. Fix the `chime` clamp — still outstanding, still decided
+
+Carried from 17 September and still the smallest real task in this file. `chime`,
+in Moth Orchestra, uses `Math.min` where it needs a fold: 166 of 526 chime notes
+across 144 nights are flattened onto B4, giving 56 taxa a pitch that is not their
+own. The fix is one entry in `VOICE_REGISTERS` and one call to `voicedFreq`.
 
 Measured, so it is not left as a guess: **220–494 Hz** is the register to start
 from — seven distinct pitches rather than the five that 247–494 gives, fewer
@@ -96,11 +141,10 @@ It changes Moth Orchestra, so it needs her ear, and
 `tests/musical-reference.test.cjs` **will fail** when it lands — correct, and the
 fixture must not be regenerated to silence it.
 
-## 3. The curated vernacular-name lookup — build-ready, blocked on nothing
+## 4. The curated vernacular-name lookup — build-ready, blocked on nothing
 
-Fully specified below under "Ready and fully specified". It is the only
-outstanding task that touches **words rather than sound**, which makes it the
-one to pick up when her ear is not available.
+The only outstanding task that touches **words rather than sound**, which makes
+it the one to pick up when her ear is not available. Fully specified below.
 
 ---
 
@@ -119,10 +163,6 @@ true sentence that told Lily the wrong thing — only reading one catches the
 next. One judgement inside the plan's latitude is most likely to want changing:
 the omitted-row count is kept but only when non-zero, and that is one `if`.
 
-### ~~The gallery family's floor — step 3 of PLAN-NEXT-FAMILY.md~~
-**Done 18 September 2026**, on the `floor` branch, as Emergence. The five
-presets are retired. Unheard in a gallery, like everything else here.
-
 ### Noctilucent has never been heard
 Built, tested, withheld. Audition with `?family=noctilucent`, or at
 `../../sessions/2026-09-13/noctilucent-warm/listen.html`. It leaves
@@ -138,11 +178,14 @@ Built, tested, withheld. Audition with `?family=noctilucent`, or at
   anything but a fast link. See [PLAN-PHOTOS.md](PLAN-PHOTOS.md).
 - **Is Emergence too quiet?** Measured: the whole room renders 26.6 dB below
   the arrivals, and grain and tones sit around −17 dB. Four of its six gestures
-  may be inaudible in context. Her ear, with isolated clips — see
-  [PLAN-WORKBOOK.md](PLAN-WORKBOOK.md).
+  may be inaudible in context. Her ear, with isolated clips. Do not change that
+  level on measurement alone.
 - **`moth_ground`** belongs to the withheld Emergence *family* now, and its
   level (0.115) is still the guess it always was. Only reachable via
   `?family=emergence`.
+- **The offline render has no limiter.** Rendering the class-rank loop peaked at
+  1.245 — the live chain limits, `renderOfflineBuffer` does not, so an export can
+  clip where playback does not.
 
 ---
 
@@ -154,6 +197,9 @@ headphones and a laptop. Say so rather than implying otherwise.
 **Emergence is live and not settled.** That is Lily's decision, taken
 explicitly, with Moth Orchestra left intact as the safeguard. Do not treat it
 as accepted.
+
+**Lily writes the copy, or approves it.** She has corrected interface sentences
+for sounding machine-written. Hand prose over as a draft and expect it to change.
 
 Observer sound identity (Milestone 2), composition save/reopen (Milestone 4)
 and gap shortening (Milestone 5) are unstarted.
@@ -191,20 +237,23 @@ Two more, both from 18 September, and both cheap to apply:
 > about *when* something happens rather than *what* it does, drive the real
 > control.
 
+And one from 19 September:
+
+> **Pin what varies between the script that finds an example and the script that
+> renders it.** `state.seed` defaults to `Date.now()`. An unpinned render script
+> silently broke its own "same instrument" claim between finding an example and
+> rendering it — the pipeline worked, the audio was valid, and the caption was
+> false. Caught by rereading the manifest, not by ear.
+
 ---
 
 ## Ready and fully specified — the curated vernacular-name lookup
 
 Agreed with Lily on 16 September 2026 after the import repair
 ([SESSION-2026-09-16-IMPORT.md](SESSION-2026-09-16-IMPORT.md)), refined by her
-the same day, and deferred by her so the night-display rules could go first.
-Those are done. **This is build-ready and blocked on nothing** — it is below
-the two tasks above only because she set those, not because it is less
-finished. It is an afternoon of careful naming and no new machinery.
-
-It is also the only outstanding task in this file that touches **words rather
-than sound**, which makes it the natural one to pick up when her ear is not
-available.
+the same day. **Build-ready and blocked on nothing** — it is below the tasks
+above only because she set those, not because it is less finished. It is an
+afternoon of careful naming and no new machinery.
 
 Common names now come from iNaturalist alone. The third-party enrichment that
 used to fill the gaps was removed: it cost about 65 minutes per import and
@@ -294,126 +343,4 @@ stands alone, as now.
 
 ---
 
-
----
-
-# Carried forward
-
-Everything below predates 17 September 2026 and is **not** a brief. It is kept
-because it records decisions and reasoning that would otherwise be lost.
-Nothing here has been re-verified against the released build.
-
-## Carried forward — a new instrument family for the gallery
-
-Read [PLAN-NEXT-FAMILY.md](PLAN-NEXT-FAMILY.md) first. It carries the measured
-case for a large palette, the naming question to settle with Lily before
-building, the three-strata proposal, the headroom problem that must be
-measured before any sub-bass is added, and the four answers needed from Lily to
-start.
-
----
-
-## Carried forward — Gondwana, second attempt (since released and loved)
-
-**Superseded in its conclusion, kept for its reasoning.** Gondwana was released
-as the sixth published family and Lily has heard it many times; it sounds
-beautiful. Everything below describes the state before that release, including
-its "nothing has been judged by ear" framing. Read it for why the *first*
-palette failed, which is still the sharpest lesson in this repository.
-
-The first palette (fifteen physical-model bodies, rank-graded) was built and
-rejected by ear the same day: *"a child's xylophone or panhand"*. The diagnosis
-and the rebuild are both in
-[SESSION-2026-09-13-GONDWANA.md](SESSION-2026-09-13-GONDWANA.md) — read it
-before touching this family, because the failure is more instructive than the
-fix.
-
-What stands now: seven bodies, not fifteen. Rank is spent *inside* each voice
-rather than on more voices. The family performs the written score an octave or
-two below where it was written, always by whole octaves. And it sounds into a
-synthesised room on its own bus — the first reverb this instrument has ever had.
-
-Audition: `../../sessions/2026-09-13/gondwana-2/listen.html` — run
-`python3 serve.py` in that folder first. The first attempt is kept at
-`../../sessions/2026-09-13/gondwana/` for comparison.
-
-**Superseded — this paragraph described the state before release.** Gondwana
-left `WITHHELD_VOICE_MODES` on 14 September 2026, is published, and is Lily's
-favourite family. Noctilucent is the only withheld one. Kept only because the
-reasoning above it is the sharpest lesson in this repository. Two questions the measurements
-raise but cannot answer: whether this is a wise voice or merely a slower one,
-and whether `gond_rim` — the only light left on top, and among the quietest —
-survives the mass underneath.
-
-Steps 2 to 5 — the ground, the floor, the gallery/personal mix, the release
-decision — are unstarted. Playback is headphones only.
-
-## Carried forward — the interface work
-
-Written 13 September, when it was the active session. Its suite count (200) and
-"this session" framing are both superseded; the current state is at the top of
-this file. Kept for the protected behaviours it names, which still hold:
-the sound, the score, the creek flourish, A-plain/B-outlined, and shared
-taxonomic ring positions.
-
-Lantern Glass is published. Noctilucent is built, tested and deliberately
-withheld from the listener. Read SESSION-ROADMAP.md and
-SESSION-2026-09-13-RELEASE.md before resuming interface work.
-
-## Carried forward — the three-size interface outcome
-
-One interface that genuinely resolves at three sizes rather than shrinking:
-an exhibition screen read at a distance and running unattended, Lily's laptop
-while she performs it in front of a room, and a phone held one-handed in the
-dark at the moth sheet. Lily chose all three, properly responsive.
-
-## Carried forward — Lily's eyes on the shared minute
-
-See SESSION-2026-09-13-SHARED.md. Shared minutes now show both records; they
-never reached the card at all before. The centre card has an off switch (C),
-and the control column was rebuilt as a specification sheet.
-
-Still unchecked: the gallery fullscreen view under the new design layer, and
-Present/demo mode. Nothing has been judged by ear or on hardware.
-
-## Earlier — the rebuilt circle
-
-See SESSION-2026-09-13-CIRCLE.md. The circle view was rebuilt around the
-sounding record and a real clock of the night, the floating key was removed,
-and the controls now fold away with the tab or H. None of it has been seen on
-real hardware or judged by ear.
-
-Known gaps: the gallery fullscreen view was not touched and has not been
-re-checked under the new design layer; "Class voices: 1" still tells a viewer
-nothing; Present/demo mode was not re-examined.
-
-## Earlier — the first interface pass
-
-The interface pass is built and measured but nobody has looked at it. Two ring
-conventions changed deliberately (single-group arrivals moved to the outer
-ring; shared-minute halos moved from a fixed 0.93 to just outside the
-arrivals at 1.04) and a legend was added. SESSION-2026-09-13-RELEASE.md has
-the reasoning. Show her the circle before building anything on top of it.
-
-Then: the gallery and Present mode were not re-examined under the new design
-layer, and "Class voices: 1" still tells a viewer nothing.
-
-## Carried forward — standing obligations, as written before 17 September
-
-**Settled.** The precision question is closed and acted on. 97.7% of records
-carry `:00` seconds (6,636 of 6,794), so the five-second near-simultaneous rule
-was reading detail that is not there; measurement then showed it had collapsed
-onto the shared-minute rule entirely. Lily has called for its replacement — see
-[PLAN-SYNCHRONY-AND-TRUTH.md](PLAN-SYNCHRONY-AND-TRUTH.md), which is the active
-brief. The genuine shared-*minute* flourish was never affected, since it works
-at minute resolution by construction.
-
-The date diamond still means
-"both observed on this date", not shared minutes, and still reads as though it
-means the latter. Observer sound identity (Milestone 2), composition
-save/reopen (Milestone 4) and gap shortening (Milestone 5) are unstarted.
-
-No listening review, real-device test or long rehearsal has been performed on
-the released build. Say so rather than implying otherwise. Warm Noctilucent
-remains an unjudged audition at
-`../../sessions/2026-09-13/noctilucent-warm/listen.html`.
+Older, finished briefs and superseded reasoning: [HISTORY.md](HISTORY.md).
